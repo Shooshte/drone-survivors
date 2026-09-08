@@ -1,6 +1,6 @@
 # Drone Survivors
 
-A Rust/Bevy prototype, currently featuring a playable 3D drone test arena.
+A Rust/Bevy prototype, currently featuring a playable 3D drone combat arena.
 Configured using the [Bevy setup guide](https://bevy.org/learn/quick-start/getting-started/setup/).
 
 ## Development
@@ -16,7 +16,7 @@ cargo dev
 
 The test arena opens immediately. Use **WASD or arrow keys** to move over the
 ground plane, **Space** to ascend, **either Shift** to descend, **R** to return
-to the center at the starting altitude, and **Escape** to quit. Release movement
+restart the encounter at the center and starting altitude, and **Escape** to quit. Release movement
 keys to hover. Diagonal movement, including combined horizontal and vertical
 flight, has the same total speed as straight movement.
 
@@ -25,6 +25,19 @@ along a boundary or back away from it. The 960 × 540 arena has a 300-unit
 ceiling, and the drone starts 90 units above ground (measured at its center).
 An angled camera keeps the full flight volume visible as the window is resized.
 A ring on the ground and a vertical guide show the drone's ground position.
+
+Three orange flying chasers pursue the drone at every altitude. The basic
+weapon automatically fires yellow projectiles at the nearest enemy within
+400 world units, aiming at its current position. Shots travel straight and
+can miss; each disappears after its first hit, after one second, or on leaving
+the arena. Keep moving to avoid contact.
+
+The HUD shows hull health and remaining enemies. Contact deals 25 damage,
+followed by a shared 0.75-second invulnerability window. At zero health, gameplay
+freezes and **R** starts a fresh encounter. R also restarts during combat or
+after clearing the arena, restoring health, enemy positions, and weapon timing.
+There are no waves or respawns between restarts. Balance values are provisional
+and grouped in `CombatConfig` in `src/combat.rs` for playtesting.
 
 See [the control smoke check and playtest notes](docs/playtests.md).
 

@@ -89,11 +89,11 @@ fn update_hud(
 ) {
     let count = enemies.iter().count();
     let status = if *phase == GamePhase::Dead {
-        "DRONE DESTROYED — R to restart"
+        "DRONE DESTROYED | R to restart"
     } else if count == 0 {
-        "ARENA CLEAR — R to replay"
+        "ARENA CLEAR | R to replay"
     } else {
-        "AUTO FIRE — Keep moving"
+        "AUTO FIRE | Keep moving"
     };
     let value = format!(
         "HULL  {} / {}   |   HOSTILES  {}\n{}",

@@ -28,11 +28,11 @@ Interfaces: GamePhase::{Playing, Dead}; GameplaySet::{Reset, Movement, Combat,
 Presentation}; CombatConfig resource; Enemy/Projectile components;
 PlayerHealth and Weapon resources; CombatPlugin.
 
-- [ ] Add ECS tests for chase in three axes/bounds, nearest target/range/ties,
+- [x] Add ECS tests for chase in three axes/bounds, nearest target/range/ties,
       straight shots, moving-target sweep, first impact, and projectile expiry.
-- [ ] Run `cargo test --locked combat` and observe missing behavior.
-- [ ] Implement shared phase/ordering, fixed fixture, chase, firing, and sweeps.
-- [ ] Run `cargo test --locked`; preserve all existing flight tests.
+- [x] Run `cargo test --locked combat` and observe missing behavior.
+- [x] Implement shared phase/ordering, fixed fixture, chase, firing, and sweeps.
+- [x] Run `cargo test --locked`; preserve all existing flight tests.
 
 Collision example to verify the rule, with normalized frame time:
 
@@ -46,25 +46,25 @@ assert_eq!(segment_box(Vec3::ZERO, Vec3::X * 100., Vec3::Y * 50., Vec3::splat(10
 Files: extend src/combat.rs and src/combat/tests.rs; use the same phase/set
 interface for movement gating and reset precedence.
 
-- [ ] Add failing ECS tests: simultaneous contacts cause one hit, contact after
+- [x] Add failing ECS tests: simultaneous contacts cause one hit, contact after
       the deadline causes another, separation prevents damage, death freezes
       gameplay, repeated R clears transients and restores the exact fixture.
-- [ ] Implement player-wide invulnerability, saturating health, one-time death,
+- [x] Implement player-wide invulnerability, saturating health, one-time death,
       and ordered reset. Destroyed enemies cannot cause contact damage.
-- [ ] Run `cargo test --locked`; commit the verified combat rules.
+- [x] Run `cargo test --locked`; commit the verified combat rules.
 
 ## Task 3: Presentation and delivery
 
 Files: create src/combat/scene.rs; modify src/arena/scene.rs, src/main.rs,
 README.md, and docs/playtests.md.
 
-- [ ] Add reusable enemy/projectile meshes and materials plus one persistent HUD.
-- [ ] Verify repeated restart does not accumulate entities or visual assets.
-- [ ] Render native gameplay and exercise available keyboard controls; record
+- [x] Add reusable enemy/projectile meshes and materials plus one persistent HUD.
+- [x] Verify repeated restart does not accumulate entities or visual assets.
+- [x] Render native gameplay and exercise available keyboard controls; record
       observation limits honestly.
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, and
+- [x] Run `cargo fmt --check`, `cargo test --locked`, and
       `cargo clippy --all-targets --locked -- -D warnings`.
-- [ ] Request independent source review while completing the native smoke check;
+- [x] Request independent source review while completing the native smoke check;
       fix actionable findings and rerun affected checks.
-- [ ] Commit presentation/docs, push codex/dro-6-basic-combat, and create a PR
+Delivery: commit presentation/docs, push codex/dro-6-basic-combat, and create a PR
       against main with summary, ticket link, validation, and playtest limits.

@@ -1,5 +1,89 @@
 # Playtests
 
+## DRO-6 — Basic combat — 2026-09-08
+
+Target: native macOS / Apple Silicon, Rust nightly, Bevy 0.19.1.
+
+### Repeatable combat smoke check
+
+1. Run `cargo dev`. The drone starts at (0, 90, 0), with 100 hull and three
+   orange chasers at fixed positions and different altitudes. Yellow shots fire
+   automatically at the nearest enemy within 400 units of true 3D distance.
+2. Move with WASD/arrows, Space, and Shift. Chasers follow in all three axes.
+   Try the floor, ceiling, and side walls: neither body leaves the flight volume,
+   and chasers can still make contact. Release input to hover.
+3. Watch a shot after its target changes direction. It keeps travelling straight,
+   can miss, and disappears after the first enemy hit, one second, or arena exit.
+   Kill one enemy and confirm subsequent shots choose a remaining target.
+4. Allow contact. Hull drops by 25, with at least 0.75 seconds before another
+   hit even when several enemies overlap. Move away to avoid further damage.
+5. Stand still until hull reaches zero. The destroyed prompt appears and all
+   gameplay freezes. R restores full health, all three original enemy positions,
+   starting altitude, and fresh weapon/damage timers. Repeat during combat;
+   no previous enemies or shots should remain. Escape exits.
+6. Evade long enough to kill all enemies. The clear prompt appears; movement
+   remains available and R replays the same encounter. There are no waves,
+   rewards, energy costs, or upgrade dependencies.
+
+### Initial tuning
+
+All values are grouped in `CombatConfig` in `src/combat.rs`:
+
+| Setting | Starting value |
+|---|---|
+| Player / enemy health | 100 / 40 |
+| Contact / projectile damage | 25 / 10 |
+| Shared contact invulnerability | 0.75 seconds |
+| Chaser / projectile speed | 150 / 650 world units per second |
+| Fire interval / targeting range | 0.5 seconds / 400 world units |
+| Projectile lifetime | 1 second |
+| Chaser half-size / projectile radius | 14 / 3 world units |
+
+These are playtest starting points. In particular, the user accepted the
+invulnerability window provisionally and wants to judge it through play.
+
+### Automated results
+
+- `cargo fmt --check`: passed.
+- `cargo test --locked`: all 31 tests passed (13 arena, 18 combat/presentation).
+- `cargo clippy --all-targets --locked -- -D warnings`: passed.
+- `cargo build --locked --features bevy/dynamic_linking`: passed.
+- Real ECS tests cover three-axis chase and boundary contact, nearest/range/tie
+  targeting, 30/120-update firing cadence, straight shots and moving-target
+  sweeps, first-impact-only damage, lifetime/arena cleanup, shared contact timing,
+  separation, lethal-hit ordering, frozen death, and repeated complete resets.
+- Presentation checks verify one persistent HUD and no accumulation of live
+  entities, meshes, or materials over repeated death/restart cycles.
+- The initial test-first run produced 14 expected combat failures. Independent
+  review then found target loss cancelling an active firing cooldown. A new
+  regression reproduced the early extra shot; preserving the outstanding
+  cooldown fixed it. Review found no other actionable issues.
+
+### Native results and limits
+
+`cargo dev` compiled and launched its process. For UI inspection, the same
+rebuilt development binary ran in a temporary macOS app bundle with its Rust
+standard-library lookup path added; no packaging changes are committed.
+
+Observed the complete arena, orange chasers converging on the drone, the hull
+counter falling in 25-point increments, an enemy kill (hostile count 3 to 2),
+and the stable zero-hull destroyed state. Pressing R visibly restored 100 hull
+and all three chasers at their initial positions. Escape terminated the app.
+A missing dash glyph was found in the HUD during this check, replaced with an
+ASCII separator, rebuilt, and visually verified in both active and dead states.
+
+The UI tool sends brief keyboard taps. Held-key movement was not visibly
+established in this smoke check; movement and altitude pursuit are covered by
+the automated ECS checks. A full evasive native clear, deliberate missed-shot
+scenario, projectile readability during movement, and human combat feel remain
+manual playtest items. No final balance judgment is claimed.
+
+### Next adjustment
+
+Play the encounter with held controls and tune chase pressure, shot readability,
+fire rate, and the 0.75-second damage window from observations. Ground enemies
+with ranged attacks are deferred. Waves and richer feedback belong to DRO-7.
+
 ## 3D drone movement and bounded flight — 2026-09-08
 
 Target: native macOS / Apple Silicon, Rust nightly, Bevy 0.19.1.
