@@ -1,0 +1,26 @@
+[package]
+name = "drone-survivors"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = "0.19.1"
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
+
+# Keep application rebuilds quick while optimizing engine dependencies.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+# Trade longer release builds for better runtime performance.
+[profile.release]
+codegen-units = 1
+lto = "thin"
+
+# Smaller WebAssembly downloads.
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+strip = "debuginfo"

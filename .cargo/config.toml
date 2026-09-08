@@ -1,0 +1,11 @@
+[alias]
+# Enable dynamic linking for development without enabling it in release builds.
+dev = "run --features bevy/dynamic_linking"
+
+# Nightly generic sharing speeds up incremental native builds.
+# Keep the default Apple linker, as recommended by Bevy's macOS setup guide.
+[target.aarch64-apple-darwin]
+rustflags = ["-Zshare-generics=y"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-Zshare-generics=y"]
