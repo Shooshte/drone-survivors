@@ -53,6 +53,38 @@ cargo test
 cargo clippy --all-targets
 ```
 
+## Scout drone model
+
+The combat player uses an original Blender scout: split silver armor over a
+black chassis, three compact hover rotors (one under each wing and one under
+the nose), cyan lights, a four-lens sensor
+cluster, swept fins, and two small equipment housings. This is a visual asset;
+XP gain, terrain immunity and core-slot passives are not implemented yet.
+
+![Scout studio preview](docs/images/scout-drone.png)
+
+- Game asset: `assets/models/scout_drone.glb` (self-contained, six material meshes).
+- Editable source: `art/scout/scout_drone.blend` (named parts and studio setup).
+- Rebuild script: `tools/build_scout_drone.py` (tested with Blender 5.2.1).
+
+Run from this checkout so Bevy finds `assets/`. Include that directory alongside
+any distributed executable. The model uses +Y up, -Z forward and fits the existing
+70 × 30 × 90 collision envelope. The model is 2.5× its original size for arena
+readability; rotor diameter is 38% smaller relative to the body. Restarting an
+encounter retains the loaded model.
+
+To regenerate the Blender source, GLB and studio preview (overwriting those files):
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+  --python tools/build_scout_drone.py
+```
+
+On other platforms, use your Blender executable in place of the macOS path.
+The script recreates the model from its parameters; edits made directly in the
+`.blend` must be exported separately to preserve them. Export only the drone mesh
+objects as a GLB with +Y up, excluding the studio floor, camera and lights.
+
 ## Release builds
 
 ```sh

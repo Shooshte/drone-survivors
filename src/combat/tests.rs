@@ -110,8 +110,8 @@ fn chaser_moves_toward_player_in_three_dimensions_at_time_based_speed() {
 #[test]
 fn chaser_reaches_contact_at_every_drone_boundary_without_leaving_arena() {
     for target in [
-        Vec3::new(-462., 6., -252.),
-        Vec3::new(462., 294., 252.),
+        Vec3::new(-445., 15., -225.),
+        Vec3::new(445., 285., 225.),
         START,
     ] {
         let (mut app, drone) = empty_app();

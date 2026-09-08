@@ -1,5 +1,41 @@
 # Playtests
 
+## Scout drone mesh — 2026-09-08
+
+The scout replaces the combat player's primitive placeholder. Native Blender
+5.2.1 generated the editable source, self-contained GLB and studio preview.
+The export contains six material meshes, 48,844 triangles and no textures,
+with a file size of 1,513,984 bytes. The revised mesh is 2.5× larger, with three rotors at 62%
+of the original relative diameter: two under the wings, one beneath the nose.
+The collider now has half extents (35, 15, 45), with a matching ground marker.
+
+Final checks: `cargo test --locked` passed all 32 tests;
+`cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --check` and
+`git diff --check` passed. Independent read-only review found no actionable defects.
+
+Validation covers the actual GLB's transformed vertex bounds and normals,
+loading through Bevy's GltfPlugin, parenting all six mesh entities beneath the
+player, and preserving entities/material/mesh assets across three encounter
+restarts. The pre-export Blender bounds assertion provides a second coordinate
+check. The initial geometry test correctly failed when the GLB was absent. For the
+size revision, updated minimum-size and boundary tests failed against the old
+model and collider, then passed after the larger export and bounds change.
+
+Native visual inspection used the actual arena modules with temporary automatic
+screenshot instrumentation. The full arena rendered the scout during combat,
+at the normal camera distance, with the enlarged silhouette clearly visible. A second capture moved only the
+inspection camera and hid enemies and HUD to examine the model's imported
+surfaces and materials without obstruction. The capture harness is not shipped;
+the normal game camera and combat behavior are unchanged. Bevy emitted its known
+window-destroyed warning during clean exit.
+
+For a manual check, run `cargo dev`, look for the silver body and cyan hover
+rings, move in all three axes, approach arena boundaries, and press R repeatedly.
+The complete scout should follow the player and remain present after each reset.
+The studio render is in `docs/images/scout-drone.png`; native screenshots are
+`docs/images/scout-arena.png` and `docs/images/scout-bevy-closeup.png`.
+
+
 ## DRO-6 — Basic combat — 2026-09-08
 
 Target: native macOS / Apple Silicon, Rust nightly, Bevy 0.19.1.
