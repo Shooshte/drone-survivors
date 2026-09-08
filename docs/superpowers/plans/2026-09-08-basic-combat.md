@@ -21,6 +21,7 @@ controlled time and shared visual assets rather than a physics dependency.
 ## Task 1: Chasing and projectile combat
 
 Files: create src/game.rs, src/combat.rs, src/combat/collision.rs,
+src/combat/enemies.rs, src/combat/weapon.rs, src/combat/lifecycle.rs,
 src/combat/tests.rs; modify src/main.rs and src/arena.rs.
 
 Interfaces: GamePhase::{Playing, Dead}; GameplaySet::{Reset, Movement, Combat,
@@ -36,8 +37,8 @@ PlayerHealth and Weapon resources; CombatPlugin.
 Collision example to verify the rule, with normalized frame time:
 
 ```rust
-assert_eq!(segment_sphere(Vec3::ZERO, Vec3::X * 100., Vec3::X * 50., 10.), Some(0.4));
-assert_eq!(segment_sphere(Vec3::ZERO, Vec3::X * 100., Vec3::Y * 50., 10.), None);
+assert_eq!(segment_box(Vec3::ZERO, Vec3::X * 100., Vec3::X * 50., Vec3::splat(10.)), Some(0.4));
+assert_eq!(segment_box(Vec3::ZERO, Vec3::X * 100., Vec3::Y * 50., Vec3::splat(10.)), None);
 ```
 
 ## Task 2: Damage and encounter lifecycle

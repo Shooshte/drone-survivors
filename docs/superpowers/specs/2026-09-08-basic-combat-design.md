@@ -34,8 +34,8 @@ avoid skipping targets. Stable entity identity breaks equal-distance ties.
 Keep all balance values in CombatConfig. Initial values: player HP 100, enemy
 HP 40, contact damage 25, shot damage 10, chase speed 150 units/s, projectile
 speed 650 units/s, fire interval 0.5 s, range 400 units, projectile lifetime 1 s,
-enemy radius 14 units, projectile radius 3 units. Use the drone's existing box
-for contact so ground and ceiling contact remain reachable. These values are
+enemy half-size 14 units, projectile radius 3 units. Use the drone's existing box
+for contact, with box-shaped chasers, so ground and ceiling contact remain reachable. These values are
 starting points, not final balance requirements.
 
 ## Acceptance and validation

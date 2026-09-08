@@ -1,3 +1,4 @@
+use crate::game::{GamePhase, GameplaySet, is_playing};
 use bevy::prelude::*;
 
 mod scene;
@@ -7,11 +8,11 @@ pub use scene::ArenaScenePlugin;
 mod tests;
 
 const DRONE_START: Transform = Transform::from_xyz(0., 90., 0.);
-const DRONE_HALF_EXTENTS: Vec3 = Vec3::new(18., 6., 18.);
+pub(crate) const DRONE_HALF_EXTENTS: Vec3 = Vec3::new(18., 6., 18.);
 
 #[derive(Resource, Clone, Copy)]
-struct Arena {
-    half_size: Vec3,
+pub(crate) struct Arena {
+    pub(crate) half_size: Vec3,
     drone_speed: f32,
 }
 
@@ -25,22 +26,36 @@ impl Default for Arena {
 }
 
 impl Arena {
-    fn center(&self) -> Vec3 {
+    pub(crate) fn center(&self) -> Vec3 {
         // Center the flight volume above the ground plane at Y = 0.
         Vec3::Y * self.half_size.y
     }
 }
 
 #[derive(Component)]
-struct Drone;
+pub(crate) struct Drone;
 
 pub struct ArenaPlugin;
 
 impl Plugin for ArenaPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Arena>()
+            .init_resource::<GamePhase>()
+            .configure_sets(
+                Update,
+                (
+                    GameplaySet::Reset,
+                    GameplaySet::Movement,
+                    GameplaySet::Combat,
+                    GameplaySet::Presentation,
+                )
+                    .chain(),
+            )
             .add_systems(Startup, spawn_drone)
-            .add_systems(Update, move_drone);
+            .add_systems(
+                Update,
+                move_drone.in_set(GameplaySet::Movement).run_if(is_playing),
+            );
     }
 }
 

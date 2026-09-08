@@ -1,4 +1,6 @@
 mod arena;
+mod combat;
+mod game;
 
 use arena::{ArenaPlugin, ArenaScenePlugin};
 use bevy::{
@@ -21,7 +23,12 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins((ArenaPlugin, ArenaScenePlugin))
+        .add_plugins((
+            ArenaPlugin,
+            ArenaScenePlugin,
+            combat::CombatPlugin,
+            combat::CombatScenePlugin,
+        ))
         .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)))
         .run();
 }
