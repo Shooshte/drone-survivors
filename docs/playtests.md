@@ -1,5 +1,66 @@
 # Playtests
 
+## 3D drone movement and bounded flight — 2026-09-08
+
+Target: native macOS / Apple Silicon, Rust nightly, Bevy 0.19.1.
+
+### Repeatable control smoke check
+
+1. Run `cargo dev`. Confirm the mesh drone hovers over a gridded floor, with an
+   open frame showing the sides and ceiling, a center marker, and the controls.
+2. Use WASD and arrows to move over the X/Z plane. Space ascends; either Shift
+   descends. Release input to hover. Try horizontal/vertical combinations: total
+   speed stays constant. Opposing inputs cancel and duplicate bindings add no speed.
+3. Hold Shift until the drone's bottom reaches the floor, then keep holding it.
+   It must stop without sinking. Repeat with Space at the ceiling: the top stops
+   at Y = 300. Add horizontal input while pressing into either surface, then move
+   away from it. There must be no sticking, bounce, or movement through a limit.
+4. Visit all side walls and corners, including while ascending/descending. The
+   complete drone must remain inside the volume. The ground ring and vertical
+   guide follow its X/Z position, making altitude visible.
+5. Move in all three axes and press R. The drone returns to (0, 90, 0), and the
+   ground ring returns to the center. Reset wins that frame; holding R does not
+   repeatedly reset. Escape exits.
+6. Resize wider, taller, and down to the minimum window size. The full flight
+   volume and controls should remain visible. Relaunch restores the same scene.
+
+### Automated results
+
+- `cargo fmt --check`: passed.
+- `cargo test --locked`: all 13 tests passed.
+- `cargo clippy --all-targets --locked -- -D warnings`: passed.
+- `cargo build --locked --features bevy/dynamic_linking`: passed.
+- The movement tests drive the real gameplay plugin with keyboard resources and
+  controlled time: all six directions/aliases, every two/three-axis diagonal,
+  duplicate/opposing/released inputs, 30/120-update frame-rate equivalence,
+  all 26 face/edge/corner directions across repeated ten-second frames, sliding
+  along and leaving the floor/ceiling/side wall, and full-transform reset behavior.
+- Scene tests instantiate the real scene builder and check every drone mesh's
+  bounds against the movement half-extents, and every flight-volume corner
+  against the camera projection at 1120 × 720, 640 × 480, 1600 × 480, and 640 × 1000.
+- Test-first movement run: ten expected failures against the old 2D controller.
+  A geometry regression test then caught a nose detail extending 0.1 units above
+  the upper bound; repositioning the nose inside the bounds fixed it.
+
+### Native results and limits
+
+The development binary rendered successfully in a temporary macOS app bundle
+using the same approach as the previous smoke check (only the development
+library lookup path was adjusted; no packaging changes are committed).
+
+The 3D drone, floor grid, full boundary frame, ground ring/vertical guide, home
+marker, and control legend rendered. Resizing from 1120 × 720 to approximately
+700 × 480 retained the full volume and readable controls. Closing the window
+terminated the process successfully; relaunch restored the initial scene.
+Bevy logged a window-destroyed warning on close, with exit status 0.
+
+This session's UI automation did not produce observable gameplay keyboard input,
+including Escape, on either direct or normal app launch. Native held-key movement
+and reset are therefore not claimed as visually verified. Their ECS behavior is
+covered by the passing tests; a human keyboard feel check remains useful.
+
+Independent read-only source review found no actionable correctness issues.
+
 ## DRO-5 — Playable shell and test arena — 2026-09-08
 
 Target: native macOS, keyboard input, existing Rust nightly / Bevy 0.19.1 setup.
