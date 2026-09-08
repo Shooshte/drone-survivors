@@ -72,7 +72,7 @@ Files: `README.md`, `docs/playtests.md`, approved spec status, this plan.
 - [x] Build `cargo build --locked --features bevy/dynamic_linking`, launch the native arena, verify legend/model/orientation/reset where UI tools permit, and record exact observations and limitations.
 - [x] Review the complete diff independently; resolve actionable findings with covering tests.
 - [x] Run final formatting/tests/Clippy and diff checks, mark plan complete, and commit the finished implementation.
-- [ ] Push `codex/drone-flight-controls`; use `gh pr create --base main --head codex/drone-flight-controls --body-file <prepared-file>` and verify the returned PR state/base/head.
+- [x] Push `codex/drone-flight-controls`; use `gh pr create --base main --head codex/drone-flight-controls --body-file <prepared-file>` and verify the returned PR state/base/head.
 
 ## Validation record
 
@@ -81,3 +81,4 @@ Files: `README.md`, `docs/playtests.md`, approved spec status, this plan.
 - Final source: 42 tests passed; formatting, Clippy with warnings denied, dynamic native build, and diff checks passed.
 - Independent review: spec compliance and code quality passed with no actionable findings.
 - Native rendering, resized legend, restart, and exit verified; sustained keyboard feel remains a human playtest item, detailed in `docs/playtests.md`.
+- Published PR: https://github.com/Shooshte/drone-survivors/pull/5 against `main`.
