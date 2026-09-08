@@ -1,4 +1,5 @@
-use super::{CombatConfig, Encounter, Enemy, PlayerHealth, Projectile, WaveConfig};
+use super::feedback::{self, DamageCue, FeedbackConfig};
+use super::{CombatConfig, Encounter, Enemy, PlayerHealth, Projectile, SpawnWarning, WaveConfig};
 use crate::game::{GamePhase, GameplaySet};
 use bevy::prelude::*;
 
@@ -8,19 +9,24 @@ pub(crate) struct CombatScenePlugin;
 pub(super) struct CombatHud;
 
 #[derive(Resource)]
-struct CombatAssets {
+pub(super) struct CombatAssets {
     enemy_mesh: Handle<Mesh>,
-    enemy_material: Handle<StandardMaterial>,
+    pub(super) enemy_material: Handle<StandardMaterial>,
     projectile_mesh: Handle<Mesh>,
     projectile_material: Handle<StandardMaterial>,
 }
 
 impl Plugin for CombatScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup).add_systems(
-            Update,
-            (add_visuals, update_hud).in_set(GameplaySet::Presentation),
-        );
+        app.init_resource::<FeedbackConfig>()
+            .init_resource::<DamageCue>()
+            .add_systems(Startup, (setup, feedback::setup))
+            .add_systems(
+                Update,
+                (add_visuals, feedback::update, update_hud)
+                    .chain()
+                    .in_set(GameplaySet::Presentation),
+            );
     }
 }
 
@@ -80,40 +86,65 @@ fn add_visuals(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn update_hud(
     config: Res<CombatConfig>,
     health: Res<PlayerHealth>,
     phase: Res<GamePhase>,
     run: Res<Encounter>,
     waves: Res<WaveConfig>,
+    time: Res<Time>,
+    cue: Res<DamageCue>,
     enemies: Query<(), With<Enemy>>,
+    warnings: Query<(), With<SpawnWarning>>,
     mut hud: Single<(&mut Text, &mut TextColor), With<CombatHud>>,
 ) {
     let count = enemies.iter().count();
+    let next = waves.bursts.get(run.next_burst).map(|(at, _)| *at);
+    let lull = next.is_none_or(|at| (at / 60.).floor() > (run.elapsed / 60.).floor());
     let status = if *phase == GamePhase::Dead {
         "DRONE DESTROYED | R to restart"
     } else if *phase == GamePhase::Survived {
         "SURVIVED | R to replay"
-    } else if count == 0 {
+    } else if lull {
         "SPAWNING LULL | Keep moving"
+    } else if run.elapsed < 60. {
+        "OPENING | AUTO FIRE"
+    } else if run.elapsed < 120. {
+        "PRESSURE | AUTO FIRE"
     } else {
-        "AUTO FIRE | Keep moving"
+        "FINAL PUSH | AUTO FIRE"
+    };
+    let protection =
+        if *phase == GamePhase::Playing && time.elapsed_secs_f64() < health.invulnerable_until {
+            " | HULL PROTECTED"
+        } else {
+            ""
+        };
+    let incoming = if *phase == GamePhase::Playing && !warnings.is_empty() {
+        format!(" | INCOMING {}", warnings.iter().count())
+    } else {
+        String::new()
     };
     let value = format!(
-        "HULL  {} / {}   |   HOSTILES  {}   |   KILLS  {}   |   TIME  {:.0}\n{}",
+        "HULL  {} / {}   |   HOSTILES  {}   |   KILLS  {}   |   TIME  {:.0}\n{}{}{}",
         health.current,
         config.player_health,
         count,
         run.kills,
         (waves.duration - run.elapsed).max(0.).ceil(),
-        status
+        status,
+        protection,
+        incoming
     );
     let (text, color) = &mut *hud;
     if text.0 != value {
         text.0 = value;
     }
-    color.0 = if *phase == GamePhase::Dead {
+    color.0 = if *phase == GamePhase::Dead || cue.0 > 0. {
         Color::srgb(1., 0.45, 0.3)
+    } else if *phase == GamePhase::Playing && time.elapsed_secs_f64() < health.invulnerable_until {
+        Color::srgb(0.3, 0.95, 1.)
     } else {
         Color::srgb(0.9, 0.94, 0.92)
     };

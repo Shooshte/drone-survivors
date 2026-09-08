@@ -586,3 +586,6 @@ mod enemy_flight_tests;
 
 #[path = "wave_tests.rs"]
 mod wave_tests;
+
+#[path = "feedback_tests.rs"]
+mod feedback_tests;

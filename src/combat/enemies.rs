@@ -34,7 +34,13 @@ pub(super) fn spawn_enemy(
 
 /// Arrival velocity and velocity-error feedback are pilot inputs. The shared
 /// rotor-force integrator alone changes position, attitude and momentum.
-fn pilot(position: Vec3, flight: &DroneFlight, target: Vec3, config: &FlightConfig) -> FlightInput {
+fn pilot(
+    position: Vec3,
+    flight: &DroneFlight,
+    target: Vec3,
+    config: &FlightConfig,
+    separation: Vec3,
+) -> FlightInput {
     let offset = target - position;
     let horizontal = offset.with_y(0.);
     let distance = horizontal.length();
@@ -43,13 +49,15 @@ fn pilot(position: Vec3, flight: &DroneFlight, target: Vec3, config: &FlightConf
         .min(config.max_horizontal_speed);
     let desired = horizontal.normalize_or_zero() * desired_speed;
     let horizontal_acceleration = (desired - flight.velocity.with_y(0.)) * 2.5
-        + flight.velocity.with_y(0.) * config.horizontal_drag;
+        + flight.velocity.with_y(0.) * config.horizontal_drag
+        + separation.with_y(0.);
     // Deliberate climb/descent pace leaves the scout room to launch under the
     // elevated starting pursuer while still allowing altitude pursuit.
     let vertical_limit = config.max_horizontal_speed.min(60.);
     let desired_vertical = (offset.y * 1.5).clamp(-vertical_limit, vertical_limit);
-    let vertical_acceleration =
-        (desired_vertical - flight.velocity.y) * 3. + flight.velocity.y * config.vertical_drag;
+    let vertical_acceleration = (desired_vertical - flight.velocity.y) * 3.
+        + flight.velocity.y * config.vertical_drag
+        + separation.y;
     let lift = (config.gravity + vertical_acceleration).clamp(
         config.gravity * config.reduced_thrust,
         config.gravity * config.boost_thrust * 0.9,
@@ -83,7 +91,7 @@ pub(super) fn chase(
     config: Res<CombatConfig>,
     world_flight: Res<FlightConfig>,
     drone: Single<&Transform, With<Drone>>,
-    mut enemies: Query<(&mut Enemy, &mut Transform, &mut DroneFlight), Without<Drone>>,
+    mut enemies: Query<(Entity, &mut Enemy, &mut Transform, &mut DroneFlight), Without<Drone>>,
 ) {
     let seconds = time.delta_secs();
     let steps = (seconds / (1. / 120.)).ceil().max(1.) as u32;
@@ -93,13 +101,25 @@ pub(super) fn chase(
         gravity: world_flight.gravity,
         ..config.enemy_flight
     };
-    for (mut enemy, mut transform, mut flight) in &mut enemies {
+    let mut positions: Vec<_> = enemies
+        .iter()
+        .filter(|(_, e, _, _)| e.health > 0)
+        .map(|(id, _, t, _)| (id, t.translation))
+        .collect();
+    positions.sort_by_key(|(id, _)| id.to_bits());
+    for (id, mut enemy, mut transform, mut flight) in &mut enemies {
+        let separation = separation(
+            id,
+            transform.translation,
+            &positions,
+            config.separation_radius,
+        ) * config.separation_acceleration;
         enemy.previous = transform.translation;
         enemy.path.clear();
         for index in 0..steps {
             let start = transform.translation;
             let half_before = world_half_extents(transform.rotation, local_half);
-            let input = pilot(start, &flight, drone.translation, profile);
+            let input = pilot(start, &flight, drone.translation, profile, separation);
             // Bound orientation between samples, and the slight curvature of
             // the integrated position relative to this substep's straight chord.
             let angular_pad = local_half.length()
@@ -121,4 +141,32 @@ pub(super) fn chase(
             });
         }
     }
+}
+
+// A single neighbor snapshot per update avoids order-dependent position writes.
+// The bounded acceleration enters the same rotor inputs as pursuit.
+fn separation(id: Entity, position: Vec3, neighbors: &[(Entity, Vec3)], radius: f32) -> Vec3 {
+    let mut force = Vec3::ZERO;
+    for &(other, point) in neighbors {
+        if other == id {
+            continue;
+        }
+        let offset = position - point;
+        let distance = offset.length();
+        if distance >= radius {
+            continue;
+        }
+        let direction = if distance > 0.001 {
+            offset / distance
+        } else {
+            // Antisymmetric even at exactly coincident starts; never NaN.
+            if id.to_bits() < other.to_bits() {
+                Vec3::Z
+            } else {
+                Vec3::NEG_Z
+            }
+        };
+        force += direction * (1. - distance / radius);
+    }
+    force.clamp_length_max(1.)
 }

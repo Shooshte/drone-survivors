@@ -6,6 +6,8 @@ mod collision;
 mod scene;
 pub(crate) use scene::CombatScenePlugin;
 mod enemies;
+mod feedback;
+use feedback::{CombatOutcome, CombatOutcomes};
 mod lifecycle;
 mod waves;
 mod weapon;
@@ -28,6 +30,8 @@ struct CombatConfig {
     enemy_half_size: f32,
     projectile_radius: f32,
     invulnerability: f64,
+    separation_radius: f32,
+    separation_acceleration: f32,
 }
 
 impl Default for CombatConfig {
@@ -54,6 +58,8 @@ impl Default for CombatConfig {
             enemy_half_size: 14.,
             projectile_radius: 3.,
             invulnerability: 0.75,
+            separation_radius: 65.,
+            separation_acceleration: 160.,
         }
     }
 }
@@ -92,11 +98,13 @@ impl Plugin for CombatPlugin {
             .init_resource::<Weapon>()
             .init_resource::<WaveConfig>()
             .init_resource::<Encounter>()
+            .init_resource::<CombatOutcomes>()
             .insert_resource(PlayerHealth {
                 current: 100,
                 invulnerable_until: 0.,
             })
             .add_systems(Startup, lifecycle::setup)
+            .add_systems(Update, feedback::clear.in_set(GameplaySet::Reset))
             .add_systems(
                 Update,
                 lifecycle::restart

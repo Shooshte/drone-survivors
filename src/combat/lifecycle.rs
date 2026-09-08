@@ -1,11 +1,20 @@
-use super::{CombatConfig, Encounter, Enemy, PlayerHealth, Projectile, SpawnWarning, Weapon};
+use super::feedback::KillEffect;
+use super::{
+    CombatConfig, CombatOutcome, CombatOutcomes, Encounter, Enemy, PlayerHealth, Projectile,
+    SpawnWarning, Weapon,
+};
 use crate::{
     arena::{Drone, drone_world_half_extents, world_half_extents},
     game::GamePhase,
 };
 use bevy::prelude::*;
 
-type CombatEntities = Or<(With<Enemy>, With<Projectile>, With<SpawnWarning>)>;
+type CombatEntities = Or<(
+    With<Enemy>,
+    With<Projectile>,
+    With<SpawnWarning>,
+    With<KillEffect>,
+)>;
 
 pub(super) fn setup(mut commands: Commands, config: Res<CombatConfig>) {
     commands.insert_resource(PlayerHealth {
@@ -40,6 +49,7 @@ pub(super) fn contact_damage(
     enemies: Query<(&Enemy, &Transform)>,
     mut health: ResMut<PlayerHealth>,
     mut phase: ResMut<GamePhase>,
+    mut outcomes: ResMut<CombatOutcomes>,
 ) {
     let now = time.elapsed_secs_f64();
     if now + 1e-7 < health.invulnerable_until {
@@ -56,6 +66,7 @@ pub(super) fn contact_damage(
                 .all()
     }) {
         health.current = health.current.saturating_sub(config.contact_damage);
+        outcomes.0.push(CombatOutcome::PlayerDamaged);
         health.invulnerable_until = now + config.invulnerability;
         if health.current == 0 {
             *phase = GamePhase::Dead;

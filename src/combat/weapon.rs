@@ -1,4 +1,7 @@
-use super::{CombatConfig, Enemy, Projectile, Weapon, collision::segment_box};
+use super::{
+    CombatConfig, CombatOutcome, CombatOutcomes, Encounter, Enemy, Projectile, Weapon,
+    collision::segment_box,
+};
 use crate::{
     arena::{Arena, Drone, world_half_extents},
     game::GamePhase,
@@ -56,6 +59,7 @@ pub(super) fn fire(
     };
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn advance_projectiles(
     mut commands: Commands,
     time: Res<Time>,
@@ -63,6 +67,8 @@ pub(super) fn advance_projectiles(
     config: Res<CombatConfig>,
     mut projectiles: Query<(Entity, &mut Projectile, &mut Transform), Without<Enemy>>,
     mut enemies: Query<(Entity, &mut Enemy, &Transform), Without<Projectile>>,
+    mut run: ResMut<Encounter>,
+    mut outcomes: ResMut<CombatOutcomes>,
 ) {
     let dt = time.delta_secs();
     for (id, mut shot, mut transform) in &mut projectiles {
@@ -120,9 +126,15 @@ pub(super) fn advance_projectiles(
             })
             .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
         if let Some((target, _)) = hit {
-            let (_, mut enemy, _) = enemies.get_mut(target).unwrap();
+            let (_, mut enemy, enemy_transform) = enemies.get_mut(target).unwrap();
             enemy.health = enemy.health.saturating_sub(config.shot_damage);
+            outcomes.0.push(CombatOutcome::Hit {
+                entity: target,
+                position: enemy_transform.translation,
+                killed: enemy.health == 0,
+            });
             if enemy.health == 0 {
+                run.kills = run.kills.saturating_add(1);
                 commands.entity(target).despawn();
             }
             commands.entity(id).despawn();
