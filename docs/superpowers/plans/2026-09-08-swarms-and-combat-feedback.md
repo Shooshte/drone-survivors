@@ -43,8 +43,8 @@ Interfaces: Explicit validation CLI options enable a repeatable native stress wo
 
 - [x] Add meaningful tests for percentile summaries and validation options/workload invariants before implementing them.
 - [x] Implement a bounded measurement window using real wall-clock frame durations, with median/p95/p99 and >33.3 ms counts. Support a maintained 150-enemy stress workload with physical pursuit, shots and feedback. Document any player invulnerability or refill override.
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`, and native `cargo dev` validation. Exercise the complete encounter, death, restart, warning/effect readability and performance. Record exact machine/build/resolution and remaining human-control limitations.
-- [ ] Tune only when observations show a need. Record any 150-enemy performance fallback honestly, separately from playable balance.
-- [ ] Request an independent source review while finishing native measurements, address actionable findings, and rerun affected checks.
-- [ ] Update README and playtests, complete this checklist, and commit the validation milestone.
+- [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`, and native `cargo dev` validation. Exercise the complete encounter, death, restart, warning/effect readability and performance. Record exact machine/build/resolution and remaining human-control limitations.
+- [x] Tune only when observations show a need. Record any 150-enemy performance fallback honestly, separately from playable balance.
+- [x] Request an independent source review while finishing native measurements, address actionable findings, and rerun affected checks.
+- [x] Update README and playtests, complete this checklist, and commit the validation milestone.
 - [ ] Verify final diff and clean tracked state, push `codex/dro-7-swarms-and-feedback`, and create a PR against main with results and limitations. Do not merge.
