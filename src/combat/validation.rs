@@ -43,6 +43,36 @@ fn summarize(samples: &[f64]) -> Option<Summary> {
 mod tests {
     use super::*;
     #[test]
+    fn restarting_clears_the_previous_terminal_exit_deadline() {
+        let mut app = App::new();
+        app.init_resource::<Time>()
+            .init_resource::<ButtonInput<KeyCode>>()
+            .add_message::<AppExit>()
+            .add_plugins((crate::arena::ArenaPlugin, CombatPlugin));
+        install(
+            &mut app,
+            ValidationConfig {
+                mode: ValidationMode::Survival,
+                seconds: 185.,
+                enemies: 150,
+            },
+        );
+        app.update();
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+        app.update();
+        app.world_mut().resource_mut::<Measurements>().terminal =
+            Some(Instant::now() - std::time::Duration::from_secs(3));
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::KeyR);
+        app.update();
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+        let data = app.world().resource::<Measurements>();
+        assert!(!data.done);
+        assert!(data.terminal.is_none());
+    }
+
+    #[test]
     fn percentiles_include_slow_tail_and_handle_empty_samples() {
         assert!(summarize(&[]).is_none());
         let mut samples = vec![10.; 98];
@@ -339,6 +369,8 @@ fn measure(
     }
     if *phase != GamePhase::Playing {
         data.terminal.get_or_insert(now);
+    } else {
+        data.terminal = None;
     }
     let terminal_done = data
         .terminal
