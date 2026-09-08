@@ -365,7 +365,7 @@ fn clearing_the_encounter_keeps_movement_available_and_stops_firing() {
     assert!(app.world().get_entity(target).is_err());
     assert_eq!(count::<Enemy>(&mut app), 0);
     step(&mut app, 0.25, &[KeyCode::Space]);
-    assert_eq!(position(&app, drone), START + Vec3::Y * 60.);
+    assert!(position(&app, drone).y > START.y);
     assert_eq!(count::<Projectile>(&mut app), 0);
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
 }
@@ -452,4 +452,115 @@ fn briefly_losing_target_does_not_cancel_the_current_shot_cooldown() {
     step(&mut app, 0.4, &[]);
     assert_eq!(app.world().get::<Enemy>(target).unwrap().health, 90);
     assert_eq!(count::<Projectile>(&mut app), 1);
+}
+
+#[test]
+fn yaw_and_tilt_change_player_contact_bounds_on_every_axis() {
+    use crate::arena::{DroneFlight, drone_world_half_extents};
+    for (heading, tilt) in [
+        (std::f32::consts::FRAC_PI_2, Vec2::ZERO),
+        (0.7, Vec2::new(0.2, 0.3)),
+    ] {
+        let rotation = Quat::from_rotation_y(heading)
+            * Quat::from_scaled_axis(Vec3::new(-tilt.y, 0., -tilt.x));
+        let half = drone_world_half_extents(rotation);
+        for axis in 0..3 {
+            for sign in [-1., 1.] {
+                for inside in [false, true] {
+                    let (mut app, drone) = empty_app();
+                    quiet(&mut app);
+                    *app.world_mut().get_mut::<DroneFlight>(drone).unwrap() = DroneFlight {
+                        heading,
+                        tilt,
+                        ..default()
+                    };
+                    let mut offset = Vec3::ZERO;
+                    offset[axis] = sign * (half[axis] + 14. + if inside { -0.1 } else { 0.1 });
+                    enemy(&mut app, START + offset, 100);
+                    step(&mut app, 0., &[]);
+                    assert_eq!(
+                        app.world().resource::<PlayerHealth>().current,
+                        if inside { 75 } else { 100 },
+                        "axis {axis}, sign {sign}, inside {inside}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn automatic_aim_ignores_heading_and_flight_runs_before_combat() {
+    use crate::arena::DroneFlight;
+    for heading in [0., std::f32::consts::FRAC_PI_2, std::f32::consts::PI] {
+        let (mut app, drone) = empty_app();
+        app.world_mut().resource_mut::<CombatConfig>().chase_speed = 0.;
+        *app.world_mut().get_mut::<DroneFlight>(drone).unwrap() = DroneFlight {
+            heading,
+            velocity: Vec3::new(20., 10., -10.),
+            ..default()
+        };
+        let target = START + Vec3::new(-100., 60., 50.);
+        enemy(&mut app, target, 100);
+        step(&mut app, 0.1, &[]);
+        let (shot, transform) = app
+            .world_mut()
+            .query::<(&Projectile, &Transform)>()
+            .single(app.world())
+            .unwrap();
+        let current = position(&app, drone);
+        assert!(current.distance(START) > 1.);
+        assert!(transform.translation.distance(current) < 0.001);
+        assert!(
+            shot.velocity
+                .normalize()
+                .distance((target - current).normalize())
+                < 0.001
+        );
+    }
+}
+
+#[test]
+fn death_freezes_existing_velocity_and_tilt_then_restart_clears_them() {
+    use crate::arena::DroneFlight;
+    let (mut app, drone) = empty_app();
+    quiet(&mut app);
+    step(
+        &mut app,
+        0.3,
+        &[KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyD, KeyCode::Space],
+    );
+    let before = *app.world().get::<DroneFlight>(drone).unwrap();
+    let transform = *app.world().get::<Transform>(drone).unwrap();
+    assert_ne!(before, DroneFlight::default());
+    app.world_mut().resource_mut::<PlayerHealth>().current = 1;
+    enemy(&mut app, transform.translation, 100);
+    step(&mut app, 0., &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Dead);
+    step(
+        &mut app,
+        10.,
+        &[
+            KeyCode::KeyS,
+            KeyCode::KeyQ,
+            KeyCode::KeyA,
+            KeyCode::ShiftLeft,
+        ],
+    );
+    assert_eq!(*app.world().get::<DroneFlight>(drone).unwrap(), before);
+    assert_eq!(*app.world().get::<Transform>(drone).unwrap(), transform);
+    step(
+        &mut app,
+        1.,
+        &[KeyCode::KeyR, KeyCode::KeyW, KeyCode::Space],
+    );
+    assert_eq!(
+        *app.world().get::<DroneFlight>(drone).unwrap(),
+        DroneFlight::default()
+    );
+    assert_eq!(
+        *app.world().get::<Transform>(drone).unwrap(),
+        Transform::from_translation(START)
+    );
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
 }

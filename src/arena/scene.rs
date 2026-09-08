@@ -1,4 +1,4 @@
-use super::{Arena, DRONE_HALF_EXTENTS, Drone, move_drone, spawn_drone};
+use super::{Arena, DRONE_HALF_EXTENTS, Drone, drone_world_half_extents, move_drone, spawn_drone};
 use bevy::{camera::ScalingMode, prelude::*};
 
 pub struct ArenaScenePlugin;
@@ -151,7 +151,7 @@ pub(super) fn setup_scene(
         },
     ));
     commands.spawn((
-        Text::new("WASD / Arrows  Move  |  Space  Up  |  Shift  Down\nAuto fire  |  R  Restart encounter  |  Esc  Quit"),
+        Text::new("W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit"),
         TextFont::from_font_size(16.),
         TextColor(Color::srgb(0.63, 0.74, 0.77)),
         Node {
@@ -191,7 +191,7 @@ fn track_ground_position(
     marker.translation.z = drone.translation.z;
     gizmos.line(
         marker.translation,
-        drone.translation - Vec3::Y * DRONE_HALF_EXTENTS.y,
+        drone.translation - Vec3::Y * drone_world_half_extents(drone.rotation).y,
         Color::srgb(0.18, 0.36, 0.35),
     );
 }
