@@ -1,6 +1,6 @@
 use super::{CombatConfig, Enemy, Projectile, Weapon, collision::segment_box};
 use crate::{
-    arena::{Arena, Drone},
+    arena::{Arena, Drone, world_half_extents},
     game::GamePhase,
 };
 use bevy::prelude::*;
@@ -80,16 +80,43 @@ pub(super) fn advance_projectiles(
             fraction *= exit_fraction;
             end = start.lerp(end, exit_fraction);
         }
-        let half = Vec3::splat(config.enemy_half_size + config.projectile_radius);
         let hit = enemies
             .iter()
             .filter(|(_, enemy, _)| enemy.health > 0)
             .filter_map(|(entity, enemy, target)| {
-                // Sweep in the enemy's reference frame, clipped to the shot's lifetime
-                // and arena exit. An enemy crossing a fast shot is still hittable.
-                let target_end = enemy.previous.lerp(target.translation, fraction);
-                segment_box(start - enemy.previous, end - target_end, Vec3::ZERO, half)
-                    .map(|impact| (entity, impact))
+                let impact = if enemy.path.is_empty() {
+                    let half =
+                        world_half_extents(target.rotation, Vec3::splat(config.enemy_half_size))
+                            + Vec3::splat(config.projectile_radius);
+                    let target_end = enemy.previous.lerp(target.translation, fraction);
+                    segment_box(start - enemy.previous, end - target_end, Vec3::ZERO, half)
+                        .map(|impact| impact * fraction)
+                } else {
+                    enemy
+                        .path
+                        .iter()
+                        .filter_map(|segment| {
+                            if segment.from > fraction {
+                                return None;
+                            }
+                            let to = segment.to.min(fraction);
+                            let enemy_end = segment.start.lerp(
+                                segment.end,
+                                (to - segment.from) / (segment.to - segment.from),
+                            );
+                            let shot_start = start + shot.velocity * (dt * segment.from);
+                            let shot_end = start + shot.velocity * (dt * to);
+                            segment_box(
+                                shot_start - segment.start,
+                                shot_end - enemy_end,
+                                Vec3::ZERO,
+                                segment.half + Vec3::splat(config.projectile_radius),
+                            )
+                            .map(|impact| segment.from + impact * (to - segment.from))
+                        })
+                        .min_by(f32::total_cmp)
+                };
+                impact.map(|impact| (entity, impact))
             })
             .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
         if let Some((target, _)) = hit {
