@@ -47,4 +47,6 @@ Interfaces: Explicit validation CLI options enable a repeatable native stress wo
 - [x] Tune only when observations show a need. Record any 150-enemy performance fallback honestly, separately from playable balance.
 - [x] Request an independent source review while finishing native measurements, address actionable findings, and rerun affected checks.
 - [x] Update README and playtests, complete this checklist, and commit the validation milestone.
-- [ ] Verify final diff and clean tracked state, push `codex/dro-7-swarms-and-feedback`, and create a PR against main with results and limitations. Do not merge.
+- [x] Verify final diff and clean tracked state, push `codex/dro-7-swarms-and-feedback`, and create a PR against main with results and limitations. Do not merge.
+
+Delivery: PR https://github.com/Shooshte/drone-survivors/pull/6 targets main. Native evidence and remaining human feel checks are recorded in docs/playtests.md.

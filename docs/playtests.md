@@ -128,6 +128,10 @@ Observed the scout, readable hull/time/hostile/kill HUD, orange physically banki
 chasers, straight yellow shots, amber kill feedback, and advancing kill counts.
 R visibly restored full hull, 180 seconds, zero kills and the quiet empty opening.
 Zooming the native window retained the complete arena, HUD and control legend.
+Stationary play subsequently reached the red DRONE DESTROYED state with zero
+hull, 41 kills, two remaining hostiles, and 40 seconds on the frozen timer.
+R visibly restored the empty opening, full hull, zero kills, and 180 seconds.
+Escape terminated the game process, verified without reopening the app.
 The initial locked-Mac restriction was resolved during the session.
 
 Brief hit-flash/warning timing, invulnerability colors, sustained manual handling,
