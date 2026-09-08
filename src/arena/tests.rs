@@ -2,8 +2,8 @@ use super::*;
 use std::time::Duration;
 
 const START: Vec3 = Vec3::new(0., 90., 0.);
-const MIN: Vec3 = Vec3::new(-462., 6., -252.);
-const MAX: Vec3 = Vec3::new(462., 294., 252.);
+const MIN: Vec3 = Vec3::new(-445., 15., -225.);
+const MAX: Vec3 = Vec3::new(445., 285., 225.);
 
 fn test_app() -> (App, Entity) {
     let mut app = App::new();
@@ -319,7 +319,7 @@ fn rendered_drone_geometry_fits_the_movement_bounds() {
         "mesh above bounds: {max:?}"
     );
     assert!(
-        max.z - min.z > 30.,
+        max.z - min.z > 75.,
         "scout should fill its flight footprint"
     );
     assert!(

@@ -8,7 +8,8 @@ pub use scene::ArenaScenePlugin;
 mod tests;
 
 const DRONE_START: Transform = Transform::from_xyz(0., 90., 0.);
-pub(crate) const DRONE_HALF_EXTENTS: Vec3 = Vec3::new(18., 6., 18.);
+// Matches the enlarged scout GLB, including its wing-mounted rotors.
+pub(crate) const DRONE_HALF_EXTENTS: Vec3 = Vec3::new(35., 15., 45.);
 
 #[derive(Resource, Clone, Copy)]
 pub(crate) struct Arena {

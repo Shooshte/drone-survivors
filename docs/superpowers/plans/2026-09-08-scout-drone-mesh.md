@@ -8,10 +8,10 @@
 
 ## Constraints
 
-- Bounds: half extents (18, 6, 18), +Y up, -Z forward.
+- Bounds: half extents (35, 15, 45), +Y up, -Z forward.
 - Self-contained materials, no new Rust dependencies.
-- Exactly two underside hover assemblies, four forward sensors and two subtle module housings.
-- Preserve arena controls, collision, health, targeting and restart behavior.
+- Exactly three compact hover assemblies (two wings, one nose), four forward sensors and two subtle module housings.
+- Preserve arena controls, health, targeting and restart behavior; collision bounds match the larger mesh.
 
 ## Tasks
 
@@ -30,3 +30,11 @@
 - Blender studio render and native Bevy arena/close-up screenshots inspected.
 - Independent read-only review: no actionable defects.
 - Temporary screenshot harness removed. Workspace and branch retained for review.
+
+## User-requested size and rotor revision
+
+- [x] Increase model size by 2.5×, baked into the Blender source and GLB.
+- [x] Shrink rotor diameter to 62%, with one rotor under each wing and one under the nose.
+- [x] Update collision half extents to (35, 15, 45) and resize the ground marker.
+- [x] Update and run geometry, movement-boundary and chaser-contact tests.
+- [x] Refresh Blender preview and native arena/close-up captures.

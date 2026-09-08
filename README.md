@@ -56,7 +56,8 @@ cargo clippy --all-targets
 ## Scout drone model
 
 The combat player uses an original Blender scout: split silver armor over a
-black chassis, two tandem underside hover pads, cyan lights, a four-lens sensor
+black chassis, three compact hover rotors (one under each wing and one under
+the nose), cyan lights, a four-lens sensor
 cluster, swept fins, and two small equipment housings. This is a visual asset;
 XP gain, terrain immunity and core-slot passives are not implemented yet.
 
@@ -68,7 +69,9 @@ XP gain, terrain immunity and core-slot passives are not implemented yet.
 
 Run from this checkout so Bevy finds `assets/`. Include that directory alongside
 any distributed executable. The model uses +Y up, -Z forward and fits the existing
-36 × 12 × 36 collision envelope. Restarting an encounter retains the loaded model.
+70 × 30 × 90 collision envelope. The model is 2.5× its original size for arena
+readability; rotor diameter is 38% smaller relative to the body. Restarting an
+encounter retains the loaded model.
 
 To regenerate the Blender source, GLB and studio preview (overwriting those files):
 

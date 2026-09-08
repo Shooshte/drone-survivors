@@ -131,7 +131,12 @@ pub(super) fn setup_scene(
             ..default()
         })),
         Transform::from_xyz(0., 0.3, 0.)
-            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
+            .with_scale(Vec3::new(
+                DRONE_HALF_EXTENTS.x / 18.,
+                DRONE_HALF_EXTENTS.z / 18.,
+                1.,
+            )),
     ));
 
     commands.spawn((

@@ -2,14 +2,17 @@
 
 Run from any directory:
   blender --background --factory-startup --python tools/build_scout_drone.py
-All design coordinates use Bevy axes: +Y up, -Z forward, in arena world units.
+Design coordinates use Bevy axes: +Y up, -Z forward. MODEL_SCALE bakes the
+final arena world units into the editable source and exported mesh.
 """
 from pathlib import Path
 from math import cos, sin, pi
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
+MODEL_SCALE = 2.5
+bpy.context.preferences.filepaths.save_version = 0
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 for material in list(bpy.data.materials):
@@ -170,8 +173,13 @@ for side in [-1, 1]:
             (0.7, 0.13, 0.25), graphite, 0.04)
     box('Amber flank identification', (side * 4.08, 3.35, 1.1), (0.27, 0.1, 1.4), marking, 0.04)
 
-# Two tandem anti-gravity pods, like hover-bike wheels tucked under the hull.
-for index, z in enumerate([-7.8, 8.0], 1):
+# Three compact pods: one beneath each swept wing, one beneath the nose.
+# Build at the origin, then shrink each assembly to 62% of its original size.
+for index, (x, y, longitudinal) in enumerate([(-9.2, 1.8, 9.6),
+                                            (9.2, 1.8, 9.6),
+                                            (0, -0.8, -10.5)], 1):
+    start = len(parts)
+    z = 0
     cylinder(f'Hover {index} / central mount', (0, -2.9, z), 2.1, 1.6, steel)
     ring(f'Hover {index} / graphite duct', (0, -4.1, z), 6.3, 0.65, graphite)
     ring(f'Hover {index} / top machined lip', (0, -3.45, z), 6.32, 0.2, silver)
@@ -187,6 +195,10 @@ for index, z in enumerate([-7.8, 8.0], 1):
         rail(f'Hover {index} / field vane', a, b, 0.24, steel)
         cylinder(f'Hover {index} / rim fastener',
                  (cos(angle) * 6.3, -3.2, z + sin(angle) * 6.3), 0.16, 0.11, graphite, vertices=12)
+
+    placement = Matrix.Translation(point((x, y, longitudinal))) @ Matrix.Scale(0.62, 4)
+    for obj in parts[start:]:
+        obj.matrix_world = placement @ obj.matrix_world
 
 # Optical cluster: one large camera and three smaller ranging / IR sensors.
 for index, (x, y, radius, z) in enumerate([(-0.75, 0.25, 1.6, -15.3),
@@ -226,11 +238,16 @@ for obj in parts:
     bpy.ops.object.mode_set(mode='OBJECT')
     obj.select_set(False)
 
+# Bake the larger gameplay size into both the editable source and the GLB.
+# The Bevy player root remains unscaled, keeping resets and collision consistent.
+for obj in parts:
+    obj.matrix_world = Matrix.Scale(MODEL_SCALE, 4) @ obj.matrix_world
+
 # Validate world-space bounds before export, independently of the Bevy test.
 for obj in parts:
     for vertex in obj.data.vertices:
         b = obj.matrix_world @ vertex.co
-        assert abs(b.x) <= 18.001 and abs(b.y) <= 18.001 and abs(b.z) <= 6.001, (obj.name, b)
+        assert abs(b.x) <= 35.001 and abs(b.y) <= 45.001 and abs(b.z) <= 15.001, (obj.name, b)
 
 source = ROOT / 'art/scout/scout_drone.blend'
 source.parent.mkdir(parents=True, exist_ok=True)
@@ -246,18 +263,18 @@ scene.world.color = (0.17, 0.17, 0.17)
 scene.view_settings.view_transform = 'AgX'
 
 floor_mat = material('Studio floor — not exported', (0.035, 0.052, 0.066), 0.15, 0.55)
-bpy.ops.mesh.primitive_plane_add(size=200, location=(0, 0, -7.5))
+bpy.ops.mesh.primitive_plane_add(size=200 * MODEL_SCALE, location=(0, 0, -7.5 * MODEL_SCALE))
 bpy.context.object.name = 'Studio floor (not exported)'
 bpy.context.object.data.materials.append(floor_mat)
 
 
 def area(name, location, energy, size, color):
-    bpy.ops.object.light_add(type='AREA', location=point(location))
+    bpy.ops.object.light_add(type='AREA', location=point(location) * MODEL_SCALE)
     light = bpy.context.object
     light.name = name
-    light.data.energy = energy
+    light.data.energy = energy * MODEL_SCALE**2
     light.data.shape = 'DISK'
-    light.data.size = size
+    light.data.size = size * MODEL_SCALE
     light.data.color = color
     light.rotation_euler = (-light.location).to_track_quat('-Z', 'Y').to_euler()
 
@@ -265,12 +282,12 @@ def area(name, location, energy, size, color):
 area('Key softbox', (-25, 42, -25), 32000, 30, (0.78, 0.89, 1))
 area('Warm fill', (32, 20, -10), 21000, 25, (1, 0.88, 0.72))
 area('Cyan rim', (0, 25, 32), 45000, 22, (0.48, 0.78, 1))
-bpy.ops.object.camera_add(location=point((36, 29, -46)))
+bpy.ops.object.camera_add(location=point((36, 29, -46)) * MODEL_SCALE)
 camera = bpy.context.object
 camera.name = 'Scout three-quarter preview'
 camera.rotation_euler = (point((0, 0, 0)) - camera.location).to_track_quat('-Z', 'Y').to_euler()
 camera.data.type = 'ORTHO'
-camera.data.ortho_scale = 48
+camera.data.ortho_scale = 48 * MODEL_SCALE
 scene.camera = camera
 # Save an immediately useful material-preview viewport in the editable source.
 for screen in bpy.data.screens:
