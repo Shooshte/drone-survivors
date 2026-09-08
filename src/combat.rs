@@ -9,6 +9,7 @@ mod enemies;
 mod feedback;
 use feedback::{CombatOutcome, CombatOutcomes};
 mod lifecycle;
+pub(crate) mod validation;
 mod waves;
 mod weapon;
 use waves::{Encounter, SpawnWarning, WaveConfig};
@@ -38,8 +39,8 @@ impl Default for CombatConfig {
     fn default() -> Self {
         Self {
             player_health: 100,
-            enemy_health: 40,
-            contact_damage: 25,
+            enemy_health: 20,
+            contact_damage: 10,
             shot_damage: 10,
             enemy_flight: crate::arena::FlightConfig {
                 max_horizontal_speed: 260.,

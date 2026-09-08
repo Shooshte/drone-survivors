@@ -52,7 +52,7 @@ ceiling, and the drone starts 90 units above ground (measured at its center).
 An angled camera keeps the full flight volume visible as the window is resized.
 A ring on the ground and a vertical guide show the drone's ground position.
 
-Three orange flying chasers pursue the drone at every altitude using the same
+Orange flying chasers arrive in timed bursts and pursue the drone at every altitude using the same
 thrust, gravity, and momentum model. They start at rest, turn and bank to steer,
 and brake as they approach. Sharp changes of direction require them to redirect
 their momentum. Their 260-unit/second horizontal speed cap and slower tilt/turn
@@ -62,12 +62,51 @@ weapon automatically fires yellow projectiles at the nearest enemy within
 can miss; each disappears after its first hit, after one second, or on leaving
 the arena. Keep moving to avoid contact.
 
-The HUD shows hull health and remaining enemies. Contact deals 25 damage,
-followed by a shared 0.75-second invulnerability window. At zero health, gameplay
-freezes and **R** starts a fresh encounter. R also restarts during combat or
-after clearing the arena, restoring health, enemy positions, and weapon timing.
-There are no waves or respawns between restarts. Balance values are provisional
-and grouped in `CombatConfig` in `src/combat.rs` for playtesting.
+The three-minute encounter starts with three quiet seconds, then sends increasingly
+frequent groups of three, four, and five chasers. Pink rings warn of incoming
+enemies for 0.75 seconds. Spawns are cancelled if their position becomes unsafe;
+live enemies and pending warnings share a cap of 30. Pauses between bursts let
+you reduce the remaining threat. Nearby chasers steer apart while retaining their
+physical flight.
+
+The HUD shows hull, time remaining, living enemies, kills, and the current phase
+or spawning lull. Chasers take two 10-damage hits to kill. Hits briefly flash the
+affected enemy; a small amber burst marks a kill. Contact deals 10 hull damage,
+followed by 0.75 seconds of shared invulnerability. The HUD flashes red on damage
+and shows cyan **HULL PROTECTED** during that protection window.
+
+At zero hull, gameplay freezes and **R** restarts. Survive until 3:00 to freeze
+the encounter with **SURVIVED** and your kill count; remaining enemies do not need
+to be cleared. R also restarts during combat or lulls, clearing enemies, shots,
+warnings, effects, kills, timers, and flight momentum. Balance values are
+provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
+
+### Repeatable native validation
+
+```sh
+cargo dev -- --validate survival
+cargo dev -- --validate idle
+cargo dev -- --validate stress --enemies 150 --seconds 30
+```
+
+Survival uses a repeatable keyboard pilot with collision avoidance; it does not
+change health, damage, movement physics, or the authored waves. Idle applies no
+pilot input and exercises stationary combat/death. These runs print progress and
+exit two seconds after an outcome, or after the sampling limit plus warm-up.
+R and Escape remain available. A human handling/readability playtest is still
+needed alongside these repeatable checks.
+
+Stress is a separate workload: it disables authored waves, places 150 chasers in
+a fixed grid, enables player invulnerability, and replaces kills to maintain the
+requested population. Real pursuit, separation, projectiles, damage to enemies,
+and feedback remain active. Stress spawning deliberately bypasses normal warnings
+and clearance; it is not the playable encounter. Only stress accepts `--enemies`.
+
+All validation modes report wall-clock median/p95/p99 frame times and hitches over
+33.3 ms, actual enemy-count range, projectile peak, hit/kill/damage counts, and
+physical resolution. The first five seconds and frozen terminal states are
+excluded. `--seconds` bounds the post-warm-up run (1–600 seconds). Normal launch
+installs no validation systems or gameplay overrides.
 
 See [the control smoke check and playtest notes](docs/playtests.md).
 

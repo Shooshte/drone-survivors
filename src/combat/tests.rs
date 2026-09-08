@@ -30,6 +30,10 @@ fn empty_app() -> (App, Entity) {
     }
     *app.world_mut().resource_mut::<Weapon>() = Weapon::default();
     app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
+    // Keep the original collision/damage fixtures independent of scenario balance.
+    app.world_mut()
+        .resource_mut::<CombatConfig>()
+        .contact_damage = 25;
     (app, drone)
 }
 
@@ -589,3 +593,6 @@ mod wave_tests;
 
 #[path = "feedback_tests.rs"]
 mod feedback_tests;
+
+#[path = "validation_tests.rs"]
+mod validation_tests;

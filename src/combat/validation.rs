@@ -1,0 +1,382 @@
+//! Explicit development validation only; normal launches install no harness systems.
+use super::*;
+use crate::arena::{Drone, DroneFlight};
+use std::time::Instant;
+
+#[derive(Resource, Clone, Copy, Debug, PartialEq)]
+pub(crate) enum ValidationMode {
+    Survival,
+    Stress,
+    Idle,
+}
+
+#[derive(Resource, Clone, Copy, Debug)]
+pub(crate) struct ValidationConfig {
+    pub mode: ValidationMode,
+    pub seconds: f64,
+    pub enemies: usize,
+}
+
+#[derive(Debug)]
+struct Summary {
+    median: f64,
+    p95: f64,
+    p99: f64,
+    hitches: usize,
+}
+fn summarize(samples: &[f64]) -> Option<Summary> {
+    if samples.is_empty() {
+        return None;
+    }
+    let mut sorted = samples.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let percentile = |p: f64| sorted[((p * sorted.len() as f64).ceil() as usize).saturating_sub(1)];
+    Some(Summary {
+        median: percentile(0.5),
+        p95: percentile(0.95),
+        p99: percentile(0.99),
+        hitches: samples.iter().filter(|&&ms| ms > 33.3).count(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn percentiles_include_slow_tail_and_handle_empty_samples() {
+        assert!(summarize(&[]).is_none());
+        let mut samples = vec![10.; 98];
+        samples.extend([40., 50.]);
+        let summary = summarize(&samples).unwrap();
+        assert_eq!(
+            (summary.median, summary.p95, summary.p99, summary.hitches),
+            (10., 10., 40., 2)
+        );
+        let one = summarize(&[20.]).unwrap();
+        assert_eq!(
+            (one.median, one.p95, one.p99, one.hitches),
+            (20., 20., 20., 0)
+        );
+    }
+}
+
+impl ValidationConfig {
+    pub(crate) fn parse(args: impl IntoIterator<Item = String>) -> Result<Option<Self>, String> {
+        let mut args = args.into_iter();
+        let mut mode = None;
+        let mut seconds = None;
+        let mut enemies = None;
+        while let Some(flag) = args.next() {
+            let value = args.next().ok_or("Expected --validate survival|stress|idle [--seconds 1..600] [--enemies 1..500 (stress only)]")?;
+            match flag.as_str() {
+                "--validate" if mode.is_none() => {
+                    mode = Some(match value.as_str() {
+                        "survival" => ValidationMode::Survival,
+                        "stress" => ValidationMode::Stress,
+                        "idle" => ValidationMode::Idle,
+                        _ => return Err("Validation mode must be survival, stress, or idle".into()),
+                    })
+                }
+                "--seconds" if seconds.is_none() => {
+                    let n: f64 = value.parse().map_err(|_| "Seconds must be a number")?;
+                    if !n.is_finite() || !(1. ..=600.).contains(&n) {
+                        return Err("Seconds must be finite and between 1 and 600".into());
+                    }
+                    seconds = Some(n);
+                }
+                "--enemies" if enemies.is_none() => {
+                    let n: usize = value.parse().map_err(|_| "Enemies must be an integer")?;
+                    if !(1..=500).contains(&n) {
+                        return Err("Enemies must be between 1 and 500".into());
+                    }
+                    enemies = Some(n);
+                }
+                _ => return Err(format!("Unknown or duplicate argument: {flag}")),
+            }
+        }
+        let Some(mode) = mode else {
+            return if seconds.is_some() || enemies.is_some() {
+                Err("Validation options require --validate".into())
+            } else {
+                Ok(None)
+            };
+        };
+        if enemies.is_some() && mode != ValidationMode::Stress {
+            return Err("--enemies requires stress mode".into());
+        }
+        Ok(Some(Self {
+            mode,
+            seconds: seconds.unwrap_or(if mode == ValidationMode::Stress {
+                30.
+            } else {
+                185.
+            }),
+            enemies: enemies.unwrap_or(150),
+        }))
+    }
+}
+
+pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    println!(
+        "VALIDATION {:?}: keyboard pilot={}, stress overrides={}, warmup=5s, sample limit={}s, stress target={}",
+        config.mode,
+        config.mode != ValidationMode::Idle,
+        config.mode == ValidationMode::Stress,
+        config.seconds,
+        config.enemies
+    );
+    app.insert_resource(config)
+        .init_resource::<Measurements>()
+        .add_systems(Startup, configure)
+        .add_systems(
+            Update,
+            pilot_input
+                .in_set(GameplaySet::Reset)
+                .after(lifecycle::restart),
+        )
+        .add_systems(
+            Update,
+            replenish
+                .after(GameplaySet::Combat)
+                .before(GameplaySet::Presentation),
+        )
+        .add_systems(Update, measure.after(GameplaySet::Presentation));
+}
+
+fn configure(config: Res<ValidationConfig>, mut waves: ResMut<WaveConfig>) {
+    if config.mode == ValidationMode::Stress {
+        waves.bursts.clear();
+        waves.cap = config.enemies;
+        waves.duration = config.seconds + 30.;
+    }
+}
+
+/// Repeatable keyboard inputs only: never writes scout transforms, velocities or HP.
+/// A moving ellipse exercises turning thrust and altitude compensation.
+fn pilot_input(
+    config: Res<ValidationConfig>,
+    run: Res<Encounter>,
+    drone: Single<(&Transform, &DroneFlight), With<Drone>>,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
+    enemies: Query<(&Transform, &DroneFlight), With<Enemy>>,
+) {
+    if config.mode == ValidationMode::Idle || keys.just_pressed(KeyCode::KeyR) {
+        return;
+    }
+    for key in [
+        KeyCode::KeyW,
+        KeyCode::KeyS,
+        KeyCode::KeyA,
+        KeyCode::KeyD,
+        KeyCode::KeyQ,
+        KeyCode::KeyE,
+        KeyCode::ArrowUp,
+        KeyCode::ArrowDown,
+        KeyCode::ArrowLeft,
+        KeyCode::ArrowRight,
+        KeyCode::Space,
+        KeyCode::ShiftLeft,
+        KeyCode::ShiftRight,
+    ] {
+        keys.reset(key);
+    }
+    let threats: Vec<_> = enemies
+        .iter()
+        .map(|(t, f)| (t.translation, f.velocity))
+        .collect();
+    for key in pilot_keys(run.elapsed, drone.0.translation, drone.1, &threats) {
+        keys.press(key);
+    }
+}
+
+pub(super) fn pilot_keys(
+    elapsed: f64,
+    position: Vec3,
+    flight: &DroneFlight,
+    threats: &[(Vec3, Vec3)],
+) -> Vec<KeyCode> {
+    let theta = elapsed as f32 * 0.8;
+    let target = Vec3::new(
+        300. * theta.cos(),
+        145. + 45. * (theta * 0.5).sin(),
+        165. * theta.sin(),
+    );
+    let tangent = Vec3::new(
+        -240. * theta.sin(),
+        18. * (theta * 0.5).cos(),
+        132. * theta.cos(),
+    );
+    let desired = tangent + (target - position) * 1.5;
+    let mut acceleration = (desired - flight.velocity) * 3. + flight.velocity * 0.25;
+    for &(point, velocity) in threats {
+        let offset = position - point;
+        let relative = flight.velocity - velocity;
+        let closest = (-offset.dot(relative) / relative.length_squared().max(1.)).clamp(0., 0.8);
+        let miss = offset + relative * closest;
+        let distance = miss.length();
+        if distance < 170. {
+            acceleration += miss.normalize_or_zero() * (1. - distance / 170.) * 650.;
+        }
+    }
+    let local = Quat::from_rotation_y(-flight.heading) * acceleration;
+    let mut keys = Vec::with_capacity(3);
+    if local.x.abs() > 15. {
+        keys.push(if local.x > 0. {
+            KeyCode::KeyE
+        } else {
+            KeyCode::KeyQ
+        });
+    }
+    if local.z.abs() > 15. {
+        keys.push(if local.z > 0. {
+            KeyCode::KeyS
+        } else {
+            KeyCode::KeyW
+        });
+    }
+    let vertical = acceleration.y + 360. * (1. - flight.tilt.length().cos());
+    if vertical > 10. {
+        keys.push(KeyCode::Space);
+    } else if vertical < -10. {
+        keys.push(KeyCode::ShiftLeft);
+    }
+    keys
+}
+
+/// Stress-only: maintain the requested rendered population by replacing kills.
+/// Invulnerability prevents death from stopping the measured workload. Real hits,
+/// projectiles, enemy health, pursuit and feedback still run without modification.
+#[allow(clippy::too_many_arguments)]
+fn replenish(
+    mut commands: Commands,
+    config: Res<ValidationConfig>,
+    combat: Res<CombatConfig>,
+    phase: Res<GamePhase>,
+    mut health: ResMut<PlayerHealth>,
+    drone: Single<&Transform, With<Drone>>,
+    enemies: Query<&Enemy>,
+    mut cursor: Local<usize>,
+) {
+    if config.mode != ValidationMode::Stress || *phase != GamePhase::Playing {
+        return;
+    }
+    health.invulnerable_until = f64::INFINITY;
+    let live = enemies.iter().filter(|e| e.health > 0).count();
+    for _ in live..config.enemies {
+        let i = *cursor % 150;
+        *cursor += 1;
+        let position = Vec3::new(
+            -405. + (i % 10) as f32 * 90.,
+            60. + (i / 50) as f32 * 90.,
+            -180. + ((i / 10) % 5) as f32 * 90.,
+        );
+        enemies::spawn_enemy(&mut commands, &combat, position, drone.translation);
+    }
+}
+
+#[derive(Resource, Default)]
+struct Measurements {
+    first: Option<Instant>,
+    last: Option<Instant>,
+    terminal: Option<Instant>,
+    samples: Vec<f64>,
+    min_enemies: Option<usize>,
+    max_enemies: usize,
+    max_projectiles: usize,
+    hits: usize,
+    kills: usize,
+    damage: usize,
+    progress: u64,
+    done: bool,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn measure(
+    config: Res<ValidationConfig>,
+    mut data: ResMut<Measurements>,
+    phase: Res<GamePhase>,
+    run: Res<Encounter>,
+    health: Res<PlayerHealth>,
+    enemies: Query<&Enemy>,
+    projectiles: Query<(), With<Projectile>>,
+    windows: Query<&Window>,
+    outcomes: Res<CombatOutcomes>,
+    mut exit: MessageWriter<AppExit>,
+) {
+    if data.done {
+        return;
+    }
+    let now = Instant::now();
+    let start = *data.first.get_or_insert(now);
+    let elapsed = now.duration_since(start).as_secs_f64();
+    let previous = data.last.replace(now);
+    let live = enemies.iter().filter(|e| e.health > 0).count();
+    if let Some(previous) = previous
+        .filter(|t| t.duration_since(start).as_secs_f64() >= 5. && *phase == GamePhase::Playing)
+    {
+        data.samples
+            .push(now.duration_since(previous).as_secs_f64() * 1000.);
+        data.min_enemies = Some(data.min_enemies.map_or(live, |n| n.min(live)));
+        data.max_enemies = data.max_enemies.max(live);
+        data.max_projectiles = data.max_projectiles.max(projectiles.iter().count());
+        for event in &outcomes.0 {
+            match event {
+                CombatOutcome::Hit { killed, .. } => {
+                    data.hits += 1;
+                    data.kills += usize::from(*killed);
+                }
+                CombatOutcome::PlayerDamaged => data.damage += 1,
+            }
+        }
+    }
+    let progress = (elapsed / 10.) as u64;
+    if progress > data.progress {
+        data.progress = progress;
+        println!(
+            "VALIDATION progress wall={elapsed:.1}s run={:.1}s phase={:?} hull={} kills={} enemies={live}",
+            run.elapsed, *phase, health.current, run.kills
+        );
+    }
+    if *phase != GamePhase::Playing {
+        data.terminal.get_or_insert(now);
+    }
+    let terminal_done = data
+        .terminal
+        .is_some_and(|at| now.duration_since(at).as_secs_f64() >= 2.);
+    if elapsed < config.seconds + 5. && !terminal_done {
+        return;
+    }
+    data.done = true;
+    let resolution = windows
+        .iter()
+        .next()
+        .map(|w| (w.physical_width(), w.physical_height()));
+    if let Some(s) = summarize(&data.samples) {
+        println!(
+            "VALIDATION RESULT mode={:?} sample_seconds={:.3} frames={} frame_ms_median={:.3} p95={:.3} p99={:.3} hitches_gt_33_3={} enemies_min={} enemies_max={} projectiles_max={} hits={} kills={} damage={} phase={:?} hull={} run_seconds={:.3} total_kills={} physical_resolution={resolution:?}",
+            config.mode,
+            data.samples.iter().sum::<f64>() / 1000.,
+            data.samples.len(),
+            s.median,
+            s.p95,
+            s.p99,
+            s.hitches,
+            data.min_enemies.unwrap_or(0),
+            data.max_enemies,
+            data.max_projectiles,
+            data.hits,
+            data.kills,
+            data.damage,
+            *phase,
+            health.current,
+            run.elapsed,
+            run.kills
+        );
+    } else {
+        println!(
+            "VALIDATION RESULT no post-warmup samples; phase={:?}",
+            *phase
+        );
+    }
+    exit.write(AppExit::Success);
+}

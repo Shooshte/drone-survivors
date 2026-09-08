@@ -8,8 +8,13 @@ use bevy::{
 };
 
 fn main() {
-    App::new()
-        .insert_resource(ClearColor(Color::srgb(0.025, 0.045, 0.065)))
+    let validation = combat::validation::ValidationConfig::parse(std::env::args().skip(1))
+        .unwrap_or_else(|error| {
+            eprintln!("{error}");
+            std::process::exit(2);
+        });
+    let mut app = App::new();
+    app.insert_resource(ClearColor(Color::srgb(0.025, 0.045, 0.065)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Drone Survivors — Test Arena".into(),
@@ -29,8 +34,11 @@ fn main() {
             combat::CombatPlugin,
             combat::CombatScenePlugin,
         ))
-        .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)))
-        .run();
+        .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)));
+    if let Some(config) = validation {
+        combat::validation::install(&mut app, config);
+    }
+    app.run();
 }
 
 fn quit(mut exit: MessageWriter<AppExit>) {
