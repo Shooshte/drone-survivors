@@ -2,8 +2,10 @@ use crate::game::{GamePhase, GameplaySet, is_playing};
 use bevy::prelude::*;
 
 mod flight;
-use flight::FlightInput;
-pub(crate) use flight::{DroneFlight, FlightConfig, drone_world_half_extents};
+
+pub(crate) use flight::{
+    DroneFlight, FlightConfig, FlightInput, drone_world_half_extents, world_half_extents,
+};
 
 mod scene;
 pub use scene::ArenaScenePlugin;
@@ -11,7 +13,7 @@ pub use scene::ArenaScenePlugin;
 #[cfg(test)]
 mod tests;
 
-const DRONE_START: Transform = Transform::from_xyz(0., 90., 0.);
+pub(crate) const DRONE_START: Transform = Transform::from_xyz(0., 90., 0.);
 // Matches the enlarged scout GLB, including its wing-mounted rotors.
 pub(crate) const DRONE_HALF_EXTENTS: Vec3 = Vec3::new(35., 15., 45.);
 

@@ -24,7 +24,7 @@ struct CombatConfig {
     enemy_health: u32,
     contact_damage: u32,
     shot_damage: u32,
-    chase_speed: f32,
+    enemy_flight: crate::arena::FlightConfig,
     projectile_speed: f32,
     fire_interval: f64,
     target_range: f32,
@@ -41,7 +41,16 @@ impl Default for CombatConfig {
             enemy_health: 40,
             contact_damage: 25,
             shot_damage: 10,
-            chase_speed: 150.,
+            enemy_flight: crate::arena::FlightConfig {
+                max_horizontal_speed: 260.,
+                max_tilt: 20_f32.to_radians(),
+                tilt_rate: 100_f32.to_radians(),
+                leveling_rate: 150_f32.to_radians(),
+                yaw_rate: 120_f32.to_radians(),
+                reduced_thrust: 0.5,
+                boost_thrust: 2.,
+                ..default()
+            },
             projectile_speed: 650.,
             fire_interval: 0.5,
             target_range: 400.,
@@ -57,6 +66,8 @@ impl Default for CombatConfig {
 struct Enemy {
     health: u32,
     previous: Vec3,
+    /// Bounded physics trajectory for moving-target projectile sweeps.
+    path: Vec<enemies::FlightSegment>,
 }
 
 #[derive(Component)]

@@ -1,8 +1,8 @@
 use super::{Arena, DRONE_HALF_EXTENTS};
 use bevy::prelude::*;
 
-/// Keyboard flight tuning, in world units, seconds, and radians.
-#[derive(Resource)]
+/// Actor flight tuning, in world units, seconds, and radians.
+#[derive(Resource, Clone, Copy)]
 pub(crate) struct FlightConfig {
     pub(crate) max_horizontal_speed: f32,
     pub(crate) max_tilt: f32,
@@ -20,15 +20,15 @@ pub(crate) struct FlightConfig {
 impl Default for FlightConfig {
     fn default() -> Self {
         Self {
-            max_horizontal_speed: 240.,
+            max_horizontal_speed: 420.,
             max_tilt: 30_f32.to_radians(),
-            tilt_rate: 90_f32.to_radians(),
-            leveling_rate: 120_f32.to_radians(),
-            yaw_rate: 120_f32.to_radians(),
-            gravity: 120.,
+            tilt_rate: 240_f32.to_radians(),
+            leveling_rate: 300_f32.to_radians(),
+            yaw_rate: 240_f32.to_radians(),
+            gravity: 360.,
             neutral_thrust: 1.,
-            boost_thrust: 2.,
-            reduced_thrust: 0.5,
+            boost_thrust: 4. / 3.,
+            reduced_thrust: 5. / 6.,
             horizontal_drag: 0.25,
             vertical_drag: 0.5,
         }
@@ -43,10 +43,10 @@ pub(crate) struct DroneFlight {
     pub(crate) tilt: Vec2,
 }
 
-pub(super) struct FlightInput {
-    tilt: Vec2,
-    yaw: f32,
-    thrust: f32,
+pub(crate) struct FlightInput {
+    pub(crate) tilt: Vec2,
+    pub(crate) yaw: f32,
+    pub(crate) thrust: f32,
 }
 
 impl FlightInput {
@@ -92,18 +92,31 @@ impl DroneFlight {
         let steps = (seconds / (1. / 120.)).ceil().max(1.) as u32;
         let dt = seconds / steps as f32;
         for _ in 0..steps {
-            self.update_attitude(input, config, dt);
-            transform.rotation = self.rotation();
-            let acceleration = self.acceleration(transform.rotation, input, config);
-            self.integrate(transform, acceleration, config, dt);
-            self.contain(transform, arena);
+            self.step(transform, input, config, arena, DRONE_HALF_EXTENTS, dt);
         }
     }
 
+    /// One bounded physics step, shared by keyboard and AI control sources.
+    pub(crate) fn step(
+        &mut self,
+        transform: &mut Transform,
+        input: &FlightInput,
+        config: &FlightConfig,
+        arena: &Arena,
+        local_half: Vec3,
+        dt: f32,
+    ) {
+        self.update_attitude(input, config, dt);
+        transform.rotation = self.rotation();
+        let acceleration = self.acceleration(transform.rotation, input, config);
+        self.integrate(transform, acceleration, config, dt);
+        self.contain(transform, arena, local_half);
+    }
+
     fn update_attitude(&mut self, input: &FlightInput, config: &FlightConfig, dt: f32) {
-        self.heading =
-            (self.heading + input.yaw * config.yaw_rate * dt).rem_euclid(std::f32::consts::TAU);
-        let target = input.tilt * config.max_tilt;
+        self.heading = (self.heading + input.yaw.clamp(-1., 1.) * config.yaw_rate * dt)
+            .rem_euclid(std::f32::consts::TAU);
+        let target = input.tilt.clamp_length_max(1.) * config.max_tilt;
         let mut delta = Vec2::ZERO;
         let mut total_rate: f32 = 0.;
         for axis in 0..2 {
@@ -124,7 +137,7 @@ impl DroneFlight {
         self.tilt = self.tilt.clamp_length_max(config.max_tilt);
     }
 
-    fn rotation(&self) -> Quat {
+    pub(crate) fn rotation(&self) -> Quat {
         // One axis-angle tilt preserves the shared angle limit exactly, unlike
         // composing independent Euler pitch/roll rotations.
         Quat::from_rotation_y(self.heading)
@@ -182,8 +195,8 @@ impl DroneFlight {
         self.velocity.z = horizontal.z;
     }
 
-    fn contain(&mut self, transform: &mut Transform, arena: &Arena) {
-        let limit = arena.half_size - drone_world_half_extents(transform.rotation);
+    fn contain(&mut self, transform: &mut Transform, arena: &Arena, local_half: Vec3) {
+        let limit = arena.half_size - world_half_extents(transform.rotation, local_half);
         let min = arena.center() - limit;
         let max = arena.center() + limit;
         for axis in 0..3 {
@@ -200,10 +213,14 @@ impl DroneFlight {
 
 /// Conservative world AABB shared by arena contact, combat, and altitude guide.
 pub(crate) fn drone_world_half_extents(rotation: Quat) -> Vec3 {
+    world_half_extents(rotation, DRONE_HALF_EXTENTS)
+}
+
+pub(crate) fn world_half_extents(rotation: Quat, local_half: Vec3) -> Vec3 {
     let basis = Mat3::from_quat(rotation);
-    basis.x_axis.abs() * DRONE_HALF_EXTENTS.x
-        + basis.y_axis.abs() * DRONE_HALF_EXTENTS.y
-        + basis.z_axis.abs() * DRONE_HALF_EXTENTS.z
+    basis.x_axis.abs() * local_half.x
+        + basis.y_axis.abs() * local_half.y
+        + basis.z_axis.abs() * local_half.z
 }
 
 #[cfg(test)]
@@ -219,11 +236,11 @@ mod tests {
             thrust: config.boost_thrust,
         };
         for (speed, expected) in [
-            (0., 120.),
-            (216., 120.),
-            (228., 60.),
-            (240., 0.),
-            (250., 0.),
+            (0., 240.),
+            (378., 240.),
+            (399., 120.),
+            (420., 0.),
+            (430., 0.),
         ] {
             let flight = DroneFlight {
                 velocity: Vec3::NEG_Z * speed,
@@ -232,16 +249,16 @@ mod tests {
             };
             let acceleration = flight.acceleration(flight.rotation(), &input, &config);
             assert!((acceleration.z + expected).abs() < 0.001);
-            assert!((acceleration.y - (240. * 30_f32.to_radians().cos() - 120.)).abs() < 0.001);
+            assert!((acceleration.y - (480. * 30_f32.to_radians().cos() - 360.)).abs() < 0.001);
         }
         for tilt in [Vec2::NEG_Y, Vec2::X] {
             let flight = DroneFlight {
-                velocity: Vec3::NEG_Z * 240.,
+                velocity: Vec3::NEG_Z * 420.,
                 tilt: tilt * config.max_tilt,
                 ..default()
             };
             let acceleration = flight.acceleration(flight.rotation(), &input, &config);
-            let expected = flight.rotation() * Vec3::Y * 240. - Vec3::Y * 120.;
+            let expected = flight.rotation() * Vec3::Y * 480. - Vec3::Y * 360.;
             assert!(acceleration.distance(expected) < 0.001);
         }
     }

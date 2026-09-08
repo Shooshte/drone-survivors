@@ -234,7 +234,7 @@ fn scout_scene_loads_under_player_and_survives_encounter_restarts() {
 #[test]
 fn yaw_turns_in_place_and_preserves_heading() {
     let (mut app, drone) = test_app();
-    step(&mut app, &[KeyCode::KeyD], 0.75);
+    step(&mut app, &[KeyCode::KeyD], 0.375);
     near(position(&app, drone), START);
     let rotation = app.world().get::<Transform>(drone).unwrap().rotation;
     near(rotation * Vec3::NEG_Z, Vec3::X);
@@ -323,7 +323,7 @@ fn neutral_hover_and_all_bindings_follow_heading() {
         step(&mut app, &[key], 0.25);
         assert!(
             (Quat::from_rotation_y(state(&app, drone).heading) * Vec3::NEG_Z)
-                .distance(Quat::from_rotation_y(sign * std::f32::consts::FRAC_PI_6) * Vec3::NEG_Z)
+                .distance(Quat::from_rotation_y(sign * std::f32::consts::FRAC_PI_3) * Vec3::NEG_Z)
                 < 0.001
         );
     }
@@ -491,7 +491,7 @@ fn horizontal_speed_limit_preserves_braking_and_steering() {
         app.world_mut().resource_mut::<Arena>().half_size = Vec3::splat(1_000_000.);
         for _ in 0..600 {
             step(&mut app, &keys, 1. / 30.);
-            assert!(state(&app, drone).velocity.with_y(0.).length() <= 240.001);
+            assert!(state(&app, drone).velocity.with_y(0.).length() <= 420.001);
         }
     }
     for (key, steering) in [(KeyCode::KeyS, false), (KeyCode::KeyE, true)] {
@@ -499,14 +499,14 @@ fn horizontal_speed_limit_preserves_braking_and_steering() {
         app.world_mut()
             .get_mut::<DroneFlight>(drone)
             .unwrap()
-            .velocity = Vec3::NEG_Z * 240.;
+            .velocity = Vec3::NEG_Z * 420.;
         step(&mut app, &[key, KeyCode::Space], 0.25);
         let v = state(&app, drone).velocity;
-        assert!(v.with_y(0.).length() <= 240.001);
+        assert!(v.with_y(0.).length() <= 420.001);
         if steering {
             assert!(v.x > 5.);
         } else {
-            assert!(v.z > -220.);
+            assert!(v.z > -380.);
         }
     }
 }
@@ -627,10 +627,10 @@ fn reset_clears_all_flight_state_wins_over_input_and_held_reset_does_not_repeat(
 fn diagonal_tilt_and_leveling_use_configured_total_angular_rates() {
     let (mut app, drone) = test_app();
     step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.1);
-    assert!((state(&app, drone).tilt.length() - 9_f32.to_radians()).abs() < 0.001);
+    assert!((state(&app, drone).tilt.length() - 24_f32.to_radians()).abs() < 0.001);
     step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.5);
     step(&mut app, &[], 0.05);
-    assert!((state(&app, drone).tilt.length() - 24_f32.to_radians()).abs() < 0.001);
+    assert!((state(&app, drone).tilt.length() - 15_f32.to_radians()).abs() < 0.001);
 }
 
 #[test]
@@ -643,7 +643,7 @@ fn speed_clamp_is_horizontal_only_and_opposing_tilt_levels_each_axis() {
         .velocity = Vec3::new(500., 500., 500.);
     step(&mut app, &[], 0.001);
     let velocity = state(&app, drone).velocity;
-    assert!(velocity.with_y(0.).length() <= 240.001);
+    assert!(velocity.with_y(0.).length() <= 420.001);
     assert!(velocity.y > 499.);
     step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.5);
     step(
@@ -725,4 +725,24 @@ fn sustained_flight_contacts_all_faces_edges_and_corners_without_velocity_buildu
             }
         }
     }
+}
+
+#[test]
+fn scout_launch_reaches_escape_speed_promptly() {
+    let (mut app, drone) = test_app();
+    app.world_mut().resource_mut::<Arena>().half_size = Vec3::splat(10000.);
+    step(&mut app, &[KeyCode::KeyW], 0.5);
+    let half_second = state(&app, drone).velocity.with_y(0.).length();
+    assert!(half_second >= 65., "half second speed: {half_second}");
+    step(&mut app, &[KeyCode::KeyW], 0.5);
+    let one_second = state(&app, drone).velocity.with_y(0.).length();
+    assert!(one_second >= 140., "one second speed: {one_second}");
+    println!("scout neutral launch: 0.5 s {half_second:.3}, 1 s {one_second:.3}");
+}
+
+#[test]
+fn scout_reaches_full_tilt_within_one_eighth_second() {
+    let (mut app, drone) = test_app();
+    step(&mut app, &[KeyCode::KeyW], 0.125);
+    assert!((state(&app, drone).tilt.length() - 30_f32.to_radians()).abs() < 0.001);
 }

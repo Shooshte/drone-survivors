@@ -1,6 +1,6 @@
 use super::{CombatConfig, Enemy, PlayerHealth, Projectile, Weapon, enemies::spawn_enemies};
 use crate::{
-    arena::{Drone, drone_world_half_extents},
+    arena::{Drone, drone_world_half_extents, world_half_extents},
     game::GamePhase,
 };
 use bevy::prelude::*;
@@ -45,9 +45,10 @@ pub(super) fn contact_damage(
     if now + 1e-7 < health.invulnerable_until {
         return;
     }
-    let half =
-        drone_world_half_extents(drone.rotation) + Vec3::splat(config.enemy_half_size + 0.001);
     if enemies.iter().any(|(enemy, target)| {
+        let half = drone_world_half_extents(drone.rotation)
+            + world_half_extents(target.rotation, Vec3::splat(config.enemy_half_size))
+            + Vec3::splat(0.001);
         enemy.health > 0
             && (target.translation - drone.translation)
                 .abs()
