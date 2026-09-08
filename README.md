@@ -1,6 +1,6 @@
 # Drone Survivors
 
-A top-down Rust/Bevy prototype, currently featuring a playable test arena.
+A Rust/Bevy prototype, currently featuring a playable 3D drone test arena.
 Configured using the [Bevy setup guide](https://bevy.org/learn/quick-start/getting-started/setup/).
 
 ## Development
@@ -14,10 +14,17 @@ editor to use the installed language server.
 cargo dev
 ```
 
-The test arena opens immediately. Use **WASD or arrow keys** to move,
-**R** to return to the center, and **Escape** to quit. Diagonal movement
-has the same speed as straight movement, and the full drone stays inside
-the arena. The camera keeps the arena visible as the window is resized.
+The test arena opens immediately. Use **WASD or arrow keys** to move over the
+ground plane, **Space** to ascend, **either Shift** to descend, **R** to return
+to the center at the starting altitude, and **Escape** to quit. Release movement
+keys to hover. Diagonal movement, including combined horizontal and vertical
+flight, has the same total speed as straight movement.
+
+The full drone stops at the ground, ceiling, and side walls; it can still move
+along a boundary or back away from it. The 960 × 540 arena has a 300-unit
+ceiling, and the drone starts 90 units above ground (measured at its center).
+An angled camera keeps the full flight volume visible as the window is resized.
+A ring on the ground and a vertical guide show the drone's ground position.
 
 See [the control smoke check and playtest notes](docs/playtests.md).
 
