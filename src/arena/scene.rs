@@ -8,7 +8,7 @@ struct GroundMarker;
 
 impl Plugin for ArenaScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_scene.after(spawn_drone))
+        app.add_systems(Startup, (setup_scene, setup_drone_model).after(spawn_drone))
             .add_systems(Update, track_ground_position.after(move_drone));
     }
 }
@@ -16,7 +16,6 @@ impl Plugin for ArenaScenePlugin {
 pub(super) fn setup_scene(
     mut commands: Commands,
     arena: Res<Arena>,
-    drone: Single<Entity, With<Drone>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -123,43 +122,6 @@ pub(super) fn setup_scene(
         ));
     }
 
-    let body = materials.add(Color::srgb(0.36, 0.93, 0.80));
-    let rotor = materials.add(Color::srgb(0.76, 0.96, 0.93));
-    let nose = materials.add(Color::srgb(0.04, 0.22, 0.22));
-    let rotor_mesh = meshes.add(Cylinder::new(5., 3.));
-    let arm_mesh = meshes.add(Cuboid::new(26., 2., 3.));
-    commands
-        .entity(*drone)
-        .insert((
-            Mesh3d(meshes.add(Cuboid::new(22., DRONE_HALF_EXTENTS.y * 2., 22.))),
-            MeshMaterial3d(body.clone()),
-        ))
-        .with_children(|parent| {
-            for z in [-1., 1.] {
-                parent.spawn((
-                    Mesh3d(arm_mesh.clone()),
-                    MeshMaterial3d(body.clone()),
-                    Transform::from_xyz(0., 0., z * (DRONE_HALF_EXTENTS.z - 5.)),
-                ));
-                for x in [-1., 1.] {
-                    parent.spawn((
-                        Mesh3d(rotor_mesh.clone()),
-                        MeshMaterial3d(rotor.clone()),
-                        Transform::from_xyz(
-                            x * (DRONE_HALF_EXTENTS.x - 5.),
-                            2.,
-                            z * (DRONE_HALF_EXTENTS.z - 5.),
-                        ),
-                    ));
-                }
-            }
-            parent.spawn((
-                Mesh3d(meshes.add(Cuboid::new(4., 4., 4.))),
-                MeshMaterial3d(nose),
-                Transform::from_xyz(0., 2., -12.),
-            ));
-        });
-
     commands.spawn((
         GroundMarker,
         Mesh3d(meshes.add(Annulus::new(16., 18.))),
@@ -195,6 +157,24 @@ pub(super) fn setup_scene(
             ..default()
         },
     ));
+}
+
+pub(super) const SCOUT_MODEL: &str = "models/scout_drone.glb";
+
+pub(super) fn setup_drone_model(
+    mut commands: Commands,
+    drone: Single<Entity, With<Drone>>,
+    assets: Res<AssetServer>,
+) {
+    // The imported scene is presentation only. Keep movement, collision and
+    // restart state on the existing player root, and retain its asset handle.
+    commands
+        .entity(*drone)
+        .insert((Name::new("Scout drone"), Visibility::default()))
+        .with_child((
+            Name::new("Scout model"),
+            WorldAssetRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(SCOUT_MODEL))),
+        ));
 }
 
 fn track_ground_position(

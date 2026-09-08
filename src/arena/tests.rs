@@ -274,41 +274,58 @@ fn scene_app() -> App {
 
 #[test]
 fn rendered_drone_geometry_fits_the_movement_bounds() {
-    use bevy::camera::primitives::MeshAabb;
-    let mut app = scene_app();
-    let drone = app
-        .world_mut()
-        .query_filtered::<Entity, With<Drone>>()
-        .single(app.world())
-        .unwrap();
-    let meshes = app.world().resource::<Assets<Mesh>>();
-    let mut parts = vec![(drone, Vec3::ZERO)];
-    for child in app.world().get::<Children>(drone).unwrap().iter() {
-        parts.push((
-            child,
-            app.world().get::<Transform>(child).unwrap().translation,
-        ));
+    let bytes = std::fs::read(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/models/scout_drone.glb"
+    ))
+    .expect("the scout GLB must ship with the arena");
+    let gltf = bevy::gltf::gltf::Gltf::from_slice(&bytes).expect("valid glTF 2.0");
+    let blob = gltf.blob.as_deref().expect("self-contained GLB buffer");
+    let mut vertices = 0;
+    let mut min = Vec3::splat(f32::INFINITY);
+    let mut max = Vec3::splat(f32::NEG_INFINITY);
+    let mut pending: Vec<_> = gltf
+        .default_scene()
+        .expect("default scout scene")
+        .nodes()
+        .map(|node| (node, Mat4::IDENTITY))
+        .collect();
+    while let Some((node, parent)) = pending.pop() {
+        let transform = parent * Mat4::from_cols_array_2d(&node.transform().matrix());
+        pending.extend(node.children().map(|child| (child, transform)));
+        if let Some(mesh) = node.mesh() {
+            for primitive in mesh.primitives() {
+                let reader = primitive.reader(|_| Some(blob));
+                let positions = reader.read_positions().expect("mesh vertices");
+                for position in positions {
+                    let point = transform.transform_point3(Vec3::from_array(position));
+                    assert!(point.is_finite(), "non-finite mesh vertex");
+                    min = min.min(point);
+                    max = max.max(point);
+                    vertices += 1;
+                }
+                assert!(reader.read_normals().is_some(), "export shading normals");
+            }
+        }
     }
-    let mut lowest = f32::INFINITY;
-    let mut highest = f32::NEG_INFINITY;
-    for (entity, offset) in parts {
-        let handle = &app.world().get::<Mesh3d>(entity).unwrap().0;
-        let bounds = meshes.get(handle).unwrap().compute_aabb().unwrap();
-        let min = offset + Vec3::from(bounds.center - bounds.half_extents);
-        let max = offset + Vec3::from(bounds.center + bounds.half_extents);
-        assert!(
-            min.cmpge(-DRONE_HALF_EXTENTS).all(),
-            "mesh extends below bounds: {min:?}"
-        );
-        assert!(
-            max.cmple(DRONE_HALF_EXTENTS).all(),
-            "mesh extends above bounds: {max:?}"
-        );
-        lowest = lowest.min(min.y);
-        highest = highest.max(max.y);
-    }
-    assert_eq!(lowest, -DRONE_HALF_EXTENTS.y);
-    assert_eq!(highest, DRONE_HALF_EXTENTS.y);
+    assert!(vertices > 0, "the exported scene must contain geometry");
+    let tolerance = Vec3::splat(0.001);
+    assert!(
+        min.cmpge(-DRONE_HALF_EXTENTS - tolerance).all(),
+        "mesh below bounds: {min:?}"
+    );
+    assert!(
+        max.cmple(DRONE_HALF_EXTENTS + tolerance).all(),
+        "mesh above bounds: {max:?}"
+    );
+    assert!(
+        max.z - min.z > 30.,
+        "scout should fill its flight footprint"
+    );
+    assert!(
+        gltf.textures().next().is_none(),
+        "materials need no external textures"
+    );
 }
 
 #[test]
@@ -339,5 +356,100 @@ fn camera_keeps_the_whole_flight_volume_visible_after_resizing() {
                 }
             }
         }
+    }
+}
+
+#[test]
+fn scout_scene_loads_under_player_and_survives_encounter_restarts() {
+    use bevy::{
+        asset::LoadState, gltf::GltfPlugin, mesh::MeshPlugin,
+        world_serialization::WorldSerializationPlugin,
+    };
+    let mut app = App::new();
+    app.add_plugins((
+        bevy::app::TaskPoolPlugin::default(),
+        AssetPlugin {
+            file_path: concat!(env!("CARGO_MANIFEST_DIR"), "/assets").into(),
+            ..default()
+        },
+        WorldSerializationPlugin,
+        bevy::scene::ScenePlugin,
+        TransformPlugin,
+        MeshPlugin,
+        ImagePlugin::default(),
+        GltfPlugin::default(),
+    ))
+    .init_asset::<StandardMaterial>()
+    .init_resource::<Time>()
+    .init_resource::<ButtonInput<KeyCode>>()
+    .add_plugins((ArenaPlugin, crate::combat::CombatPlugin))
+    .add_systems(Startup, scene::setup_drone_model.after(spawn_drone));
+    app.finish();
+    app.cleanup();
+    app.update();
+    let drone = app
+        .world_mut()
+        .query_filtered::<Entity, With<Drone>>()
+        .single(app.world())
+        .unwrap();
+    let (model, scene) = app
+        .world_mut()
+        .query::<(Entity, &WorldAssetRoot)>()
+        .single(app.world())
+        .map(|(entity, root)| (entity, root.0.clone()))
+        .unwrap();
+    assert_eq!(app.world().get::<ChildOf>(model).unwrap().parent(), drone);
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        app.update();
+        if let Some(LoadState::Failed(error)) = app
+            .world()
+            .resource::<AssetServer>()
+            .get_load_state(scene.id())
+        {
+            panic!("scout failed to load: {error}");
+        }
+        if app.world_mut().query::<&Mesh3d>().iter(app.world()).count() == 6 {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "scout scene did not spawn"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let parts: Vec<_> = app
+        .world_mut()
+        .query_filtered::<Entity, With<Mesh3d>>()
+        .iter(app.world())
+        .collect();
+    let mesh_count = app.world().resource::<Assets<Mesh>>().len();
+    let material_count = app.world().resource::<Assets<StandardMaterial>>().len();
+    for part in &parts {
+        let mut ancestor = *part;
+        while ancestor != drone {
+            ancestor = app
+                .world()
+                .get::<ChildOf>(ancestor)
+                .expect("mesh belongs to player")
+                .parent();
+        }
+    }
+    for _ in 0..3 {
+        step(&mut app, &[KeyCode::KeyD, KeyCode::Space], 0.1);
+        step(&mut app, &[KeyCode::KeyR], 0.01);
+        near(position(&app, drone), START);
+        assert_eq!(app.world().get::<WorldAssetRoot>(model).unwrap().0, scene);
+        for part in &parts {
+            assert!(
+                app.world().get::<Mesh3d>(*part).is_some(),
+                "restart must retain model parts"
+            );
+        }
+        assert_eq!(app.world().resource::<Assets<Mesh>>().len(), mesh_count);
+        assert_eq!(
+            app.world().resource::<Assets<StandardMaterial>>().len(),
+            material_count
+        );
     }
 }
