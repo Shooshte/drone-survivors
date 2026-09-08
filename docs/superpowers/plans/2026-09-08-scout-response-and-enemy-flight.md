@@ -37,7 +37,7 @@ Files: `README.md`, `docs/playtests.md`, original spec tuning references, this p
 - [x] Update the current tuning and enemy behavior documentation; preserve historical playtest results as historical.
 - [x] Build and run native game; inspect enemy attitude/movement and controls, and record limitations.
 - [x] Independently review the complete follow-up diff; resolve actionable findings with covering tests.
-- [ ] Run final verification, commit, push, and update PR #5's title/body around the resulting scout and pursuit behavior.
+- [x] Run final verification, commit, push, and update PR #5's title/body around the resulting scout and pursuit behavior.
 
 ## Results
 
@@ -47,3 +47,5 @@ Files: `README.md`, `docs/playtests.md`, original spec tuning references, this p
 - Default two-second evasion retained full hull. Independent review also checked moving-player launch at 4/15/30/60/120/144 FPS and found no material issue.
 - Native enemies visibly banked during approach and leveled while slowing; restart restored the encounter. Human held-key handling/balance remains a playtest item.
 - Independent review: approved, no actionable findings.
+
+Delivery: committed and pushed to the existing branch; PR #5 updated against main.
