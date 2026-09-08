@@ -1,6 +1,7 @@
 # Drone Survivors
 
-Rust/Bevy project configured using the [Bevy setup guide](https://bevy.org/learn/quick-start/getting-started/setup/).
+A top-down Rust/Bevy prototype, currently featuring a playable test arena.
+Configured using the [Bevy setup guide](https://bevy.org/learn/quick-start/getting-started/setup/).
 
 ## Development
 
@@ -13,6 +14,13 @@ editor to use the installed language server.
 cargo dev
 ```
 
+The test arena opens immediately. Use **WASD or arrow keys** to move,
+**R** to return to the center, and **Escape** to quit. Diagonal movement
+has the same speed as straight movement, and the full drone stays inside
+the arena. The camera keeps the arena visible as the window is resized.
+
+See [the control smoke check and playtest notes](docs/playtests.md).
+
 This alias enables Bevy's dynamic linking for faster iterative builds. Dev
 builds optimize project code at level 1 and dependencies at level 3. Native
 macOS builds also enable nightly generic sharing and use Apple's default
@@ -21,6 +29,7 @@ rebuilds the engine and can take several minutes.
 
 ```sh
 cargo fmt --check
+cargo test
 cargo clippy --all-targets
 ```
 
