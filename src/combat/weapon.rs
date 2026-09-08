@@ -1,0 +1,110 @@
+use super::{CombatConfig, Enemy, Projectile, Weapon, collision::segment_box};
+use crate::{
+    arena::{Arena, Drone},
+    game::GamePhase,
+};
+use bevy::prelude::*;
+
+pub(super) fn fire(
+    mut commands: Commands,
+    time: Res<Time>,
+    config: Res<CombatConfig>,
+    phase: Res<GamePhase>,
+    mut weapon: ResMut<Weapon>,
+    drone: Single<&Transform, With<Drone>>,
+    enemies: Query<(Entity, &Enemy, &Transform)>,
+) {
+    if *phase != GamePhase::Playing {
+        return;
+    }
+    let now = time.elapsed_secs_f64();
+    let target = enemies
+        .iter()
+        .filter(|(_, enemy, _)| enemy.health > 0)
+        .map(|(id, _, transform)| {
+            (
+                id,
+                transform.translation,
+                transform.translation.distance_squared(drone.translation),
+            )
+        })
+        .filter(|(_, _, distance)| *distance <= config.target_range.powi(2))
+        .min_by(|a, b| a.2.total_cmp(&b.2).then(a.0.to_bits().cmp(&b.0.to_bits())));
+    let Some((_, position, _)) = target else {
+        // A target-free interval never banks shots for a later burst.
+        weapon.ready_at = weapon.ready_at.max(now);
+        return;
+    };
+    if now + 1e-7 < weapon.ready_at {
+        return;
+    }
+    let direction = (position - drone.translation)
+        .try_normalize()
+        .unwrap_or(Vec3::NEG_Z);
+    commands.spawn((
+        Projectile {
+            velocity: direction * config.projectile_speed,
+            remaining: config.projectile_lifetime,
+        },
+        Transform::from_translation(drone.translation),
+    ));
+    // Keep normal cadence across fractional frames, discard missed shots on hitches.
+    weapon.ready_at = if now - weapon.ready_at >= config.fire_interval {
+        now + config.fire_interval
+    } else {
+        weapon.ready_at + config.fire_interval
+    };
+}
+
+pub(super) fn advance_projectiles(
+    mut commands: Commands,
+    time: Res<Time>,
+    arena: Res<Arena>,
+    config: Res<CombatConfig>,
+    mut projectiles: Query<(Entity, &mut Projectile, &mut Transform), Without<Enemy>>,
+    mut enemies: Query<(Entity, &mut Enemy, &Transform), Without<Projectile>>,
+) {
+    let dt = time.delta_secs();
+    for (id, mut shot, mut transform) in &mut projectiles {
+        let start = transform.translation;
+        if shot.remaining <= 0. || (start - arena.center()).abs().cmpgt(arena.half_size).any() {
+            commands.entity(id).despawn();
+            continue;
+        }
+        let travel_time = dt.min(shot.remaining);
+        let mut fraction = if dt > 0. { travel_time / dt } else { 1. };
+        let mut end = start + shot.velocity * travel_time;
+        if (end - arena.center()).abs().cmpgt(arena.half_size).any() {
+            let exit_fraction =
+                1. - segment_box(end, start, arena.center(), arena.half_size).unwrap_or(1.);
+            fraction *= exit_fraction;
+            end = start.lerp(end, exit_fraction);
+        }
+        let half = Vec3::splat(config.enemy_half_size + config.projectile_radius);
+        let hit = enemies
+            .iter()
+            .filter(|(_, enemy, _)| enemy.health > 0)
+            .filter_map(|(entity, enemy, target)| {
+                // Sweep in the enemy's reference frame, clipped to the shot's lifetime
+                // and arena exit. An enemy crossing a fast shot is still hittable.
+                let target_end = enemy.previous.lerp(target.translation, fraction);
+                segment_box(start - enemy.previous, end - target_end, Vec3::ZERO, half)
+                    .map(|impact| (entity, impact))
+            })
+            .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
+        if let Some((target, _)) = hit {
+            let (_, mut enemy, _) = enemies.get_mut(target).unwrap();
+            enemy.health = enemy.health.saturating_sub(config.shot_damage);
+            if enemy.health == 0 {
+                commands.entity(target).despawn();
+            }
+            commands.entity(id).despawn();
+        } else {
+            transform.translation = end;
+            shot.remaining -= dt;
+            if shot.remaining <= 0. || fraction < 1. {
+                commands.entity(id).despawn();
+            }
+        }
+    }
+}

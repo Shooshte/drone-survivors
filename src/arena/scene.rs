@@ -173,7 +173,7 @@ pub(super) fn setup_scene(
     ));
 
     commands.spawn((
-        Text::new("DRONE SURVIVORS  /  3D TEST ARENA"),
+        Text::new("DRONE SURVIVORS  /  COMBAT TEST ARENA"),
         TextFont::from_font_size(20.),
         TextColor(Color::srgb(0.76, 0.96, 0.93)),
         Node {
@@ -184,7 +184,7 @@ pub(super) fn setup_scene(
         },
     ));
     commands.spawn((
-        Text::new("WASD / Arrows  Move  |  Space  Up  |  Shift  Down\nR  Reset  |  Esc  Quit"),
+        Text::new("WASD / Arrows  Move  |  Space  Up  |  Shift  Down\nAuto fire  |  R  Restart encounter  |  Esc  Quit"),
         TextFont::from_font_size(16.),
         TextColor(Color::srgb(0.63, 0.74, 0.77)),
         Node {
