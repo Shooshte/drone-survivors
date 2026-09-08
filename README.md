@@ -14,14 +14,35 @@ editor to use the installed language server.
 cargo dev
 ```
 
-The test arena opens immediately. Use **WASD or arrow keys** to move over the
-ground plane, **Space** to ascend, **either Shift** to descend, **R** to return
-restart the encounter at the center and starting altitude, and **Escape** to quit. Release movement
-keys to hover. Diagonal movement, including combined horizontal and vertical
-flight, has the same total speed as straight movement.
+The test arena opens immediately. Fly relative to the drone's heading:
 
-The full drone stops at the ground, ceiling, and side walls; it can still move
-along a boundary or back away from it. The 960 × 540 arena has a 300-unit
+| Keys | Control |
+| --- | --- |
+| **W/S** or **Up/Down** | Pitch forward/backward |
+| **A/D** or **Left/Right** | Turn left/right |
+| **Q/E** | Bank left/right |
+| **Space** / **either Shift** | Boost/reduce rotor thrust |
+| **R** | Restart the encounter at the center, level and stationary |
+| **Escape** | Quit |
+
+Pitching and banking redirect rotor thrust to accelerate the drone horizontally.
+Both reduce upward lift, so expect to lose altitude unless you add thrust.
+Release pitch/bank controls to smoothly level out; momentum remains and drag
+gradually slows the drift. Tilt in the opposite direction to brake. Turning
+changes where the nose points and where tilted thrust pushes, while existing
+momentum keeps its world direction.
+
+Space boosts thrust and Shift reduces it. Releasing both restores the thrust
+needed to hover **when level**; it does not immediately stop a climb or descent,
+or recover lost altitude. Opposing keys cancel on each control axis and duplicate
+bindings add no extra input. Pitch and bank share a 30-degree total tilt limit,
+and all directions share a maximum horizontal speed of 240 world units/second.
+Vertical motion is independent of that speed limit. Flight tuning values are
+grouped in `FlightConfig` in `src/arena/flight.rs`.
+
+The full rotated drone stays inside the ground, ceiling, and side walls. Contact
+removes velocity into the surface while preserving motion along or away from it.
+The 960 × 540 arena has a 300-unit
 ceiling, and the drone starts 90 units above ground (measured at its center).
 An angled camera keeps the full flight volume visible as the window is resized.
 A ring on the ground and a vertical guide show the drone's ground position.

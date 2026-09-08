@@ -1,7 +1,7 @@
 # Drone flight controls
 
-Status: control scheme approved; written specification ready for review.
-Scope: specification only. Implementation requires a subsequent user request.
+Status: approved for implementation.
+Scope: flight controls, related collision/presentation integration, and validation.
 
 ## Purpose
 

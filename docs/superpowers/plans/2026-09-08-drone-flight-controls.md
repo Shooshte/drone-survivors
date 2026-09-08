@@ -36,7 +36,7 @@ Interfaces:
 - `drone_world_half_extents(rotation: Quat) -> Vec3`, re-exported from `arena`, provides the common rotated envelope.
 - Existing `move_drone`, `spawn_drone`, and `ArenaPlugin` remain integration entry points.
 
-- [ ] Add behavioral regressions before implementation. Initial assertions can use existing Transform APIs so the old implementation compiles and demonstrably fails:
+- [x] Add behavioral regressions before implementation. Initial assertions can use existing Transform APIs so the old implementation compiles and demonstrably fails:
 
 ```rust
 step(&mut app, &[KeyCode::KeyA], 0.25);
@@ -51,8 +51,8 @@ assert!(position(&app, drone).x < START.x);
 assert!(position(&app, drone).y < START.y);
 ```
 
-- [ ] Run `cargo test --locked arena::tests` and record expected failures from missing yaw, banking, drift, and altitude loss. Replace tests for superseded immediate movement; retain scene/asset/camera checks.
-- [ ] Implement persistent simulation with substeps no longer than 1/120 second, signed heading-local tilt, local-up thrust, gravity, stable drag, speed taper and clamp. Shared world bounds are the sum of absolute rotated basis vectors weighted by local half-extents:
+- [x] Run `cargo test --locked arena::tests` and record expected failures from missing yaw, banking, drift, and altitude loss. Replace tests for superseded immediate movement; retain scene/asset/camera checks.
+- [x] Implement persistent simulation with substeps no longer than 1/120 second, signed heading-local tilt, local-up thrust, gravity, stable drag, speed taper and clamp. Shared world bounds are the sum of absolute rotated basis vectors weighted by local half-extents:
 
 ```rust
 (rotation * Vec3::X).abs() * DRONE_HALF_EXTENTS.x
@@ -60,20 +60,24 @@ assert!(position(&app, drone).y < START.y);
     + (rotation * Vec3::Z).abs() * DRONE_HALF_EXTENTS.z
 ```
 
-- [ ] Add regressions for all aliases/opposites, heading-relative acceleration, combined tilt limits, axis-independent leveling, hover/descent/thrust release, drift/braking, speed taper without lost steering, all 26 boundary directions, contact departure, reset/death, and comparable 30/60/120/144 Hz trajectories including a long frame.
-- [ ] Verify `cargo test --locked`, `cargo fmt --check`, and `cargo clippy --all-targets --locked -- -D warnings`; fix failures and self-review against the spec.
+- [x] Add regressions for all aliases/opposites, heading-relative acceleration, combined tilt limits, axis-independent leveling, hover/descent/thrust release, drift/braking, speed taper without lost steering, all 26 boundary directions, contact departure, reset/death, and comparable 30/60/120/144 Hz trajectories including a long frame.
+- [x] Verify `cargo test --locked`, `cargo fmt --check`, and `cargo clippy --all-targets --locked -- -D warnings`; fix failures and self-review against the spec.
 
 ## Task 2: Documentation and native validation
 
 Files: `README.md`, `docs/playtests.md`, approved spec status, this plan.
 
-- [ ] Replace README movement instructions with the implemented bindings and explain drift, altitude loss, counter-tilt braking, and thrust release.
-- [ ] Add current playtest steps before historical entries. Mark earlier control instructions as historical.
-- [ ] Build `cargo build --locked --features bevy/dynamic_linking`, launch the native arena, verify legend/model/orientation/reset where UI tools permit, and record exact observations and limitations.
-- [ ] Review the complete diff independently; resolve actionable findings with covering tests.
-- [ ] Run final formatting/tests/Clippy and diff checks, mark plan complete, and commit the finished implementation.
+- [x] Replace README movement instructions with the implemented bindings and explain drift, altitude loss, counter-tilt braking, and thrust release.
+- [x] Add current playtest steps before historical entries. Mark earlier control instructions as historical.
+- [x] Build `cargo build --locked --features bevy/dynamic_linking`, launch the native arena, verify legend/model/orientation/reset where UI tools permit, and record exact observations and limitations.
+- [x] Review the complete diff independently; resolve actionable findings with covering tests.
+- [x] Run final formatting/tests/Clippy and diff checks, mark plan complete, and commit the finished implementation.
 - [ ] Push `codex/drone-flight-controls`; use `gh pr create --base main --head codex/drone-flight-controls --body-file <prepared-file>` and verify the returned PR state/base/head.
 
 ## Validation record
 
 - Baseline: 32 tests passed on the isolated branch before implementation.
+
+- Final source: 42 tests passed; formatting, Clippy with warnings denied, dynamic native build, and diff checks passed.
+- Independent review: spec compliance and code quality passed with no actionable findings.
+- Native rendering, resized legend, restart, and exit verified; sustained keyboard feel remains a human playtest item, detailed in `docs/playtests.md`.

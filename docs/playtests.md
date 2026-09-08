@@ -1,5 +1,78 @@
 # Playtests
 
+## Drone flight controls — 2026-09-08
+
+This is the current control scheme. Movement instructions in older entries below
+describe previous versions and are retained as historical validation records.
+
+### Repeatable flight check
+
+1. Run `cargo dev`. Confirm the scout starts level at (0, 90, 0), facing toward
+   the back of the arena, with a legend showing pitch, turn, bank, and thrust.
+   With no input or prior momentum it should hover.
+2. Hold A/D or Left/Right. The nose turns without translating a stationary level
+   drone. Release to retain the new heading. Repeat after accelerating: existing
+   drift keeps its world direction as the nose turns.
+3. Hold W/S or Up/Down to pitch forward/backward. Hold Q/E to bank left/right.
+   Each tilt should accelerate toward the matching heading-relative direction
+   and cost altitude at neutral thrust. Repeat after turning approximately
+   90 degrees to check the direction follows the nose rather than the camera.
+4. Release tilt inputs. The model smoothly levels, but continues drifting and
+   descending. Opposite tilt brakes horizontal drift faster than passive drag.
+   Combine W+Q, then release only Q: roll should level while pitch remains.
+5. Hold Space to boost thrust and arrest a descent; continue to climb. Release:
+   vertical momentum should decay without snapping to a stop. Hold either Shift
+   to reduce thrust. Space+Shift restores neutral thrust while held together.
+6. Hold pitch and bank together, including while turning and boosting thrust.
+   The total tilt stays bounded and the drone cannot flip. All horizontal
+   directions share one maximum speed; ascending does not consume that budget.
+7. Approach the floor, ceiling, walls, and corners at various headings and tilts.
+   The full visible drone stays inside. It can slide along a surface, tilt or
+   turn near it, brake, and fly away without bouncing or building velocity into
+   the surface. From the floor, level out and hold Space to take off.
+8. Press opposing control pairs and duplicate aliases. Opposites cancel on each
+   axis; duplicate bindings do not accelerate response or increase tilt/thrust.
+9. Press R while flying. Position, heading, tilt, and momentum reset along with
+   health and enemies. Hold movement during reset: reset wins that frame, then
+   movement resumes. Holding R must not continuously reset the encounter.
+10. Allow destruction. Gravity, movement, and leveling freeze. R restores normal
+    flight. Automatic shots still target nearby enemies independently of heading.
+11. Resize to the minimum window size and a wide window. The arena and controls
+    should remain legible. Escape exits.
+
+Flight parameters are grouped in `FlightConfig` in `src/arena/flight.rs`. The
+approved values are starting points for evaluating acceleration, braking,
+altitude management, and keyboard feel in this small arena.
+
+### Validation results
+
+- Baseline: 32 tests passed before implementation. Three initial regressions
+  failed against the old movement code for yaw, banking, and tilt-induced altitude
+  loss. A later regression caught and corrected combined tilt responding faster
+  than the configured total angular rate.
+- `cargo test --locked`: 42 tests passed. Coverage includes real ECS input/time,
+  aliases/opposing controls, heading-relative acceleration, independent leveling,
+  drift/braking, altitude loss and thrust release, speed limiting and steering,
+  30/60/120/144 Hz trajectories, long frames, rotated bounds, sustained contact
+  and departure in all 26 boundary directions, reset/death, and automatic aim.
+- `cargo fmt --check` and `cargo clippy --all-targets --locked -- -D warnings`
+  passed. The dynamic-linking native development build passed.
+- Independent source review found no actionable correctness, spec-compliance,
+  or code-quality issues.
+
+The rebuilt native binary ran in a temporary macOS app bundle with its Rust
+standard-library lookup path added. No packaging or asset changes are shipped.
+Observed the scout, arena, updated three-line legend, auto-firing combat and
+destroyed state. R restored the encounter. Resizing from 1120 x 720 content to
+the 640 x 480 minimum retained the full arena and readable wrapped controls.
+After Escape, the game process terminated.
+
+The UI tool sends brief key taps; sustained yaw/pitch/bank motion was not
+visibly established. Held-input handling, tilt orientation, momentum, and
+boundary behavior are covered by the automated checks above. A human keyboard
+playtest is still needed to judge flight feel and the provisional tuning; this
+validation makes no final balance claim.
+
 ## Scout drone mesh — 2026-09-08
 
 The scout replaces the combat player's primitive placeholder. Native Blender
