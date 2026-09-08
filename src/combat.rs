@@ -7,16 +7,12 @@ mod scene;
 pub(crate) use scene::CombatScenePlugin;
 mod enemies;
 mod lifecycle;
+mod waves;
 mod weapon;
+use waves::{Encounter, SpawnWarning, WaveConfig};
 
 #[cfg(test)]
 mod tests;
-
-const ENEMY_STARTS: [Vec3; 3] = [
-    Vec3::new(-240., 90., 0.),
-    Vec3::new(240., 90., 0.),
-    Vec3::new(0., 210., -180.),
-];
 
 #[derive(Resource)]
 struct CombatConfig {
@@ -94,6 +90,8 @@ impl Plugin for CombatPlugin {
         app.init_resource::<CombatConfig>()
             .init_resource::<GamePhase>()
             .init_resource::<Weapon>()
+            .init_resource::<WaveConfig>()
+            .init_resource::<Encounter>()
             .insert_resource(PlayerHealth {
                 current: 100,
                 invulnerable_until: 0.,
@@ -108,15 +106,24 @@ impl Plugin for CombatPlugin {
             .add_systems(
                 Update,
                 (
+                    waves::advance_clock,
                     enemies::chase,
                     weapon::advance_projectiles,
                     lifecycle::contact_damage,
+                    waves::finish,
+                    waves::update,
                     weapon::fire,
                 )
                     .chain()
                     .in_set(GameplaySet::Combat)
                     .run_if(is_playing)
                     .run_if(not(input_just_pressed(KeyCode::KeyR))),
+            )
+            .add_systems(
+                Update,
+                waves::update
+                    .in_set(GameplaySet::Combat)
+                    .run_if(not(is_playing)),
             );
     }
 }

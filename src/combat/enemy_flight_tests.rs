@@ -30,6 +30,13 @@ fn enemy_launch_accelerates_gradually_from_rest() {
 #[test]
 fn immediate_forward_evasion_preserves_full_hull_for_two_seconds() {
     let (mut app, drone) = app();
+    for position in [
+        Vec3::new(-240., 90., 0.),
+        Vec3::new(240., 90., 0.),
+        Vec3::new(0., 210., -180.),
+    ] {
+        enemy(&mut app, position, 40);
+    }
     for frame in 0..240 {
         step(&mut app, 1. / 120., &[KeyCode::KeyW]);
         let health = app.world().resource::<PlayerHealth>().current;
@@ -188,6 +195,10 @@ fn enemy_death_freezes_flight_and_restart_spawns_level_at_rest_facing_player() {
     assert_eq!(*app.world().get::<DroneFlight>(chaser).unwrap(), before);
     assert_eq!(*app.world().get::<Transform>(chaser).unwrap(), transform);
     step(&mut app, 1., &[KeyCode::KeyR]);
+    app.world_mut().resource_mut::<WaveConfig>().bursts = vec![(3., 3)];
+    step(&mut app, 3., &[]);
+    step(&mut app, 0.75, &[]);
+    assert_eq!(count::<Enemy>(&mut app), 3);
     for (flight, transform) in app
         .world_mut()
         .query_filtered::<(&DroneFlight, &Transform), With<Enemy>>()

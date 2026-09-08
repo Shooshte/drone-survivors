@@ -1,18 +1,17 @@
-use super::{CombatConfig, Enemy, PlayerHealth, Projectile, Weapon, enemies::spawn_enemies};
+use super::{CombatConfig, Encounter, Enemy, PlayerHealth, Projectile, SpawnWarning, Weapon};
 use crate::{
     arena::{Drone, drone_world_half_extents, world_half_extents},
     game::GamePhase,
 };
 use bevy::prelude::*;
 
-type CombatEntities = Or<(With<Enemy>, With<Projectile>)>;
+type CombatEntities = Or<(With<Enemy>, With<Projectile>, With<SpawnWarning>)>;
 
 pub(super) fn setup(mut commands: Commands, config: Res<CombatConfig>) {
     commands.insert_resource(PlayerHealth {
         current: config.player_health,
         invulnerable_until: 0.,
     });
-    spawn_enemies(&mut commands, &config);
 }
 
 pub(super) fn restart(
@@ -21,6 +20,7 @@ pub(super) fn restart(
     mut health: ResMut<PlayerHealth>,
     mut weapon: ResMut<Weapon>,
     mut phase: ResMut<GamePhase>,
+    mut run: ResMut<Encounter>,
     transient: Query<Entity, CombatEntities>,
 ) {
     for entity in &transient {
@@ -29,8 +29,8 @@ pub(super) fn restart(
     health.current = config.player_health;
     health.invulnerable_until = 0.;
     *weapon = Weapon::default();
+    *run = Encounter::default();
     *phase = GamePhase::Playing;
-    spawn_enemies(&mut commands, &config);
 }
 
 pub(super) fn contact_damage(

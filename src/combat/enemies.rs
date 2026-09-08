@@ -1,7 +1,5 @@
-use super::{CombatConfig, ENEMY_STARTS, Enemy};
-use crate::arena::{
-    Arena, DRONE_START, Drone, DroneFlight, FlightConfig, FlightInput, world_half_extents,
-};
+use super::{CombatConfig, Enemy};
+use crate::arena::{Arena, Drone, DroneFlight, FlightConfig, FlightInput, world_half_extents};
 use bevy::prelude::*;
 
 pub(super) struct FlightSegment {
@@ -12,23 +10,26 @@ pub(super) struct FlightSegment {
     pub(super) half: Vec3,
 }
 
-pub(super) fn spawn_enemies(commands: &mut Commands, config: &CombatConfig) {
-    for position in ENEMY_STARTS {
-        let offset = DRONE_START.translation - position;
-        let flight = DroneFlight {
-            heading: (-offset.x).atan2(-offset.z),
-            ..default()
-        };
-        commands.spawn((
-            Enemy {
-                health: config.enemy_health,
-                previous: position,
-                path: Vec::new(),
-            },
-            Transform::from_translation(position).with_rotation(flight.rotation()),
-            flight,
-        ));
-    }
+pub(super) fn spawn_enemy(
+    commands: &mut Commands,
+    config: &CombatConfig,
+    position: Vec3,
+    target: Vec3,
+) {
+    let offset = target - position;
+    let flight = DroneFlight {
+        heading: (-offset.x).atan2(-offset.z),
+        ..default()
+    };
+    commands.spawn((
+        Enemy {
+            health: config.enemy_health,
+            previous: position,
+            path: Vec::new(),
+        },
+        Transform::from_translation(position).with_rotation(flight.rotation()),
+        flight,
+    ));
 }
 
 /// Arrival velocity and velocity-error feedback are pilot inputs. The shared
