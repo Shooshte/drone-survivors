@@ -1,9 +1,87 @@
 # Playtests
 
+The latest entry describes current movement. Older entries are retained as
+historical validation records and may describe superseded tuning or behavior.
+
+## Scout response and enemy flight — 2026-09-08
+
+### Repeatable handling and pursuit check
+
+1. Restart with R and immediately hold W. The scout should tip forward promptly
+   and accelerate before the chasers can touch it. Repeat with Q/E and with a
+   turn followed by forward flight. These tests evaluate launch opportunity;
+   flying into a wall and remaining there is not an evasion strategy.
+2. Use brief pitch/bank inputs and counter-inputs. Tilt and leveling should feel
+   quicker than the first flight version; full tilt takes 0.125 seconds, and
+   maximum yaw is 240 degrees/second. Release preserves drift. Space/Shift still
+   control vertical thrust, and tilt still loses altitude.
+3. Watch enemies immediately after restart. They start stationary, visibly tilt,
+   turn, and build speed. They should not jump straight to cruising speed or
+   instantly reverse when you change direction. The scout's horizontal speed
+   cap is 420 versus 260 for the pursuers.
+4. Change heading sharply while moving and watch the pursuit path. Enemies must
+   brake and redirect their existing momentum. Move above/below them and check
+   that they adjust rotor thrust and tilt to pursue in altitude too.
+5. Stay stationary after a reset. Enemies should eventually arrive and deal
+   contact damage, including near the floor, ceiling, and arena walls. Arrival
+   steering should reduce overshoot without snapping them to the player.
+6. Check visible enemy corners at arena boundaries and during banking. Neither
+   player nor enemies should clip outside. Projectiles should hit rotated enemy
+   bodies and continue to disappear on their first impact.
+7. Die while both sides are moving. All flight freezes; R recreates the enemies
+   at their starting positions, level and stationary, and resets scout momentum.
+8. Play repeated evasive encounters. Judge whether the quicker scout and slower
+   enemy response create room to maneuver without making pursuit irrelevant.
+   Tuning remains provisional until this human handling/balance check.
+
+### Tuning intent
+
+The scout's maximum speed increases from 240 to 420, with horizontal acceleration
+at full neutral-thrust tilt increasing from 60 to 180 world units/second squared.
+Its tilt/leveling/yaw rates are now 240/300/240 degrees/second. Both sides share
+gravity and physical integration. Enemy limits are 260 horizontal speed,
+20-degree total tilt, and 100/150/120-degree/second tilt/leveling/yaw rates.
+The AI pilot controls thrust to pursue altitude through the same forces as the
+player, requesting at most 60 world units/second of vertical pursuit velocity.
+The player's altitude still requires manual management.
+
+### Validation results
+
+- The initial failing regressions measured the old scout at 19.572 world
+  units/second after half a second, and the old enemy moving 15 units in its
+  first tenth of a second. The old full-tilt response also missed 0.125 seconds.
+- The updated scout measured 75.478 units/second at 0.5 seconds and 151.211 at
+  one second, with full tilt reached by 0.125 seconds. An enemy moved 0.116 units
+  in its first tenth of a second and 0.764 in the next, reaching 12.993
+  units/second at 0.2 seconds.
+- `cargo test --locked`: 54 tests passed. New coverage includes gradual enemy
+  launch, turning/momentum, limits, altitude/boundary arrival, shared gravity,
+  death/restart state, two-second full-hull scout evasion, and curved-path
+  projectile sweeps with lifetime clipping and earliest-hit ordering.
+- Formatting, Clippy with warnings denied, diff checks, and the native dynamic
+  build passed. A regression caught and fixed mixed static/moving projectile
+  hit fractions using different time scales when shot travel was clipped.
+- Independent review found no actionable issues. A targeted temporary-copy
+  moving-player probe retained full hull after two seconds of W at
+  4/15/30/60/120/144 FPS. Enemy positions differed by about 1 world unit at
+  30 versus 120 FPS; no material launch regression was found.
+
+The rebuilt native binary ran in the same temporary macOS app bundle used for
+the prior smoke test, without packaging changes. The orange enemy bodies visibly
+banked during approach and leveled as they slowed near the scout. The HUD retained
+full hull during the observed initial approach, and automatic fire removed an
+enemy. Letting pursuit continue produced contact damage and the destroyed state.
+R restored full hull and all three enemy starts; the new approach repeated.
+
+Native held-key scout feel and deliberate evasive maneuvers remain a human
+playtest item because the UI tool sends brief key taps. Automated held-input
+tests establish launch response and the initial evasion window; this is not a
+claim that final gameplay balance is settled.
+
 ## Drone flight controls — 2026-09-08
 
-This is the current control scheme. Movement instructions in older entries below
-describe previous versions and are retained as historical validation records.
+This entry introduced the current key bindings. The follow-up above revises
+scout handling and enemy movement.
 
 ### Repeatable flight check
 

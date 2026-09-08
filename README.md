@@ -36,9 +36,14 @@ Space boosts thrust and Shift reduces it. Releasing both restores the thrust
 needed to hover **when level**; it does not immediately stop a climb or descent,
 or recover lost altitude. Opposing keys cancel on each control axis and duplicate
 bindings add no extra input. Pitch and bank share a 30-degree total tilt limit,
-and all directions share a maximum horizontal speed of 240 world units/second.
+and all directions share a maximum horizontal speed of 420 world units/second.
 Vertical motion is independent of that speed limit. Flight tuning values are
 grouped in `FlightConfig` in `src/arena/flight.rs`.
+
+The scout reaches full tilt in 0.125 seconds, turns at up to 240 degrees/second,
+and has three times the original horizontal thrust acceleration. Space/Shift
+retain their original level-flight vertical acceleration; pitching or banking
+still costs altitude.
 
 The full rotated drone stays inside the ground, ceiling, and side walls. Contact
 removes velocity into the surface while preserving motion along or away from it.
@@ -47,7 +52,11 @@ ceiling, and the drone starts 90 units above ground (measured at its center).
 An angled camera keeps the full flight volume visible as the window is resized.
 A ring on the ground and a vertical guide show the drone's ground position.
 
-Three orange flying chasers pursue the drone at every altitude. The basic
+Three orange flying chasers pursue the drone at every altitude using the same
+thrust, gravity, and momentum model. They start at rest, turn and bank to steer,
+and brake as they approach. Sharp changes of direction require them to redirect
+their momentum. Their 260-unit/second horizontal speed cap and slower tilt/turn
+response give the scout an advantage in speed and agility. The basic
 weapon automatically fires yellow projectiles at the nearest enemy within
 400 world units, aiming at its current position. Shots travel straight and
 can miss; each disappears after its first hit, after one second, or on leaving

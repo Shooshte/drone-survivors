@@ -58,7 +58,10 @@ banking as a pilot would; this is input to the same physics, not direct movement
 The pilot steers toward the player's current position, without perfect prediction
 or teleporting. Compute bounded desired velocity with arrival slowdown, then
 velocity-error acceleration and a corresponding tilt/thrust request. Limit yaw
-to the enemy profile. Recompute controls within bounded simulation substeps so
+to the enemy profile. Limit requested vertical pursuit velocity to 60 world units
+per second so an elevated enemy cannot immediately dive onto the launching scout;
+existing vertical momentum is still handled through thrust and drag. Recompute
+controls within bounded simulation substeps so
 long frames do not cause stale steering. Opposite target changes require physical
 braking/reorientation; world-space velocity never snaps to the new pursuit vector.
 Pursuers must still reach a stationary target at different altitudes and boundaries.

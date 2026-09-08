@@ -3,6 +3,11 @@
 Status: approved for implementation.
 Scope: flight controls, related collision/presentation integration, and validation.
 
+Follow-up: the scout tuning and enemy movement rules are superseded by
+`2026-09-08-scout-response-and-enemy-flight-design.md`. The original values below
+record the first implementation; the bindings and core player flight behavior
+remain in effect.
+
 ## Purpose
 
 Replace fixed-world, immediate movement with heading-relative flight driven by
