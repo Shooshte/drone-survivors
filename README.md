@@ -22,6 +22,7 @@ The test arena opens immediately. Fly relative to the drone's heading:
 | **A/D** or **Left/Right** | Turn left/right |
 | **Q/E** | Bank left/right |
 | **Space** / **either Shift** | Boost/reduce rotor thrust |
+| **1** | Toggle weapon overdrive |
 | **R** | Restart the encounter at the center, level and stationary |
 | **Escape** | Quit |
 
@@ -80,6 +81,25 @@ the encounter with **SURVIVED** and your kill count; remaining enemies do not ne
 to be cleared. R also restarts during combat or lulls, clearing enemies, shots,
 warnings, effects, kills, timers, and flight momentum. Balance values are
 provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
+
+### Energy and charging
+
+Press **1** to toggle weapon overdrive: twice the normal firing rate for
+10 energy/second, including when there is no target. The battery starts full
+at 100. Enabling requires at least 10 energy. At zero, overdrive switches off;
+ordinary automatic fire and every flight control remain available. Charging
+never reactivates overdrive automatically; press 1 again when ready.
+
+Two cyan charging fields sit on opposite sides of the arena. Enter a field
+with the drone's center, below its visible top ring (height 160), to gain
+25 energy/second. Fly and fight freely while charging; leaving the field stops
+recharge. With overdrive enabled, charging yields a net 15 energy/second.
+Fields have radius 90, never run out, and provide no protection from enemies.
+
+The energy HUD shows battery level, overdrive state, charging/drain rate and
+failed activation feedback. Death/survival freezes energy; R restores the full
+battery with overdrive off. Numeric defaults live in `EnergyConfig` in
+`src/energy.rs` and are provisional playtest values.
 
 ### Repeatable native validation
 

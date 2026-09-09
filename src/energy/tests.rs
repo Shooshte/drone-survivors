@@ -2,7 +2,7 @@ use super::*;
 use crate::arena::ArenaPlugin;
 use std::time::Duration;
 
-fn app() -> (App, Entity) {
+pub(super) fn app() -> (App, Entity) {
     let mut app = App::new();
     app.init_resource::<Time>()
         .init_resource::<ButtonInput<KeyCode>>()
@@ -16,7 +16,7 @@ fn app() -> (App, Entity) {
         .unwrap();
     (app, drone)
 }
-fn step(app: &mut App, dt: f64, keys: &[KeyCode]) {
+pub(super) fn step(app: &mut App, dt: f64, keys: &[KeyCode]) {
     let mut input = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
     input.reset_all();
     for key in keys {
@@ -27,7 +27,7 @@ fn step(app: &mut App, dt: f64, keys: &[KeyCode]) {
         .advance_by(Duration::from_secs_f64(dt));
     app.update();
 }
-fn at(app: &mut App, drone: Entity, point: Vec3) {
+pub(super) fn at(app: &mut App, drone: Entity, point: Vec3) {
     app.world_mut()
         .get_mut::<Transform>(drone)
         .unwrap()

@@ -4,6 +4,8 @@ use crate::{
 };
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 
+pub(crate) mod scene;
+
 #[cfg(test)]
 mod tests;
 
