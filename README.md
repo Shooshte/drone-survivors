@@ -148,12 +148,58 @@ Each active window can deal 10 damage once to each exposed drone, including
 chasers. A ready powered shield blocks one event; hazard and enemy contact share
 the usual protection window. Waiting, mobility, shielding, or luring pursuers
 through the field can change which route is useful. Neither route requires power.
-R resets the cycle; death/survival freezes it.
+R resets the cycle; upgrade choices, death, and survival freeze it.
 
 Solid terrain stops the entire rotated drone and enemy bodies while allowing
 sliding. Both weapons target visible enemies; bullets stop at cover, rockets
 explode on it, and solid cover blocks splash damage. Enemy pilots use a small
 authored route graph while retaining their normal thrust and momentum.
+
+### Experience and temporary choices
+
+Kills award 10 XP automatically. One green exploration pickup at the far side
+of the arena grants 30 XP when the drone's center enters its visible 30-unit
+sphere; it can be collected once per run. The HUD shows level, XP to the next
+level, and acquired upgrades. Start at level 1: the first choice costs 50 XP,
+then each level costs 25 more. Excess XP carries over.
+
+Leveling pauses the encounter and offers up to three eligible upgrades. Select
+with a fresh **1–3** press or click a card. **Backspace** or **Skip this upgrade**
+declines the offer: the level remains earned, no effect is applied, and the
+choice is spent. Skipped cards can appear later. If several levels are earned
+together, resolve them one at a time; release the selection key/mouse button
+between offers. Empty pools resume automatically. The prototype uses a fixed
+offer seed for repeatable playtests.
+
+| Upgrade | Benefit | Drawback |
+| --- | --- | --- |
+| Interceptor | +30% horizontal acceleration and speed cap | −25% battery capacity |
+| Agile frame | +40% turn, tilt and leveling response | −20 maximum hull |
+| Heavy armor | +50 maximum hull | −25% acceleration in all movement directions |
+| Heavy rounds | Double basic projectile damage | −10% acceleration in all movement directions |
+| Rapid shield | Powered recharge 5s → 2.5s | Shield drain 8 → 12 energy/s |
+| Wide-area rockets | Explosion radius 70 → 105 | Launch interval 2s → 3s |
+
+Each upgrade can be taken once. Shield/rocket choices require the corresponding
+equipped module. Acceleration penalties include climbing, descending and braking;
+neutral hover, angular handling and speed caps are preserved unless another
+selected upgrade changes them. Percentage modifiers multiply, while hull changes
+add: both armor and heavy rounds give 67.5% baseline acceleration; armor plus
+agile frame gives 130 maximum hull. Heavy rounds preserves firing rate and free
+basic fire at an empty battery.
+
+Additional maximum hull adds the same amount to current hull. Reduced maximum
+hull or battery capacity clamps the current value. Module power state, shield
+blocks, and remaining cooldown/recharge fractions survive a choice. Already
+launched shots keep their original damage and explosion radius.
+
+![Temporary upgrade choices at 640×480](docs/images/experience-choices.png)
+
+The selection screen freezes all gameplay time, including energy, charging,
+protection, spawning and projectiles. Selecting cannot toggle a module or consume
+the next queued choice with held input. **R** restarts even during a choice,
+restoring baseline stats, XP, pickup, modules and the encounter. Death or victory
+on a threshold frame takes precedence over selection. All tuning is provisional.
 
 ### Repeatable native validation
 
@@ -161,6 +207,9 @@ authored route graph while retaining their normal thrust and momentum.
 cargo dev -- --validate survival
 cargo dev -- --validate idle
 cargo dev -- --validate routes --seconds 40
+cargo dev -- --validate mobile
+cargo dev -- --validate armored
+cargo dev -- --validate choices
 cargo dev -- --validate stress --enemies 150 --seconds 30
 ```
 
@@ -188,6 +237,19 @@ DRONE_CAPTURE_DIR=/tmp/drone-captures DRONE_CAPTURE_MINIMUM=1 cargo dev -- --val
 The second command uses the minimum 640 × 480 logical window. These environment
 options are ignored during ordinary play. Keep the macOS session unlocked for
 usable window captures; locked-session captures may be black.
+Mobile and armored use the same normal encounter and pilot, selecting only
+naturally earned upgrades through ordinary choice controls. Mobile prefers
+Interceptor, Agile frame, and Rapid shield; armored prefers Heavy armor,
+Heavy rounds, and Wide-area rockets. Other offers are skipped. Each resolution
+logs its time and chosen effect; the final report includes acquired upgrades
+and battery capacity. Survival, idle, routes, and stress skip earned choices so those
+existing scenarios continue.
+
+Choices is an explicit UI preview: it starts with 140 synthetic XP at 640×480,
+leaves choice/Skip input to the player, and saves a native screenshot to
+`/tmp/dro10-choices.png` after one real second of selection. It defaults to a
+60-second sampling limit; `--seconds` can shorten it. Synthetic XP and the
+preview window size are confined to this mode.
 
 Stress is a separate workload: it disables authored waves, places 150 chasers in
 a fixed grid, enables player invulnerability, and replaces kills to maintain the

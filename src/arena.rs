@@ -51,8 +51,10 @@ impl Plugin for ArenaPlugin {
                 Update,
                 (
                     GameplaySet::Reset,
+                    GameplaySet::ChoiceInput,
                     GameplaySet::Movement,
                     GameplaySet::Combat,
+                    GameplaySet::Progression,
                     GameplaySet::Presentation,
                 )
                     .chain(),

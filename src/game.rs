@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub(crate) enum GamePhase {
     #[default]
     Playing,
+    Choosing,
     Dead,
     Survived,
 }
@@ -11,8 +12,10 @@ pub(crate) enum GamePhase {
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum GameplaySet {
     Reset,
+    ChoiceInput,
     Movement,
     Combat,
+    Progression,
     Presentation,
 }
 

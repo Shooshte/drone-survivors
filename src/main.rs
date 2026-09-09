@@ -3,6 +3,7 @@ mod combat;
 mod energy;
 mod game;
 mod modules;
+mod upgrades;
 mod world;
 
 use arena::{ArenaPlugin, ArenaScenePlugin};
@@ -40,6 +41,8 @@ fn main() {
             combat::CombatScenePlugin,
             energy::scene::EnergyScenePlugin,
             world::scene::WorldScenePlugin,
+            upgrades::runtime::UpgradePlugin,
+            upgrades::scene::UpgradeScenePlugin,
         ))
         .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)));
     if let Some(config) = validation {

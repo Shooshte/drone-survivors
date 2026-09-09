@@ -1,11 +1,33 @@
 //! Explicit development validation only; normal launches install no harness systems.
 use super::*;
 use crate::arena::{Drone, DroneFlight};
+use crate::{
+    energy::{Energy, EnergyConfig},
+    upgrades::{UpgradeKind, UpgradeRun},
+};
+use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use std::time::Instant;
 #[path = "validation_capture.rs"]
 mod capture;
 #[path = "route_validation.rs"]
 pub(super) mod routes;
+
+const CHOICE_KEYS: [KeyCode; 4] = [
+    KeyCode::Digit1,
+    KeyCode::Digit2,
+    KeyCode::Digit3,
+    KeyCode::Backspace,
+];
+const MOBILE_PRIORITIES: [UpgradeKind; 3] = [
+    UpgradeKind::Interceptor,
+    UpgradeKind::AgileFrame,
+    UpgradeKind::RapidShield,
+];
+const ARMORED_PRIORITIES: [UpgradeKind; 3] = [
+    UpgradeKind::HeavyArmor,
+    UpgradeKind::HeavyRounds,
+    UpgradeKind::WideAreaRockets,
+];
 
 #[derive(Resource, Clone, Copy, Debug, PartialEq)]
 pub(crate) enum ValidationMode {
@@ -13,6 +35,9 @@ pub(crate) enum ValidationMode {
     Stress,
     Idle,
     Routes,
+    Mobile,
+    Armored,
+    Choices,
 }
 
 #[derive(Resource, Clone, Copy, Debug)]
@@ -20,6 +45,31 @@ pub(crate) struct ValidationConfig {
     pub mode: ValidationMode,
     pub seconds: f64,
     pub enemies: usize,
+}
+
+#[derive(Clone, Debug)]
+struct ChoiceSnapshot {
+    pending: u32,
+    selected: usize,
+    run_seconds: f64,
+    level: u32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct ValidationChoiceEntry {
+    pub(super) run_seconds: f64,
+    pub(super) level: u32,
+    pub(super) action: Option<UpgradeKind>,
+}
+
+#[derive(Resource, Default)]
+pub(super) struct ValidationChoices {
+    pub(super) entries: Vec<ValidationChoiceEntry>,
+    signature: Option<(Vec<UpgradeKind>, u32)>,
+    released: bool,
+    before: Option<ChoiceSnapshot>,
+    pub(super) preview_started: Option<Instant>,
+    pub(super) preview_requested: bool,
 }
 
 #[derive(Debug)]
@@ -42,6 +92,26 @@ fn summarize(samples: &[f64]) -> Option<Summary> {
         p99: percentile(0.99),
         hitches: samples.iter().filter(|&&ms| ms > 33.3).count(),
     })
+}
+
+pub(super) fn build_summary(
+    run: Option<&UpgradeRun>,
+    energy: Option<&Energy>,
+    config: Option<&EnergyConfig>,
+) -> String {
+    let names = run
+        .map(|run| {
+            run.selected
+                .iter()
+                .map(|kind| kind.name())
+                .collect::<Vec<_>>()
+                .join("|")
+        })
+        .filter(|names| !names.is_empty())
+        .unwrap_or_else(|| "none".into());
+    let energy = energy.map_or(f64::NAN, |energy| energy.current);
+    let capacity = config.map_or(f64::NAN, |config| config.capacity);
+    format!("acquired=[{names}] energy={energy:.3} capacity={capacity:.3}")
 }
 
 #[cfg(test)]
@@ -102,7 +172,10 @@ impl ValidationConfig {
         let mut seconds = None;
         let mut enemies = None;
         while let Some(flag) = args.next() {
-            let value = args.next().ok_or("Expected --validate survival|stress|idle|routes [--seconds 1..600] [--enemies 1..500 (stress only)]")?;
+            let value = args.next().ok_or(
+                "Expected --validate survival|stress|idle|routes|mobile|armored|choices \
+                 [--seconds 1..600] [--enemies 1..500 (stress only)]",
+            )?;
             match flag.as_str() {
                 "--validate" if mode.is_none() => {
                     mode = Some(match value.as_str() {
@@ -110,9 +183,13 @@ impl ValidationConfig {
                         "stress" => ValidationMode::Stress,
                         "idle" => ValidationMode::Idle,
                         "routes" => ValidationMode::Routes,
+                        "mobile" => ValidationMode::Mobile,
+                        "armored" => ValidationMode::Armored,
+                        "choices" => ValidationMode::Choices,
                         _ => {
                             return Err(
-                                "Validation mode must be survival, stress, idle, or routes".into(),
+                                "Validation mode must be survival, stress, idle, routes, mobile, armored, or choices"
+                                    .into(),
                             );
                         }
                     })
@@ -146,10 +223,10 @@ impl ValidationConfig {
         }
         Ok(Some(Self {
             mode,
-            seconds: seconds.unwrap_or(if mode == ValidationMode::Stress {
-                30.
-            } else {
-                185.
+            seconds: seconds.unwrap_or(match mode {
+                ValidationMode::Stress => 30.,
+                ValidationMode::Choices => 60.,
+                _ => 185.,
             }),
             enemies: enemies.unwrap_or(150),
         }))
@@ -159,12 +236,17 @@ impl ValidationConfig {
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
     capture::install(app);
     println!(
-        "VALIDATION {:?}: keyboard pilot={}, stress overrides={}, warmup=5s, sample limit={}s, stress target={}",
+        "VALIDATION {:?}: keyboard pilot={}, stress overrides={}, warmup=5s, sample limit={}s, stress target={}, synthetic_xp={}",
         config.mode,
         config.mode != ValidationMode::Idle,
         config.mode == ValidationMode::Stress,
         config.seconds,
-        config.enemies
+        config.enemies,
+        if config.mode == ValidationMode::Choices {
+            140
+        } else {
+            0
+        }
     );
     if config.mode == ValidationMode::Routes {
         app.init_resource::<routes::RouteProbe>().add_systems(
@@ -176,6 +258,7 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
     }
     app.insert_resource(config)
         .init_resource::<Measurements>()
+        .init_resource::<ValidationChoices>()
         .add_systems(Startup, configure)
         .add_systems(
             Update,
@@ -185,14 +268,30 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
         )
         .add_systems(
             Update,
+            validation_choice_input
+                .in_set(GameplaySet::Reset)
+                .after(pilot_input),
+        )
+        .add_systems(Update, record_choice.in_set(GameplaySet::Movement))
+        .add_systems(
+            Update,
             replenish
                 .after(GameplaySet::Combat)
                 .before(GameplaySet::Presentation),
         )
+        .add_systems(
+            Update,
+            choice_preview_screenshot.in_set(GameplaySet::Presentation),
+        )
         .add_systems(Update, measure.after(GameplaySet::Presentation));
 }
 
-fn configure(config: Res<ValidationConfig>, mut waves: ResMut<WaveConfig>) {
+fn configure(
+    config: Res<ValidationConfig>,
+    mut waves: ResMut<WaveConfig>,
+    mut windows: Query<&mut Window>,
+    run: Option<ResMut<UpgradeRun>>,
+) {
     if config.mode == ValidationMode::Routes {
         waves.bursts.clear();
     }
@@ -201,6 +300,122 @@ fn configure(config: Res<ValidationConfig>, mut waves: ResMut<WaveConfig>) {
         waves.cap = config.enemies;
         waves.duration = config.seconds + 30.;
     }
+    if config.mode == ValidationMode::Choices {
+        for mut window in &mut windows {
+            window.resolution.set(640., 480.);
+        }
+        if let Some(mut run) = run {
+            run.award(140);
+        }
+    }
+}
+
+fn validation_choice_input(
+    config: Res<ValidationConfig>,
+    phase: Res<GamePhase>,
+    encounter: Res<Encounter>,
+    run: Option<Res<UpgradeRun>>,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
+    mut choices: ResMut<ValidationChoices>,
+) {
+    let Some(run) = run else {
+        return;
+    };
+    if *phase == GamePhase::Choosing && !run.offer.is_empty() {
+        choices.before = Some(ChoiceSnapshot {
+            pending: run.pending,
+            selected: run.selected.len(),
+            run_seconds: encounter.elapsed,
+            level: run.level,
+        });
+    } else {
+        choices.before = None;
+    }
+
+    if config.mode == ValidationMode::Choices {
+        return;
+    }
+    for key in CHOICE_KEYS {
+        keys.reset(key);
+    }
+    if *phase != GamePhase::Choosing || run.offer.is_empty() {
+        choices.signature = None;
+        choices.released = false;
+        return;
+    }
+
+    let signature = (run.offer.clone(), run.pending);
+    if choices.signature.as_ref() != Some(&signature) {
+        choices.signature = Some(signature);
+        choices.released = false;
+    }
+    if !choices.released {
+        choices.released = true;
+        return;
+    }
+
+    let priorities = match config.mode {
+        ValidationMode::Mobile => &MOBILE_PRIORITIES[..],
+        ValidationMode::Armored => &ARMORED_PRIORITIES[..],
+        ValidationMode::Survival
+        | ValidationMode::Stress
+        | ValidationMode::Idle
+        | ValidationMode::Routes => &[],
+        ValidationMode::Choices => unreachable!(),
+    };
+    let key = priorities
+        .iter()
+        .find_map(|kind| run.offer.iter().position(|offered| offered == kind))
+        .and_then(|index| CHOICE_KEYS.get(index).copied())
+        .unwrap_or(KeyCode::Backspace);
+    keys.press(key);
+}
+
+fn record_choice(run: Option<Res<UpgradeRun>>, mut choices: ResMut<ValidationChoices>) {
+    let Some(run) = run else {
+        return;
+    };
+    let Some(before) = choices.before.take() else {
+        return;
+    };
+    if run.pending >= before.pending {
+        return;
+    }
+    let action = (run.selected.len() > before.selected)
+        .then(|| run.selected.last().copied())
+        .flatten();
+    let label = action.map_or("Skip", UpgradeKind::name);
+    println!(
+        "VALIDATION CHOICE run_seconds={:.3} level={} action={label}",
+        before.run_seconds, before.level
+    );
+    choices.entries.push(ValidationChoiceEntry {
+        run_seconds: before.run_seconds,
+        level: before.level,
+        action,
+    });
+}
+
+fn choice_preview_screenshot(
+    mut commands: Commands,
+    config: Res<ValidationConfig>,
+    phase: Res<GamePhase>,
+    mut choices: ResMut<ValidationChoices>,
+) {
+    if config.mode != ValidationMode::Choices || *phase != GamePhase::Choosing {
+        choices.preview_started = None;
+        return;
+    }
+    let now = Instant::now();
+    let started = *choices.preview_started.get_or_insert(now);
+    if choices.preview_requested || now.duration_since(started).as_secs_f64() < 1. {
+        return;
+    }
+    choices.preview_requested = true;
+    println!("VALIDATION screenshot=/tmp/dro10-choices.png");
+    commands
+        .spawn(Screenshot::primary_window())
+        .observe(save_to_disk("/tmp/dro10-choices.png"));
 }
 
 /// Repeatable keyboard inputs only: never writes scout transforms, velocities or HP.
@@ -364,6 +579,9 @@ fn measure(
     projectiles: Query<(), With<Projectile>>,
     windows: Query<&Window>,
     outcomes: Res<CombatOutcomes>,
+    upgrades: Option<Res<UpgradeRun>>,
+    energy: Option<Res<Energy>>,
+    energy_config: Option<Res<EnergyConfig>>,
     mut exit: MessageWriter<AppExit>,
 ) {
     if data.done {
@@ -401,7 +619,7 @@ fn measure(
             run.elapsed, *phase, health.current, run.kills
         );
     }
-    if *phase != GamePhase::Playing {
+    if matches!(*phase, GamePhase::Dead | GamePhase::Survived) {
         data.terminal.get_or_insert(now);
     } else {
         data.terminal = None;
@@ -417,9 +635,14 @@ fn measure(
         .iter()
         .next()
         .map(|w| (w.physical_width(), w.physical_height()));
+    let build = build_summary(
+        upgrades.as_deref(),
+        energy.as_deref(),
+        energy_config.as_deref(),
+    );
     if let Some(s) = summarize(&data.samples) {
         println!(
-            "VALIDATION RESULT mode={:?} sample_seconds={:.3} frames={} frame_ms_median={:.3} p95={:.3} p99={:.3} hitches_gt_33_3={} enemies_min={} enemies_max={} projectiles_max={} hits={} kills={} damage={} phase={:?} hull={} run_seconds={:.3} total_kills={} physical_resolution={resolution:?}",
+            "VALIDATION RESULT mode={:?} sample_seconds={:.3} frames={} frame_ms_median={:.3} p95={:.3} p99={:.3} hitches_gt_33_3={} enemies_min={} enemies_max={} projectiles_max={} hits={} kills={} damage={} phase={:?} hull={} run_seconds={:.3} total_kills={} physical_resolution={resolution:?} {build}",
             config.mode,
             data.samples.iter().sum::<f64>() / 1000.,
             data.samples.len(),
@@ -440,8 +663,8 @@ fn measure(
         );
     } else {
         println!(
-            "VALIDATION RESULT no post-warmup samples; phase={:?}",
-            *phase
+            "VALIDATION RESULT no post-warmup samples; phase={:?} {build}",
+            *phase,
         );
     }
     exit.write(AppExit::Success);

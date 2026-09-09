@@ -26,7 +26,7 @@ impl ModuleKind {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub(crate) struct ModuleConfig {
     pub drains: [f64; 4],
     pub overdrive_multiplier: f64,
