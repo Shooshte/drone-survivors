@@ -41,34 +41,37 @@ pub(crate) struct MotionSegment {
 }
 ```
 
-- [ ] Write collision fixtures first: boosted 525-unit/s crossing, corner sliding, rotation beside walls, low-cover overflight, and floor-to-ceiling containment at 30/60/144 FPS plus a 100 ms hitch. Run the focused tests and record the missing-behavior failure.
-- [ ] Implement conservative swept collision within existing bounded flight steps, preserving tangential velocity. Record player and enemy movement segments for hazard and projectile consumers.
-- [ ] Author a small map with the existing center spawn and charger cylinders clear, one full-height divider with an electrical passage, a longer hazard-free detour, and low cover. Keep all passages comfortably wider than the rotated scout.
-- [ ] Add clearance-checked waypoint routing that sends the existing enemy pilot toward a reachable next point, with stable progress around corners. Test arrival from both sides, changes of target side, and normal-cap pursuit without five-second wall stalls.
-- [ ] Reject obstacle/hazard/disconnected spawn candidates both at warning creation and activation. Preserve existing clearance and cap semantics.
-- [ ] Run focused and legacy tests, review, and commit the terrain milestone.
+- [x] Write collision fixtures first: boosted 525-unit/s crossing, corner sliding, rotation beside walls, low-cover overflight, and floor-to-ceiling containment at 30/60/144 FPS plus a 100 ms hitch. Run the focused tests and record the missing-behavior failure.
+- [x] Implement conservative swept collision within existing bounded flight steps, preserving tangential velocity. Record player and enemy movement segments for hazard and projectile consumers.
+- [x] Author a small map with the existing center spawn and charger cylinders clear, one full-height divider with an electrical passage, a longer hazard-free detour, and low cover. Keep all passages comfortably wider than the rotated scout.
+- [x] Add clearance-checked waypoint routing that sends the existing enemy pilot toward a reachable next point, with stable progress around corners. Test arrival from both sides, changes of target side, and normal-cap pursuit without five-second wall stalls.
+- [x] Reject obstacle/hazard/disconnected spawn candidates both at warning creation and activation. Preserve existing clearance and cap semantics.
+- [x] Run focused and legacy tests, review, and commit the terrain milestone.
 
 ## Task 2: Weapon occlusion and electrical hazard
 
 Files: modify `src/combat/weapon.rs`, `src/combat/rockets.rs`, `src/combat.rs`, `src/combat/lifecycle.rs`; create `src/combat/hazards.rs`, `src/combat/world_tests.rs`; create hazard state in `src/world/hazard.rs`.
 
-- [ ] Write failing integration tests: obstructed-nearest target selection; earliest wall vs enemy hit; terrain rocket explosion with covered enemies excluded; low-cover firing above its top.
-- [ ] Share the world ray queries between target selection and impact. Compare impacts in the same normalized time units, let terrain win ties, and offset the explosion visibility origin onto the incoming side of a surface.
-- [ ] Write hazard tests for harmless warning, active crossing, one event per actor/window, shield/contact protection, enemy kills, depletion, restart, terminal freeze, and hitches.
-- [ ] Implement a 3-second inactive / 1-second warning / 1-second active cycle, 10 damage, and per-window successful-hit tracking. Intersect movement segments only with active time intervals; a long hitch may end a phase but must not skip the displayed warning or accumulate cycles of damage.
-- [ ] Stage module power before hazard/contact resolution. Reuse one player-damage helper so both sources share shield/protection/death handling. Hazard deaths use ordinary outcomes and kill accounting.
-- [ ] Run focused and complete headless tests, review, and commit the combat milestone.
+- [x] Write failing integration tests: obstructed-nearest target selection; earliest wall vs enemy hit; terrain rocket explosion with covered enemies excluded; low-cover firing above its top.
+- [x] Share the world ray queries between target selection and impact. Compare impacts in the same normalized time units, let terrain win ties, and offset the explosion visibility origin onto the incoming side of a surface.
+- [x] Write hazard tests for harmless warning, active crossing, one event per actor/window, shield/contact protection, enemy kills, depletion, restart, terminal freeze, and hitches.
+- [x] Implement a 3-second inactive / 1-second warning / 1-second active cycle, 10 damage, and per-window successful-hit tracking. Intersect movement segments only with active time intervals; a long hitch may end a phase but must not skip the displayed warning or accumulate cycles of damage.
+- [x] Stage module power before hazard/contact resolution. Reuse one player-damage helper so both sources share shield/protection/death handling. Hazard deaths use ordinary outcomes and kill accounting.
+- [x] Run focused and complete headless tests, review, and commit the combat milestone.
 
 ## Task 3: Presentation and playable validation
 
 Files: create `src/world/scene.rs`; wire world resources and scene in `src/main.rs`; update `src/combat/validation.rs` only as required for terrain-aware validation; update `README.md` and `docs/playtests.md`.
 
-- [ ] Draw reusable solid meshes with clear low/tall silhouettes and translucent tall faces/opaque boundary edges so the drone remains visible. Draw hazard floor/top/vertical boundaries, emitters, and distinct inactive/warning/active patterns.
-- [ ] Add compact text state/countdown and route labels without covering the existing HUD at 640 × 480. Freeze animation with gameplay and reset without allocating duplicate entities/assets.
-- [ ] Add meaningful scene/lifecycle assertions and run `cargo dev` with normal play and validation scenarios. Inspect screenshots at normal and minimum size; exercise route directions and timing, record observed travel times and limitations honestly.
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`; review the entire branch and fix important findings.
-- [ ] Commit validation/docs, push `codex/dro-11-obstacles`, and open a PR against `main` with evidence and any remaining manual-playtest limitations.
+- [x] Draw reusable solid meshes with clear low/tall silhouettes and translucent tall faces/opaque boundary edges so the drone remains visible. Draw hazard floor/top/vertical boundaries, emitters, and distinct inactive/warning/active patterns.
+- [x] Add compact text state/countdown and route labels without covering the existing HUD at 640 × 480. Freeze animation with gameplay and reset without allocating duplicate entities/assets.
+- [x] Add meaningful scene/lifecycle assertions and run `cargo dev` with normal play and validation scenarios. Inspect screenshots at normal and minimum size; exercise route directions and timing, record observed travel times and limitations honestly.
+- [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`; review the entire branch and fix important findings.
+- [x] Commit validation/docs, push `codex/dro-11-obstacles`, and open a PR against `main` with evidence and any remaining manual-playtest limitations.
 
 ## Progress
 
 - Baseline: 113 tests passed on `5a6e2d9` in the isolated worktree.
+
+- Implementation and independent review complete: 143 tests pass, fmt and strict Clippy pass.
+- Native route and combat runs recorded in `docs/playtests.md`. Final compact HUD recapture remains an unlocked-session follow-up; earlier geometry captures were inspected.

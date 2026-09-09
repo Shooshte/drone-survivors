@@ -2,12 +2,17 @@
 use super::*;
 use crate::arena::{Drone, DroneFlight};
 use std::time::Instant;
+#[path = "validation_capture.rs"]
+mod capture;
+#[path = "route_validation.rs"]
+pub(super) mod routes;
 
 #[derive(Resource, Clone, Copy, Debug, PartialEq)]
 pub(crate) enum ValidationMode {
     Survival,
     Stress,
     Idle,
+    Routes,
 }
 
 #[derive(Resource, Clone, Copy, Debug)]
@@ -97,14 +102,19 @@ impl ValidationConfig {
         let mut seconds = None;
         let mut enemies = None;
         while let Some(flag) = args.next() {
-            let value = args.next().ok_or("Expected --validate survival|stress|idle [--seconds 1..600] [--enemies 1..500 (stress only)]")?;
+            let value = args.next().ok_or("Expected --validate survival|stress|idle|routes [--seconds 1..600] [--enemies 1..500 (stress only)]")?;
             match flag.as_str() {
                 "--validate" if mode.is_none() => {
                     mode = Some(match value.as_str() {
                         "survival" => ValidationMode::Survival,
                         "stress" => ValidationMode::Stress,
                         "idle" => ValidationMode::Idle,
-                        _ => return Err("Validation mode must be survival, stress, or idle".into()),
+                        "routes" => ValidationMode::Routes,
+                        _ => {
+                            return Err(
+                                "Validation mode must be survival, stress, idle, or routes".into(),
+                            );
+                        }
                     })
                 }
                 "--seconds" if seconds.is_none() => {
@@ -147,6 +157,7 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    capture::install(app);
     println!(
         "VALIDATION {:?}: keyboard pilot={}, stress overrides={}, warmup=5s, sample limit={}s, stress target={}",
         config.mode,
@@ -155,6 +166,14 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
         config.seconds,
         config.enemies
     );
+    if config.mode == ValidationMode::Routes {
+        app.init_resource::<routes::RouteProbe>().add_systems(
+            Update,
+            routes::input
+                .in_set(GameplaySet::Reset)
+                .after(lifecycle::restart),
+        );
+    }
     app.insert_resource(config)
         .init_resource::<Measurements>()
         .add_systems(Startup, configure)
@@ -174,6 +193,9 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
 }
 
 fn configure(config: Res<ValidationConfig>, mut waves: ResMut<WaveConfig>) {
+    if config.mode == ValidationMode::Routes {
+        waves.bursts.clear();
+    }
     if config.mode == ValidationMode::Stress {
         waves.bursts.clear();
         waves.cap = config.enemies;
@@ -190,7 +212,9 @@ fn pilot_input(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     enemies: Query<(&Transform, &DroneFlight), With<Enemy>>,
 ) {
-    if config.mode == ValidationMode::Idle || keys.just_pressed(KeyCode::KeyR) {
+    if matches!(config.mode, ValidationMode::Idle | ValidationMode::Routes)
+        || keys.just_pressed(KeyCode::KeyR)
+    {
         return;
     }
     for key in [
@@ -237,7 +261,16 @@ pub(super) fn pilot_keys(
         132. * theta.cos(),
     );
     let desired = tangent + (target - position) * 1.5;
-    let mut acceleration = (desired - flight.velocity) * 3. + flight.velocity * 0.25;
+    let acceleration = (desired - flight.velocity) * 3. + flight.velocity * 0.25;
+    steering_keys(acceleration, flight, position, threats)
+}
+
+fn steering_keys(
+    mut acceleration: Vec3,
+    flight: &DroneFlight,
+    position: Vec3,
+    threats: &[(Vec3, Vec3)],
+) -> Vec<KeyCode> {
     for &(point, velocity) in threats {
         let offset = position - point;
         let relative = flight.velocity - velocity;

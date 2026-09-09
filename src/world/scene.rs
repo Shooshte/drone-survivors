@@ -246,8 +246,8 @@ fn present(
 ) {
     let (index, label) = match state.phase {
         HazardPhase::Inactive => (0, "OPEN"),
-        HazardPhase::Warning => (1, "WARNING — field about to fire"),
-        HazardPhase::Active => (2, "ACTIVE — electrical damage"),
+        HazardPhase::Warning => (1, "WARNING - field about to fire"),
+        HazardPhase::Active => (2, "ACTIVE - electrical damage"),
     };
     let suffix = if *phase == GamePhase::Playing {
         ""
@@ -255,7 +255,7 @@ fn present(
         " / PAUSED"
     };
     hud.0.0 = format!(
-        "SHORTCUT  {label}  {:.1}s{suffix}\nGold dots: timed crossing · Green dots: longer detour\nLow blocks: fly over · Tall walls: go around",
+        "SHORTCUT  {label}  {:.1}s{suffix}\nGold dots: timed crossing | Green dots: longer detour\nLow blocks: fly over | Tall walls: go around",
         state.remaining()
     );
     hud.1.0 = if state.phase == HazardPhase::Active {

@@ -135,10 +135,15 @@ pub(super) fn advance_projectiles(
                                 return None;
                             }
                             let to = segment.to.min(fraction);
-                            let enemy_end = segment.start.lerp(
-                                segment.end,
-                                (to - segment.from) / (segment.to - segment.from),
-                            );
+                            let span = segment.to - segment.from;
+                            // Contact correction can occupy a single instant. Sweep the
+                            // enemy's correction against the shot at that instant; do
+                            // not interpolate by a zero duration or discard real hits.
+                            let enemy_end = if span > 0. {
+                                segment.start.lerp(segment.end, (to - segment.from) / span)
+                            } else {
+                                segment.end
+                            };
                             let shot_start = start + shot.velocity * (dt * segment.from);
                             let shot_end = start + shot.velocity * (dt * to);
                             segment_box(

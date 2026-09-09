@@ -135,11 +135,32 @@ loadout; purchasing and player-controlled rearrangement belong to DRO-16.
 Numeric defaults live in `ModuleConfig` in `src/modules.rs` and `EnergyConfig`
 in `src/energy.rs` and remain provisional playtest values.
 
+### Obstacles, hazards, and routes
+
+Low blocks provide cover and can be flown over. The tall divider reaches the
+ceiling: use its central electrical passage or follow the green dotted detour.
+Gold dots mark the shorter crossing between chargers. The detour avoids the
+field, but enemies can follow either route.
+
+The full-height electrical field repeats **3 seconds open → 1 second warning →
+1 second active**. Warning beams flash before becoming continuous during damage.
+Each active window can deal 10 damage once to each exposed drone, including
+chasers. A ready powered shield blocks one event; hazard and enemy contact share
+the usual protection window. Waiting, mobility, shielding, or luring pursuers
+through the field can change which route is useful. Neither route requires power.
+R resets the cycle; death/survival freezes it.
+
+Solid terrain stops the entire rotated drone and enemy bodies while allowing
+sliding. Both weapons target visible enemies; bullets stop at cover, rockets
+explode on it, and solid cover blocks splash damage. Enemy pilots use a small
+authored route graph while retaining their normal thrust and momentum.
+
 ### Repeatable native validation
 
 ```sh
 cargo dev -- --validate survival
 cargo dev -- --validate idle
+cargo dev -- --validate routes --seconds 40
 cargo dev -- --validate stress --enemies 150 --seconds 30
 ```
 
@@ -149,6 +170,24 @@ pilot input and exercises stationary combat/death. These runs print progress and
 exit two seconds after an outcome, or after the sampling limit plus warm-up.
 R and Escape remain available. A human handling/readability playtest is still
 needed alongside these repeatable checks.
+
+Routes is a separate fixture with authored waves disabled. It uses ordinary
+keyboard flight with every module off to traverse the shortcut in both directions,
+then the detour in both directions. It waits for an open window and reports each
+trip's travel and waiting time. It does not override hull or move the drone by
+writing its position. The corresponding tests repeat at 30/60/144 FPS with an
+empty battery and recharge disabled in the test fixture.
+
+To capture the three hazard states during native validation:
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/drone-captures cargo dev -- --validate idle --seconds 20
+DRONE_CAPTURE_DIR=/tmp/drone-captures DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate idle --seconds 20
+```
+
+The second command uses the minimum 640 × 480 logical window. These environment
+options are ignored during ordinary play. Keep the macOS session unlocked for
+usable window captures; locked-session captures may be black.
 
 Stress is a separate workload: it disables authored waves, places 150 chasers in
 a fixed grid, enables player invulnerability, and replaces kills to maintain the

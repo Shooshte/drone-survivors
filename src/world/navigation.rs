@@ -6,9 +6,22 @@ use bevy::prelude::*;
 pub(crate) fn next_point(
     world: &WorldGeometry,
     start: Vec3,
-    target: Vec3,
+    mut target: Vec3,
     half: Vec3,
 ) -> Option<Vec3> {
+    // A scout resting on cover can be closer to its top than a banking
+    // pursuer's hull allows. Approach from just above that surface instead of
+    // repeatedly losing the route as the pursuer changes attitude.
+    for solid in &world.solids {
+        let top = solid.center.y + solid.half.y;
+        let horizontal = (target - solid.center).abs();
+        if target.y >= top
+            && horizontal.x < solid.half.x + half.x
+            && horizontal.z < solid.half.z + half.z
+        {
+            target.y = target.y.max(top + half.y + 1.);
+        }
+    }
     if world.clear_body(start, target, half + Vec3::splat(12.)) {
         return Some(target);
     }
@@ -39,7 +52,9 @@ pub(crate) fn next_point(
                 || !world.clear_body(
                     points[current],
                     points[next],
-                    if current == 0 {
+                    // Endpoints may rest against cover. Turn padding belongs to
+                    // graph corners, not the final physical approach to a target.
+                    if current == 0 || next == 1 {
                         half
                     } else {
                         half + Vec3::splat(12.)
