@@ -1,4 +1,4 @@
-use super::{Enemy, Projectile};
+use super::{Enemy, Projectile, ShotPayload};
 use crate::{
     arena::Drone,
     game::GamePhase,
@@ -73,6 +73,10 @@ pub(super) fn fire(
         },
         Transform::from_translation(drone.translation),
         Rocket,
+        ShotPayload {
+            damage: config.rocket_damage,
+            radius: config.rocket_radius,
+        },
     ));
     launcher.ready_at = if now - launcher.ready_at >= interval {
         now + interval

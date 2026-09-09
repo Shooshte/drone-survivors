@@ -13,17 +13,18 @@ mod rockets;
 pub(crate) mod validation;
 mod waves;
 mod weapon;
-use waves::{Encounter, SpawnWarning, WaveConfig};
+pub(crate) use waves::Encounter;
+use waves::{SpawnWarning, WaveConfig};
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Resource)]
-struct CombatConfig {
-    player_health: u32,
+#[derive(Resource, Clone)]
+pub(crate) struct CombatConfig {
+    pub(crate) player_health: u32,
     enemy_health: u32,
     contact_damage: u32,
-    shot_damage: u32,
+    pub(crate) shot_damage: u32,
     enemy_flight: crate::arena::FlightConfig,
     projectile_speed: f32,
     fire_interval: f64,
@@ -81,9 +82,15 @@ struct Projectile {
 }
 
 #[derive(Resource)]
-struct PlayerHealth {
-    current: u32,
+pub(crate) struct PlayerHealth {
+    pub(crate) current: u32,
     invulnerable_until: f64,
+}
+
+#[derive(Component, Clone, Copy)]
+struct ShotPayload {
+    damage: u32,
+    radius: f32,
 }
 
 #[derive(Resource, Default)]

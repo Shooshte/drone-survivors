@@ -10,7 +10,7 @@ pub(crate) mod scene;
 #[cfg(test)]
 pub(crate) mod tests;
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub(crate) struct EnergyConfig {
     pub capacity: f64,
     pub recharge: f64,

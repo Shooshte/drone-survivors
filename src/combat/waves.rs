@@ -40,7 +40,7 @@ impl Default for WaveConfig {
 }
 
 #[derive(Resource, Default)]
-pub(super) struct Encounter {
+pub(crate) struct Encounter {
     pub elapsed: f64,
     pub kills: u32,
     pub next_burst: usize,
@@ -154,6 +154,9 @@ pub(super) fn update(
         }
     }
     warnings.sort_by_key(|(id, _, _)| id.to_bits());
+    if *phase == GamePhase::Choosing {
+        return;
+    }
     if *phase != GamePhase::Playing {
         for (id, _, _) in warnings {
             commands.entity(id).despawn();

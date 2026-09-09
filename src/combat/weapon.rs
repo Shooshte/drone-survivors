@@ -1,5 +1,5 @@
 use super::{
-    CombatConfig, CombatOutcome, CombatOutcomes, Encounter, Enemy, Projectile, Weapon,
+    CombatConfig, CombatOutcome, CombatOutcomes, Encounter, Enemy, Projectile, ShotPayload, Weapon,
     collision::segment_box, rockets::Rocket,
 };
 use crate::{
@@ -67,6 +67,10 @@ pub(super) fn fire(
             velocity: direction * config.projectile_speed,
             remaining: config.projectile_lifetime,
         },
+        ShotPayload {
+            damage: config.shot_damage,
+            radius: 0.,
+        },
         Transform::from_translation(drone.translation),
     ));
     // Keep normal cadence across fractional frames, discard missed shots on hitches.
@@ -85,7 +89,13 @@ pub(super) fn advance_projectiles(
     config: Res<CombatConfig>,
     module_config: Res<ModuleConfig>,
     mut projectiles: Query<
-        (Entity, &mut Projectile, &mut Transform, Option<&Rocket>),
+        (
+            Entity,
+            &mut Projectile,
+            &mut Transform,
+            Option<&Rocket>,
+            Option<&ShotPayload>,
+        ),
         Without<Enemy>,
     >,
     mut enemies: Query<(Entity, &mut Enemy, &Transform), Without<Projectile>>,
@@ -93,7 +103,7 @@ pub(super) fn advance_projectiles(
     mut outcomes: ResMut<CombatOutcomes>,
 ) {
     let dt = time.delta_secs();
-    for (id, mut shot, mut transform, rocket) in &mut projectiles {
+    for (id, mut shot, mut transform, rocket, payload) in &mut projectiles {
         let start = transform.translation;
         if shot.remaining <= 0. || (start - arena.center()).abs().cmpgt(arena.half_size).any() {
             commands.entity(id).despawn();
@@ -150,11 +160,13 @@ pub(super) fn advance_projectiles(
         if let Some((target, impact)) = hit {
             if rocket.is_some() {
                 let impact_position = start + shot.velocity * (dt * impact);
+                let radius = payload.map_or(module_config.rocket_radius, |p| p.radius);
+                let damage = payload.map_or(module_config.rocket_damage, |p| p.damage);
                 outcomes.0.push(CombatOutcome::RocketExplosion {
                     position: impact_position,
-                    radius: module_config.rocket_radius,
+                    radius,
                 });
-                let radius_squared = module_config.rocket_radius.powi(2);
+                let radius_squared = radius.powi(2);
                 for (entity, mut enemy, enemy_transform) in &mut enemies {
                     if enemy.health == 0 {
                         continue;
@@ -165,7 +177,7 @@ pub(super) fn advance_projectiles(
                     {
                         continue;
                     }
-                    enemy.health = enemy.health.saturating_sub(module_config.rocket_damage);
+                    enemy.health = enemy.health.saturating_sub(damage);
                     let killed = enemy.health == 0;
                     outcomes.0.push(CombatOutcome::Hit {
                         entity,
@@ -179,7 +191,9 @@ pub(super) fn advance_projectiles(
                 }
             } else {
                 let (_, mut enemy, enemy_transform) = enemies.get_mut(target).unwrap();
-                enemy.health = enemy.health.saturating_sub(config.shot_damage);
+                enemy.health = enemy
+                    .health
+                    .saturating_sub(payload.map_or(config.shot_damage, |p| p.damage));
                 outcomes.0.push(CombatOutcome::Hit {
                     entity: target,
                     position: enemy_transform.translation,
