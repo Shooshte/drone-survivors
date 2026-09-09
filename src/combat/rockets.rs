@@ -32,6 +32,7 @@ pub(super) fn fire(
     mut commands: Commands,
     time: Res<Time>,
     config: Res<ModuleConfig>,
+    world: Option<Res<crate::world::WorldGeometry>>,
     phase: Res<GamePhase>,
     modules: Res<Modules>,
     mut launcher: ResMut<RocketLauncher>,
@@ -60,7 +61,12 @@ pub(super) fn fire(
                 transform.translation.distance_squared(drone.translation),
             )
         })
-        .filter(|(_, _, distance)| *distance <= config.rocket_range.powi(2))
+        .filter(|(_, position, distance)| {
+            *distance <= config.rocket_range.powi(2)
+                && world
+                    .as_ref()
+                    .is_none_or(|w| w.line_clear(drone.translation, *position))
+        })
         .min_by(|a, b| a.2.total_cmp(&b.2).then(a.0.to_bits().cmp(&b.0.to_bits())));
     let Some((_, position, _)) = target else {
         launcher.ready_at = launcher.ready_at.max(now);

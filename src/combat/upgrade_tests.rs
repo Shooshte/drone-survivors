@@ -415,3 +415,76 @@ fn wide_area_choice_retimes_remaining_cooldown_before_first_resumed_frame() {
         "0.08s remaining should become 0.12s before advancing the resumed 0.1s frame"
     );
 }
+
+#[test]
+fn hazard_kills_award_xp_once_and_can_open_upgrade_choices() {
+    use crate::upgrades::UpgradeRun;
+    use crate::world::{
+        Solid, WorldGeometry,
+        hazard::{HazardPhase, HazardState},
+    };
+    let (mut app, _) = upgrade_app();
+    let center = START + Vec3::X * 200.;
+    app.insert_resource(WorldGeometry {
+        solids: vec![],
+        hazard: Some(Solid {
+            center,
+            half: Vec3::splat(40.),
+        }),
+    });
+    app.world_mut().resource_mut::<HazardState>().phase = HazardPhase::Active;
+    app.world_mut().resource_mut::<UpgradeRun>().award(40);
+    let target = enemy(&mut app, center, 10);
+    tick(&mut app, 0.1, &[]);
+    assert!(app.world().get_entity(target).is_err());
+    assert_eq!(app.world().resource::<Encounter>().kills, 1);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    assert_eq!(app.world().resource::<UpgradeRun>().level, 2);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 0);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Backspace]);
+    tick(&mut app, 0.1, &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 0);
+    assert_eq!(app.world().resource::<Encounter>().kills, 1);
+}
+
+#[test]
+fn upgrade_choice_freezes_hazard_then_resumes_remaining_warning() {
+    use crate::world::{
+        Solid, WorldGeometry,
+        hazard::{HazardPhase, HazardState},
+    };
+    let (mut app, _) = upgrade_app();
+    app.insert_resource(WorldGeometry {
+        solids: vec![],
+        hazard: Some(Solid {
+            center: START,
+            half: Vec3::splat(60.),
+        }),
+    });
+    {
+        let mut state = app.world_mut().resource_mut::<HazardState>();
+        state.phase = HazardPhase::Warning;
+        state.elapsed = 0.5;
+    }
+    offer(&mut app, 50);
+    tick(&mut app, 40., &[]);
+    let state = app.world().resource::<HazardState>();
+    assert_eq!(state.phase, HazardPhase::Warning);
+    assert_eq!(state.elapsed, 0.5);
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 100);
+    tick(&mut app, 10., &[KeyCode::Backspace]);
+    tick(&mut app, 0.1, &[]);
+    assert_eq!(
+        app.world().resource::<HazardState>().phase,
+        HazardPhase::Warning
+    );
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 100);
+    tick(&mut app, 0.5, &[]);
+    assert_eq!(
+        app.world().resource::<HazardState>().phase,
+        HazardPhase::Active
+    );
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 90);
+}

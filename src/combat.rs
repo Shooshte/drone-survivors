@@ -3,6 +3,7 @@ use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 
 mod collision;
+mod hazards;
 mod scene;
 pub(crate) use scene::{CombatHudRoot, CombatScenePlugin, CombatSceneSetup};
 mod enemies;
@@ -112,6 +113,8 @@ impl Plugin for CombatPlugin {
             .init_resource::<WaveConfig>()
             .init_resource::<Encounter>()
             .init_resource::<CombatOutcomes>()
+            .init_resource::<crate::world::hazard::HazardState>()
+            .init_resource::<hazards::HazardHits>()
             .insert_resource(PlayerHealth {
                 current: 100,
                 invulnerable_until: 0.,
@@ -120,7 +123,7 @@ impl Plugin for CombatPlugin {
             .add_systems(Update, feedback::clear.in_set(GameplaySet::Reset))
             .add_systems(
                 Update,
-                lifecycle::restart
+                (lifecycle::restart, hazards::reset)
                     .in_set(GameplaySet::Reset)
                     .run_if(input_just_pressed(KeyCode::KeyR)),
             )
@@ -128,9 +131,11 @@ impl Plugin for CombatPlugin {
                 Update,
                 (
                     waves::advance_clock,
+                    hazards::advance,
                     enemies::chase,
                     weapon::advance_projectiles,
                     crate::energy::prepare,
+                    hazards::damage,
                     lifecycle::contact_damage,
                     waves::finish,
                     waves::update,

@@ -71,15 +71,21 @@ fn spawn_drone(mut commands: Commands) {
     commands.spawn((Drone, DRONE_START, DroneFlight::default()));
 }
 
+#[allow(clippy::too_many_arguments)]
 fn move_drone(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
     arena: Res<Arena>,
     config: Res<FlightConfig>,
     mut drones: Query<(&mut Transform, &mut DroneFlight), With<Drone>>,
+    world: Option<Res<crate::world::WorldGeometry>>,
+    mut path: Option<ResMut<crate::world::PlayerPath>>,
     modules: Option<Res<crate::modules::Modules>>,
     module_config: Option<Res<crate::modules::ModuleConfig>>,
 ) {
+    if let Some(path) = path.as_mut() {
+        path.segments.clear();
+    }
     let mut config = *config;
     if let (Some(modules), Some(tuning)) = (modules, module_config)
         && modules.active(crate::modules::ModuleKind::Mobility)
@@ -95,6 +101,16 @@ fn move_drone(
             *flight = DroneFlight::default();
             continue;
         }
-        flight.advance(&mut transform, &input, &config, &arena, time.delta_secs());
+        let segments = flight.advance(
+            &mut transform,
+            &input,
+            &config,
+            &arena,
+            time.delta_secs(),
+            world.as_deref(),
+        );
+        if let Some(path) = path.as_mut() {
+            path.segments = segments;
+        }
     }
 }

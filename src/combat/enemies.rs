@@ -2,13 +2,7 @@ use super::{CombatConfig, Enemy};
 use crate::arena::{Arena, Drone, DroneFlight, FlightConfig, FlightInput, world_half_extents};
 use bevy::prelude::*;
 
-pub(super) struct FlightSegment {
-    pub(super) start: Vec3,
-    pub(super) end: Vec3,
-    pub(super) from: f32,
-    pub(super) to: f32,
-    pub(super) half: Vec3,
-}
+pub(super) type FlightSegment = crate::world::MotionSegment;
 
 pub(super) fn spawn_enemy(
     commands: &mut Commands,
@@ -85,11 +79,13 @@ fn pilot(
     FlightInput { tilt, yaw, thrust }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn chase(
     time: Res<Time>,
     arena: Res<Arena>,
     config: Res<CombatConfig>,
     world_flight: Res<FlightConfig>,
+    world: Option<Res<crate::world::WorldGeometry>>,
     drone: Single<&Transform, With<Drone>>,
     mut enemies: Query<(Entity, &mut Enemy, &mut Transform, &mut DroneFlight), Without<Drone>>,
 ) {
@@ -116,29 +112,32 @@ pub(super) fn chase(
         ) * config.separation_acceleration;
         enemy.previous = transform.translation;
         enemy.path.clear();
+        let target = world
+            .as_deref()
+            .map_or(Some(drone.translation), |world| {
+                crate::world::navigation::next_point(
+                    world,
+                    transform.translation,
+                    drone.translation,
+                    world_half_extents(transform.rotation, local_half),
+                )
+            })
+            .unwrap_or(transform.translation);
         for index in 0..steps {
-            let start = transform.translation;
-            let half_before = world_half_extents(transform.rotation, local_half);
-            let input = pilot(start, &flight, drone.translation, profile, separation);
-            // Bound orientation between samples, and the slight curvature of
-            // the integrated position relative to this substep's straight chord.
-            let angular_pad = local_half.length()
-                * (profile.yaw_rate + profile.tilt_rate.max(profile.leveling_rate))
-                * dt;
-            let curve_pad = (profile.gravity * (profile.boost_thrust + 1.)
-                + flight.velocity.length() * profile.vertical_drag.max(profile.horizontal_drag))
-                * dt
-                * dt
-                / 8.;
-            flight.step(&mut transform, &input, profile, &arena, local_half, dt);
-            enemy.path.push(FlightSegment {
-                start,
-                end: transform.translation,
-                from: index as f32 / steps as f32,
-                to: (index + 1) as f32 / steps as f32,
-                half: half_before.max(world_half_extents(transform.rotation, local_half))
-                    + Vec3::splat(angular_pad + curve_pad),
-            });
+            let input = pilot(transform.translation, &flight, target, profile, separation);
+            for mut segment in flight.step_in_world(
+                &mut transform,
+                &input,
+                profile,
+                &arena,
+                local_half,
+                dt,
+                world.as_deref(),
+            ) {
+                segment.from = (index as f32 + segment.from) / steps as f32;
+                segment.to = (index as f32 + segment.to) / steps as f32;
+                enemy.path.push(segment);
+            }
         }
     }
 }
@@ -170,3 +169,7 @@ fn separation(id: Entity, position: Vec3, neighbors: &[(Entity, Vec3)], radius: 
     }
     force.clamp_length_max(1.)
 }
+
+#[cfg(test)]
+#[path = "terrain_tests.rs"]
+mod terrain_tests;

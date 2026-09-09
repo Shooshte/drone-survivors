@@ -6,10 +6,14 @@ pub struct ArenaScenePlugin;
 #[derive(Component)]
 struct GroundMarker;
 
+#[derive(Component)]
+struct ControlsHud;
+
 impl Plugin for ArenaScenePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (setup_scene, setup_drone_model).after(spawn_drone))
-            .add_systems(Update, track_ground_position.after(move_drone));
+            .add_systems(Update, track_ground_position.after(move_drone))
+            .add_systems(Update, fit_controls);
     }
 }
 
@@ -151,6 +155,7 @@ pub(super) fn setup_scene(
         },
     ));
     commands.spawn((
+        ControlsHud,
         Text::new("W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit"),
         TextFont::from_font_size(16.),
         TextColor(Color::srgb(0.63, 0.74, 0.77)),
@@ -162,6 +167,28 @@ pub(super) fn setup_scene(
             ..default()
         },
     ));
+}
+
+fn fit_controls(
+    windows: Query<&Window>,
+    mut controls: Single<(&mut Text, &mut TextFont), With<ControlsHud>>,
+) {
+    let compact = windows.iter().next().is_some_and(|w| w.width() < 800.);
+    let (text, size) = if compact {
+        (
+            "W/S Pitch | A/D Yaw | Q/E Bank | Arrows also work\nSpace/Shift Thrust | Tilt loses lift; drift remains\n1-4 Modules | Auto fire | R Restart | Esc Quit",
+            13.,
+        )
+    } else {
+        (
+            "W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit",
+            16.,
+        )
+    };
+    if controls.0.0 != text {
+        controls.0.0 = text.into();
+    }
+    controls.1.font_size = bevy::text::FontSize::Px(size);
 }
 
 pub(super) const SCOUT_MODEL: &str = "models/scout_drone.glb";

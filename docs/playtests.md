@@ -725,6 +725,114 @@ issues. The remaining limitation is human assessment of charging routes, shield
 value, rocket readability in dense combat, and high-output versus conservation
 balance; the approved numeric defaults remain provisional.
 
+## 2026-09-09 — DRO-11 obstacles, hazards, and route choices
+
+Implemented low cover, a full-height divider, one full-height electrical shortcut,
+and a longer detour between the existing chargers. The field is harmless for
+3 seconds, warns for 1 second, and damages for 1 second. Each actor can receive
+one 10-damage event or shield block per active window. Both weapons and rocket
+splash respect solid cover; chasers retain physical flight while following a
+small authored graph. Basic movement and all four module tuning values remain
+unchanged.
+
+### Automated evidence
+
+`cargo fmt --check`, `cargo test --locked` (143 passed), and
+`cargo clippy --all-targets --locked -- -D warnings` passed after review fixes.
+The original baseline was 113 passing tests.
+
+New coverage includes swept thin-wall collisions at ordinary/boosted speeds,
+sliding and corners, rotated bounds, banking away from wall contact, low-cover
+clearance, and floor/ceiling containment at 30/60/144 FPS plus a 100 ms hitch.
+Pursuit reaches both sides within 15 seconds; a 30-enemy fixture reverses the
+target and checks five-second progress intervals. Spawn warnings and activation
+reject blocked, hazardous, and disconnected positions.
+
+Weapon tests cover visible-target selection, obstacle-before-enemy impacts,
+terrain rocket explosions, covered splash victims, and shooting above low cover.
+Hazard tests exercise subframe crossings and active time intervals, one event per
+actor/window, shared shield/contact protection, depleted shields, enemy kill
+accounting, terminal freeze, and restart. Scene tests verify state text and
+mesh/material/entity reuse across repeated restart.
+
+Independent review reproduced and resolved two defects before publication:
+
+- An instantaneous collision-correction segment produced a zero denominator in
+  projectile interpolation. It now uses a finite instantaneous sweep; slab tests
+  reject nonfinite inputs. Regressions cover both distant misses and real hits.
+- Turn clearance padding made a player just above a low block unreachable from
+  the opposite side. Final approaches use physical clearance and account for a
+  banking enemy's height. Both low blocks pass at 30/60/144 FPS.
+
+The follow-up review found no remaining actionable issues.
+
+### Route measurements
+
+The keyboard-only route fixture completed all four legs with 100 hull and all
+modules off. Headless runs also force the battery to zero and disable recharge
+only in the fixture, proving both routes remain usable without power.
+
+Representative 60 FPS trip times (seconds; includes waiting at the shortcut):
+
+| Starting cycle offset | Shortcut left→right | Shortcut right→left | Detour left→right | Detour right→left |
+| --- | ---: | ---: | ---: | ---: |
+| 0 seconds | 5.07 | 6.23 | 7.25 | 7.12 |
+| 1.5 seconds | 8.55 | 6.25 | 7.23 | 7.10 |
+
+The same four legs succeeded at 30 and 144 FPS. The open shortcut is faster, but
+an unfavorable cycle makes waiting slower than taking the detour. This validates
+a timing decision without requiring a shield or mobility module. It does not
+establish balance under sustained swarm pressure.
+
+A native `cargo dev -- --validate routes --seconds 65` run completed the legs in
+5.14, 6.33, 7.28, and 6.98 seconds with 100 hull. The return shortcut included a
+1.89-second wait. The fixture disables waves; it never teleports the scout or
+changes its health. A separate ordinary-wave native run using the existing
+survival pilot reached 49.97 seconds, 12 kills, and 30 hull. That pilot does not
+plan around the electrical cycle, so this is a combat integration check, not a
+successful three-minute route strategy or a balance claim.
+
+### Native presentation and limitations
+
+Inspected 1120 × 720 captures of open/warning/active states and a 640 × 480 capture.
+The transparent tall walls leave the drone visible, low blocks have solid faces,
+and field boundaries/emitters span the entire flight height. Dotted paths identify
+the shortcut and detour. The initial captures exposed unsupported punctuation
+and bottom-control wrapping; new copy uses ASCII separators and controls use a
+compact three-line layout below 800 logical pixels.
+
+Final recapture attempts returned black images while the macOS console was
+locked, despite gameplay continuing normally. The final compact text adjustment
+therefore still needs an unlocked-session visual check. Use the documented
+`DRONE_CAPTURE_DIR` and `DRONE_CAPTURE_MINIMUM` validation options to reproduce.
+No black images were accepted as visual evidence. Earlier screenshots validated
+the geometry and field presentation, before the final copy/layout cleanup.
+
+The first unlocked native idle sample (30 seconds after warmup, 2240 × 1440
+physical pixels) recorded median 8.35 ms, p95 12.36 ms, p99 22.87 ms, 21 frames
+above 33.3 ms, 0–3 enemies, 90 hull and 9 kills. This is a light-load compatibility
+sample, not a new 150-enemy benchmark. Later locked-session frame timings are not
+used as presentation/performance evidence. The existing Bevy/winit unknown-window
+warning appeared only on successful shutdown; no gameplay runtime error occurred.
+
+Remaining human checks: final compact HUD after unlock, both route choices under
+sustained combat, shield/mobility timing, enemy luring, and warning readability in
+dense combat. Numeric defaults remain provisional; no balance was altered to
+force the old survival pilot to win on the new map.
+
+### Review follow-up — rotation contact trace
+
+Confirmed that rotation contact correction overwrote the first timed segment's
+start with the actor's pre-correction position. A stationary banking actor then
+appeared to translate throughout the step, and a focused hazard test reproduced
+false exposure to a field beyond the wall after the correction had already ended.
+Timed segments now retain their corrected starting position. Physical correction,
+normal velocity clipping, and existing instantaneous collision segments are unchanged.
+
+Both new regressions failed before the fix and pass afterward: stationary player
+and enemy-sized bodies do not acquire timed translation from rotation correction,
+and a field across the wall does not damage the corrected actor. The full suite
+passes all 145 tests; `cargo fmt --check` and strict all-targets Clippy pass.
 
 ## DRO-10 — Experience and temporary choices — 2026-09-09
 
@@ -819,3 +927,15 @@ tactical implications from fixed probes, not evidence that both builds are
 balanced for human play. The next manual pass should specifically compare early
 braking/altitude recovery in the mobile build and powered-module use at chargers.
 Do not tune normal combat solely to rescue the existing scripted pilot.
+
+## 2026-09-09 — DRO-11 integration with main's upgrade choices
+
+Merged main at `711f093`, preserving terrain, hazards, route validation, and the
+DRO-10 upgrade feature and native validation modes. Routes skips earned choices
+through the same ordinary controls as the other baseline validation modes.
+Two integration tests verify that hazard kills award XP exactly once and can open
+an upgrade choice, and that a long choice pause preserves the remaining hazard
+warning before resuming damage. The rotation-correction regressions remain green.
+
+`cargo test --locked` passes all 175 tests. `cargo fmt --check` and
+`cargo clippy --all-targets --locked -- -D warnings` also pass.

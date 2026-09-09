@@ -7,6 +7,10 @@ use crate::{
 };
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use std::time::Instant;
+#[path = "validation_capture.rs"]
+mod capture;
+#[path = "route_validation.rs"]
+pub(super) mod routes;
 
 const CHOICE_KEYS: [KeyCode; 4] = [
     KeyCode::Digit1,
@@ -30,6 +34,7 @@ pub(crate) enum ValidationMode {
     Survival,
     Stress,
     Idle,
+    Routes,
     Mobile,
     Armored,
     Choices,
@@ -168,7 +173,7 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate survival|stress|idle|mobile|armored|choices \
+                "Expected --validate survival|stress|idle|routes|mobile|armored|choices \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
@@ -177,12 +182,13 @@ impl ValidationConfig {
                         "survival" => ValidationMode::Survival,
                         "stress" => ValidationMode::Stress,
                         "idle" => ValidationMode::Idle,
+                        "routes" => ValidationMode::Routes,
                         "mobile" => ValidationMode::Mobile,
                         "armored" => ValidationMode::Armored,
                         "choices" => ValidationMode::Choices,
                         _ => {
                             return Err(
-                                "Validation mode must be survival, stress, idle, mobile, armored, or choices"
+                                "Validation mode must be survival, stress, idle, routes, mobile, armored, or choices"
                                     .into(),
                             );
                         }
@@ -228,6 +234,7 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    capture::install(app);
     println!(
         "VALIDATION {:?}: keyboard pilot={}, stress overrides={}, warmup=5s, sample limit={}s, stress target={}, synthetic_xp={}",
         config.mode,
@@ -241,6 +248,14 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
             0
         }
     );
+    if config.mode == ValidationMode::Routes {
+        app.init_resource::<routes::RouteProbe>().add_systems(
+            Update,
+            routes::input
+                .in_set(GameplaySet::Reset)
+                .after(lifecycle::restart),
+        );
+    }
     app.insert_resource(config)
         .init_resource::<Measurements>()
         .init_resource::<ValidationChoices>()
@@ -277,6 +292,9 @@ fn configure(
     mut windows: Query<&mut Window>,
     run: Option<ResMut<UpgradeRun>>,
 ) {
+    if config.mode == ValidationMode::Routes {
+        waves.bursts.clear();
+    }
     if config.mode == ValidationMode::Stress {
         waves.bursts.clear();
         waves.cap = config.enemies;
@@ -339,7 +357,10 @@ fn validation_choice_input(
     let priorities = match config.mode {
         ValidationMode::Mobile => &MOBILE_PRIORITIES[..],
         ValidationMode::Armored => &ARMORED_PRIORITIES[..],
-        ValidationMode::Survival | ValidationMode::Stress | ValidationMode::Idle => &[],
+        ValidationMode::Survival
+        | ValidationMode::Stress
+        | ValidationMode::Idle
+        | ValidationMode::Routes => &[],
         ValidationMode::Choices => unreachable!(),
     };
     let key = priorities
@@ -406,7 +427,9 @@ fn pilot_input(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     enemies: Query<(&Transform, &DroneFlight), With<Enemy>>,
 ) {
-    if config.mode == ValidationMode::Idle || keys.just_pressed(KeyCode::KeyR) {
+    if matches!(config.mode, ValidationMode::Idle | ValidationMode::Routes)
+        || keys.just_pressed(KeyCode::KeyR)
+    {
         return;
     }
     for key in [
@@ -453,7 +476,16 @@ pub(super) fn pilot_keys(
         132. * theta.cos(),
     );
     let desired = tangent + (target - position) * 1.5;
-    let mut acceleration = (desired - flight.velocity) * 3. + flight.velocity * 0.25;
+    let acceleration = (desired - flight.velocity) * 3. + flight.velocity * 0.25;
+    steering_keys(acceleration, flight, position, threats)
+}
+
+fn steering_keys(
+    mut acceleration: Vec3,
+    flight: &DroneFlight,
+    position: Vec3,
+    threats: &[(Vec3, Vec3)],
+) -> Vec<KeyCode> {
     for &(point, velocity) in threats {
         let offset = position - point;
         let relative = flight.velocity - velocity;
