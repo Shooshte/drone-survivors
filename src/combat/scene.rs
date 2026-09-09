@@ -144,6 +144,8 @@ fn update_hud(
         "DRONE DESTROYED | R to restart"
     } else if *phase == GamePhase::Survived {
         "SURVIVED | R to replay"
+    } else if *phase == GamePhase::Choosing {
+        "UPGRADE CHOICE | GAMEPLAY PAUSED"
     } else if lull {
         "SPAWNING LULL | Keep moving"
     } else if run.elapsed < 60. {

@@ -6,6 +6,8 @@ use bevy::prelude::*;
 pub(crate) struct FlightConfig {
     pub(crate) max_horizontal_speed: f32,
     pub(crate) horizontal_acceleration_multiplier: f32,
+    /// Scales all net translational forces, including drag, while preserving hover.
+    pub(crate) acceleration_multiplier: f32,
     pub(crate) max_tilt: f32,
     pub(crate) tilt_rate: f32,
     pub(crate) leveling_rate: f32,
@@ -23,6 +25,7 @@ impl Default for FlightConfig {
         Self {
             max_horizontal_speed: 420.,
             horizontal_acceleration_multiplier: 1.,
+            acceleration_multiplier: 1.,
             max_tilt: 30_f32.to_radians(),
             tilt_rate: 240_f32.to_radians(),
             leveling_rate: 300_f32.to_radians(),
@@ -177,9 +180,9 @@ impl DroneFlight {
                 config.vertical_drag
             } else {
                 config.horizontal_drag
-            };
+            } * config.acceleration_multiplier;
             let velocity = self.velocity[axis];
-            let force = acceleration[axis];
+            let force = acceleration[axis] * config.acceleration_multiplier;
             if drag > 0. {
                 // Exact linear-drag integration for constant substep force.
                 let decay = (-drag * dt).exp();

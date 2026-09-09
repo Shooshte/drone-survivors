@@ -3,6 +3,7 @@ mod combat;
 mod energy;
 mod game;
 mod modules;
+mod upgrades;
 
 use arena::{ArenaPlugin, ArenaScenePlugin};
 use bevy::{
@@ -36,6 +37,8 @@ fn main() {
             combat::CombatPlugin,
             combat::CombatScenePlugin,
             energy::scene::EnergyScenePlugin,
+            upgrades::runtime::UpgradePlugin,
+            upgrades::scene::UpgradeScenePlugin,
         ))
         .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)));
     if let Some(config) = validation {

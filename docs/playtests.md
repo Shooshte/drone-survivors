@@ -724,3 +724,98 @@ power/shield/mobility and an independent whole-branch review found no actionable
 issues. The remaining limitation is human assessment of charging routes, shield
 value, rocket readability in dense combat, and high-output versus conservation
 balance; the approved numeric defaults remain provisional.
+
+
+## DRO-10 — Experience and temporary choices — 2026-09-09
+
+### Implemented behavior
+
+Kill XP (10), a one-use green 3D exploration pickup (30), thresholds 50/75/100/…,
+and six single-purchase upgrades now work in the normal three-minute arena.
+Excess XP queues choices. Both mouse cards and fresh 1–3 keys select; the explicit
+Skip button or Backspace spends one choice without an effect or reroll. Level and
+excess XP remain earned. Empty pools resume automatically. Normal restarts use a
+fixed offer seed so this prototype's choices are repeatable.
+
+Heavy armor grants 50 hull and reduces all translational acceleration by 25%;
+Heavy rounds doubles basic projectile damage with a 10% acceleration penalty.
+Both include vertical response and braking. Their penalties multiply to 67.5%
+baseline acceleration while preserving neutral hover. Basic fire stays free and
+keeps its cadence. The other four agreed trade-offs are implemented as specified.
+
+### Automated rules, integration, and review
+
+`cargo fmt --check`, `cargo test --locked` (141 passed), and
+`cargo clippy --all-targets --locked -- -D warnings` pass. Tests exercise XP carry,
+large awards, exact-once real rocket multi-kills, pickup boundaries, eligibility
+in different slots, stable/distinct offers, 1/2/3/0-card pools, Skip, queued input
+release, death/restart precedence, derived stats, current hull/battery changes,
+shield progress, snapshots, and baseline restoration. Flight tests compare real
+horizontal/vertical/braking acceleration for both penalties.
+
+A TimePlugin test simulates a 40-second selection pause and verifies
+unchanged gameplay clock, player/enemy motion, projectile life, energy, warnings,
+and protection deadlines. Resume advances only the next normal frame. Selection
+keys do not toggle modules. Mouse Skip routes through the same choice system.
+
+Independent core review caught a near-ready rocket cooldown being retimed after
+the first resumed delta. The failing regression uses 0.08 seconds remaining:
+a 2-to-3-second interval change must leave 0.12 seconds before a 0.1-second resume
+frame. The deadline is now converted during selection; the test passes. Final
+whole-feature review found no blocking or important code findings.
+
+### Native UI inspection
+
+`cargo dev -- --validate choices --seconds 4` rendered the actual game at
+640×480 logical / 1280×960 physical pixels, with two queued choices. Three cards,
+separate benefit/drawback text, eligibility/queue counts, Skip/Backspace, and
+restart instructions fit without clipping. Initial native rendering revealed
+missing glyphs for Unicode minus/arrows; new upgrade UI text now uses supported
+ASCII characters. A second native screenshot verifies the correction:
+
+![640×480 choice screen](images/experience-choices.png)
+
+This preview explicitly grants 140 synthetic XP and captures the rendered window;
+normal launches never receive that grant. The real scene test covers offer-size
+visibility and Skip presence. Automated mouse/key tests cover input behavior;
+this record does not claim a human handling or usability playtest.
+
+### Build comparison and tactical implications
+
+Both build probes use the same unchanged keyboard pilot, normal waves, real
+health, and naturally earned XP; they apply choices through normal guarded input.
+They do not activate modules, so these runs demonstrate flight/hull/basic-weapon
+trade-offs; powered shield/rocket effects are covered by integration tests.
+
+The deterministic 30 Hz run chose Agile frame (17.467s), Rapid shield (62.767s),
+Skip (84.767s), and Interceptor (131.333s), then died at 156.200s with 49 kills.
+The armored run chose Heavy rounds (17.467s), Wide-area rockets (61.100s),
+Heavy armor (83.100s), and skipped at 130.433s/154.433s; it survived 180s with
+52 kills. Four and five earned choices respectively meet the provisional pacing
+target.
+
+Native Mobile independently chose Agile frame at 17.478s, Rapid shield at
+62.757s, Skip at 84.607s, and Interceptor at 131.901s. It died at 155.982s with
+48 kills, 0 hull and 75/75 energy. At 1120×720 logical / 2240×1440 physical pixels,
+150.913 sampled seconds yielded median/p95/p99 frame times of
+16.667/17.832/18.631ms, with eight frames over 33.3ms. Exit status was zero.
+
+Native Armored independently survived 180.000s with 51 kills, 150 hull and
+100/100 energy, acquiring Heavy rounds, Wide-area rockets and Heavy armor.
+It selected at 17.468s/62.576s/91.310s and skipped later offers at
+130.801s/154.751s. At the same 2240×1440 physical resolution, 174.949 sampled
+seconds yielded median/p95/p99 frame times of 8.337/8.679/8.906ms, with no
+frames over 33.3ms; exit status was zero. Frame measurements are observations
+from these desktop runs, not controlled cross-build performance benchmarks.
+Both native processes emitted an existing Bevy/winit unknown-window warning on
+shutdown after their successful result; neither encountered a gameplay panic.
+
+The mobile pilot's 80-hull ceiling and changed handling require a different
+escape/braking approach; blindly accepting mobility improvements is not a free
+win. A player can Skip those offers or adjust thrust/braking timing. Heavy rounds
+makes normal 20-hull chasers die in one basic hit, and armor provides extra
+survival margin at the cost of slower acceleration. These are observations and
+tactical implications from fixed probes, not evidence that both builds are
+balanced for human play. The next manual pass should specifically compare early
+braking/altitude recovery in the mobile build and powered-module use at chargers.
+Do not tune normal combat solely to rescue the existing scripted pilot.

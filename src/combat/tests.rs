@@ -605,3 +605,6 @@ mod module_tests;
 
 #[path = "rocket_tests.rs"]
 mod rocket_tests;
+
+#[path = "upgrade_tests.rs"]
+mod upgrade_tests;

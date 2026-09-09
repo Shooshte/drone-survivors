@@ -1,5 +1,7 @@
 use super::super::validation::{self, ValidationConfig, ValidationMode};
 use super::*;
+use crate::upgrades::{UpgradeKind, UpgradeRun};
+use std::time::{Duration, Instant};
 
 #[test]
 fn validation_arguments_are_opt_in_bounded_and_mode_specific() {
@@ -10,6 +12,14 @@ fn validation_arguments_are_opt_in_bounded_and_mode_specific() {
         (stress.mode, stress.enemies, stress.seconds),
         (ValidationMode::Stress, 150, 30.)
     );
+    for (name, mode, seconds) in [
+        ("mobile", ValidationMode::Mobile, 185.),
+        ("armored", ValidationMode::Armored, 185.),
+        ("choices", ValidationMode::Choices, 60.),
+    ] {
+        let config = parse(&["--validate", name]).unwrap().unwrap();
+        assert_eq!((config.mode, config.seconds), (mode, seconds));
+    }
     for args in [
         vec!["--seconds", "30"],
         vec!["--validate", "stress", "--seconds", "NaN"],
@@ -19,6 +29,251 @@ fn validation_arguments_are_opt_in_bounded_and_mode_specific() {
         vec!["--validate"],
     ] {
         assert!(parse(&args).is_err(), "{args:?}");
+    }
+}
+
+#[test]
+fn final_build_summary_reports_acquired_names_and_battery_values() {
+    let mut run = UpgradeRun::default();
+    run.selected = vec![UpgradeKind::Interceptor, UpgradeKind::AgileFrame];
+    let energy = crate::energy::Energy {
+        current: 41.25,
+        ..default()
+    };
+    let config = crate::energy::EnergyConfig {
+        capacity: 75.,
+        ..default()
+    };
+
+    assert_eq!(
+        validation::build_summary(Some(&run), Some(&energy), Some(&config)),
+        "acquired=[Interceptor|Agile frame] energy=41.250 capacity=75.000"
+    );
+}
+
+fn upgrade_validation_app(mode: ValidationMode) -> App {
+    let mut app = App::new();
+    app.init_resource::<ButtonInput<KeyCode>>()
+        .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
+            Duration::from_secs_f32(1. / 30.),
+        ))
+        .add_message::<AppExit>()
+        .add_plugins((
+            bevy::time::TimePlugin,
+            crate::arena::ArenaPlugin,
+            CombatPlugin,
+            crate::upgrades::runtime::UpgradePlugin,
+        ));
+    validation::install(
+        &mut app,
+        ValidationConfig {
+            mode,
+            seconds: if mode == ValidationMode::Choices {
+                60.
+            } else {
+                185.
+            },
+            enemies: 150,
+        },
+    );
+    app.update();
+    app
+}
+
+fn validation_tick(app: &mut App, dt: f32, keys: &[KeyCode]) {
+    app.world_mut()
+        .resource_mut::<ButtonInput<KeyCode>>()
+        .reset_all();
+    for &key in keys {
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(key);
+    }
+    *app.world_mut()
+        .resource_mut::<bevy::time::TimeUpdateStrategy>() =
+        bevy::time::TimeUpdateStrategy::ManualDuration(Duration::from_secs_f32(dt));
+    app.update();
+}
+
+#[test]
+fn mobile_mode_uses_fresh_normal_choice_input_and_records_the_resolution() {
+    let mut app = upgrade_validation_app(ValidationMode::Mobile);
+    app.world_mut().resource_mut::<UpgradeRun>().award(50);
+    validation_tick(&mut app, 0., &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    let offer = app.world().resource::<UpgradeRun>().offer.clone();
+    let expected = [
+        UpgradeKind::Interceptor,
+        UpgradeKind::AgileFrame,
+        UpgradeKind::RapidShield,
+    ]
+    .into_iter()
+    .find(|kind| offer.contains(kind));
+
+    validation_tick(&mut app, 0., &[]);
+    assert!(app.world().resource::<UpgradeRun>().selected.is_empty());
+    assert_eq!(app.world().resource::<UpgradeRun>().pending, 1);
+    validation_tick(&mut app, 0., &[]);
+
+    assert_eq!(
+        app.world()
+            .resource::<UpgradeRun>()
+            .selected
+            .last()
+            .copied(),
+        expected
+    );
+    assert_eq!(app.world().resource::<UpgradeRun>().pending, 0);
+    let choices = app.world().resource::<validation::ValidationChoices>();
+    assert_eq!(choices.entries.len(), 1);
+    assert_eq!(choices.entries[0].action, expected);
+    assert_eq!(choices.entries[0].level, 2);
+}
+
+#[test]
+fn legacy_modes_skip_earned_choices_through_the_runtime() {
+    for mode in [
+        ValidationMode::Survival,
+        ValidationMode::Stress,
+        ValidationMode::Idle,
+    ] {
+        let mut app = upgrade_validation_app(mode);
+        app.world_mut().resource_mut::<UpgradeRun>().award(50);
+        validation_tick(&mut app, 0., &[]);
+        validation_tick(&mut app, 0., &[]);
+        validation_tick(&mut app, 0., &[]);
+
+        let run = app.world().resource::<UpgradeRun>();
+        assert_eq!(run.pending, 0, "{mode:?}");
+        assert!(run.selected.is_empty(), "{mode:?}");
+        assert_eq!(
+            app.world()
+                .resource::<validation::ValidationChoices>()
+                .entries[0]
+                .action,
+            None
+        );
+    }
+}
+
+#[test]
+fn choices_mode_opens_two_user_controlled_choices_at_640_by_480() {
+    let mut app = App::new();
+    app.world_mut().spawn(Window::default());
+    app.init_resource::<ButtonInput<KeyCode>>()
+        .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
+            Duration::ZERO,
+        ))
+        .add_message::<AppExit>()
+        .add_plugins((
+            bevy::time::TimePlugin,
+            crate::arena::ArenaPlugin,
+            CombatPlugin,
+            crate::upgrades::runtime::UpgradePlugin,
+        ));
+    validation::install(
+        &mut app,
+        ValidationConfig {
+            mode: ValidationMode::Choices,
+            seconds: 60.,
+            enemies: 150,
+        },
+    );
+    app.update();
+
+    let run = app.world().resource::<UpgradeRun>();
+    assert_eq!((run.level, run.xp, run.pending), (3, 15, 2));
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    let window = app
+        .world_mut()
+        .query::<&Window>()
+        .single(app.world())
+        .unwrap();
+    assert_eq!((window.width(), window.height()), (640., 480.));
+
+    validation_tick(&mut app, 0., &[]);
+    validation_tick(&mut app, 0., &[KeyCode::Backspace]);
+    assert_eq!(app.world().resource::<UpgradeRun>().pending, 1);
+    assert!(app.world().resource::<UpgradeRun>().selected.is_empty());
+
+    app.world_mut()
+        .resource_mut::<validation::ValidationChoices>()
+        .preview_started = Some(Instant::now() - Duration::from_secs(2));
+    validation_tick(&mut app, 0., &[]);
+    assert!(
+        app.world()
+            .resource::<validation::ValidationChoices>()
+            .preview_requested
+    );
+    assert_eq!(
+        app.world_mut()
+            .query::<&bevy::render::view::screenshot::Screenshot>()
+            .iter(app.world())
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn full_mobile_and_armored_runs_finish_and_log_deterministic_builds() {
+    for (mode, priorities) in [
+        (
+            ValidationMode::Mobile,
+            &[
+                UpgradeKind::Interceptor,
+                UpgradeKind::AgileFrame,
+                UpgradeKind::RapidShield,
+            ][..],
+        ),
+        (
+            ValidationMode::Armored,
+            &[
+                UpgradeKind::HeavyArmor,
+                UpgradeKind::HeavyRounds,
+                UpgradeKind::WideAreaRockets,
+            ][..],
+        ),
+    ] {
+        let mut app = upgrade_validation_app(mode);
+        for _ in 0..(190 * 30) {
+            validation_tick(&mut app, 1. / 30., &[]);
+            if matches!(
+                *app.world().resource::<GamePhase>(),
+                GamePhase::Dead | GamePhase::Survived
+            ) {
+                break;
+            }
+        }
+
+        assert!(
+            matches!(
+                *app.world().resource::<GamePhase>(),
+                GamePhase::Dead | GamePhase::Survived
+            ),
+            "{mode:?} did not reach an outcome"
+        );
+        let run = app.world().resource::<UpgradeRun>();
+        println!(
+            "deterministic validation: mode={mode:?} outcome={:?} run_seconds={:.3} kills={} choices={:?}",
+            app.world().resource::<GamePhase>(),
+            app.world().resource::<Encounter>().elapsed,
+            app.world().resource::<Encounter>().kills,
+            app.world()
+                .resource::<validation::ValidationChoices>()
+                .entries
+        );
+        assert!(!run.selected.is_empty(), "{mode:?}");
+        assert!(run.selected.iter().all(|kind| priorities.contains(kind)));
+        let choices = app.world().resource::<validation::ValidationChoices>();
+        assert!(!choices.entries.is_empty(), "{mode:?}");
+        assert_eq!(
+            choices
+                .entries
+                .iter()
+                .filter_map(|entry| entry.action)
+                .collect::<Vec<_>>(),
+            run.selected
+        );
     }
 }
 
