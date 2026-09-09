@@ -596,3 +596,6 @@ mod feedback_tests;
 
 #[path = "validation_tests.rs"]
 mod validation_tests;
+
+#[path = "energy_tests.rs"]
+mod energy_tests;

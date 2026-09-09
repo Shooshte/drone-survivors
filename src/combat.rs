@@ -88,13 +88,15 @@ struct PlayerHealth {
 #[derive(Resource, Default)]
 struct Weapon {
     ready_at: f64,
+    interval: Option<f64>,
 }
 
 pub(crate) struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CombatConfig>()
+        app.add_plugins(crate::energy::EnergyPlugin)
+            .init_resource::<CombatConfig>()
             .init_resource::<GamePhase>()
             .init_resource::<Weapon>()
             .init_resource::<WaveConfig>()
@@ -121,6 +123,7 @@ impl Plugin for CombatPlugin {
                     lifecycle::contact_damage,
                     waves::finish,
                     waves::update,
+                    crate::energy::update,
                     weapon::fire,
                 )
                     .chain()

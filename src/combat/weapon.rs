@@ -8,11 +8,14 @@ use crate::{
 };
 use bevy::prelude::*;
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn fire(
     mut commands: Commands,
     time: Res<Time>,
     config: Res<CombatConfig>,
     phase: Res<GamePhase>,
+    energy: Res<crate::energy::Energy>,
+    energy_config: Res<crate::energy::EnergyConfig>,
     mut weapon: ResMut<Weapon>,
     drone: Single<&Transform, With<Drone>>,
     enemies: Query<(Entity, &Enemy, &Transform)>,
@@ -21,6 +24,15 @@ pub(super) fn fire(
         return;
     }
     let now = time.elapsed_secs_f64();
+    let interval = config.fire_interval / energy.fire_multiplier(&energy_config);
+    if let Some(previous) = weapon.interval
+        && previous != interval
+        && weapon.ready_at > now
+    {
+        // Preserve progress so toggling cannot reset a cooldown or bank a shot.
+        weapon.ready_at = now + (weapon.ready_at - now) / previous * interval;
+    }
+    weapon.interval = Some(interval);
     let target = enemies
         .iter()
         .filter(|(_, enemy, _)| enemy.health > 0)
@@ -52,10 +64,10 @@ pub(super) fn fire(
         Transform::from_translation(drone.translation),
     ));
     // Keep normal cadence across fractional frames, discard missed shots on hitches.
-    weapon.ready_at = if now - weapon.ready_at >= config.fire_interval {
-        now + config.fire_interval
+    weapon.ready_at = if now - weapon.ready_at >= interval {
+        now + interval
     } else {
-        weapon.ready_at + config.fire_interval
+        weapon.ready_at + interval
     };
 }
 

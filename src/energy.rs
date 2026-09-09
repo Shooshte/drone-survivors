@@ -13,6 +13,7 @@ pub(crate) struct EnergyConfig {
     pub drain: f64,
     pub recharge: f64,
     pub activation: f64,
+    pub multiplier: f64,
 }
 impl Default for EnergyConfig {
     fn default() -> Self {
@@ -21,6 +22,7 @@ impl Default for EnergyConfig {
             drain: 10.,
             recharge: 25.,
             activation: 10.,
+            multiplier: 2.,
         }
     }
 }
@@ -31,6 +33,16 @@ pub(crate) struct Energy {
     pub overdrive: bool,
     pub charging: Option<Entity>,
     pub rejected_for: f64,
+}
+
+impl Energy {
+    pub fn fire_multiplier(&self, config: &EnergyConfig) -> f64 {
+        if self.overdrive {
+            config.multiplier
+        } else {
+            1.
+        }
+    }
 }
 
 #[derive(Component, Clone, Copy)]
