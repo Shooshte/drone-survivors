@@ -802,7 +802,7 @@ Native Mobile independently chose Agile frame at 17.478s, Rapid shield at
 
 Native Armored independently survived 180.000s with 51 kills, 150 hull and
 100/100 energy, acquiring Heavy rounds, Wide-area rockets and Heavy armor.
-It selected at 17.468s/62.576s/83.401s and skipped later offers at
+It selected at 17.468s/62.576s/91.310s and skipped later offers at
 130.801s/154.751s. At the same 2240×1440 physical resolution, 174.949 sampled
 seconds yielded median/p95/p99 frame times of 8.337/8.679/8.906ms, with no
 frames over 33.3ms; exit status was zero. Frame measurements are observations
