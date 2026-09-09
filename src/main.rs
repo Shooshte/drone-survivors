@@ -1,5 +1,6 @@
 mod arena;
 mod combat;
+mod energy;
 mod game;
 
 use arena::{ArenaPlugin, ArenaScenePlugin};
