@@ -1,5 +1,6 @@
 mod arena;
 mod combat;
+mod energy;
 mod game;
 
 use arena::{ArenaPlugin, ArenaScenePlugin};
@@ -33,6 +34,7 @@ fn main() {
             ArenaScenePlugin,
             combat::CombatPlugin,
             combat::CombatScenePlugin,
+            energy::scene::EnergyScenePlugin,
         ))
         .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)));
     if let Some(config) = validation {
