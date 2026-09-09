@@ -2,6 +2,7 @@ mod arena;
 mod combat;
 mod energy;
 mod game;
+mod modules;
 
 use arena::{ArenaPlugin, ArenaScenePlugin};
 use bevy::{

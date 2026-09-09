@@ -174,3 +174,41 @@ fn hud_shows_lull_with_surviving_enemies_and_survival_without_clear_message() {
         .unwrap();
     assert!(text.0.contains("SURVIVED") && text.0.contains("R") && !text.0.contains("ARENA CLEAR"));
 }
+
+#[test]
+fn rocket_visuals_preserve_flight_and_explosions_reuse_assets_on_restart() {
+    use super::super::feedback::{ExplosionRadius, KillEffect};
+    let (mut app, _) = scene_app();
+    let meshes = app.world().resource::<Assets<Mesh>>().len();
+    let materials = app.world().resource::<Assets<StandardMaterial>>().len();
+    for _ in 0..3 {
+        enemy(&mut app, START + Vec3::X * 100., 100);
+        let rocket = shot(&mut app, START, Vec3::X * 500., 1.5);
+        app.world_mut().entity_mut(rocket).insert(rockets::Rocket);
+        step(&mut app, 0., &[]);
+        assert!(app.world().get::<Mesh3d>(rocket).is_some());
+        assert_eq!(position(&app, rocket), START);
+        assert!(
+            (app.world().get::<Transform>(rocket).unwrap().rotation * Vec3::NEG_Z)
+                .distance(Vec3::X)
+                < 0.001
+        );
+        step(&mut app, 0.2, &[]);
+        assert!(app.world().get_entity(rocket).is_err());
+        assert_eq!(count::<ExplosionRadius>(&mut app), 1);
+        let (radius, transform) = app
+            .world_mut()
+            .query::<(&ExplosionRadius, &Transform)>()
+            .single(app.world())
+            .unwrap();
+        assert_eq!(radius.0, 70.);
+        assert_eq!(transform.scale, Vec3::splat(70.));
+        step(&mut app, 0., &[KeyCode::KeyR]);
+        assert_eq!(count::<KillEffect>(&mut app), 0);
+        assert_eq!(app.world().resource::<Assets<Mesh>>().len(), meshes);
+        assert_eq!(
+            app.world().resource::<Assets<StandardMaterial>>().len(),
+            materials
+        );
+    }
+}

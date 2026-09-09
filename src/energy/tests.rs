@@ -1,13 +1,17 @@
 use super::*;
 use crate::arena::ArenaPlugin;
+use crate::modules::{ModuleKind, Modules};
 use std::time::Duration;
 
-pub(super) fn app() -> (App, Entity) {
+pub(crate) fn app() -> (App, Entity) {
     let mut app = App::new();
     app.init_resource::<Time>()
         .init_resource::<ButtonInput<KeyCode>>()
         .add_plugins((ArenaPlugin, EnergyPlugin))
-        .add_systems(Update, update.in_set(GameplaySet::Combat));
+        .add_systems(
+            Update,
+            (prepare, update).chain().in_set(GameplaySet::Combat),
+        );
     app.update();
     let drone = app
         .world_mut()
@@ -16,7 +20,7 @@ pub(super) fn app() -> (App, Entity) {
         .unwrap();
     (app, drone)
 }
-pub(super) fn step(app: &mut App, dt: f64, keys: &[KeyCode]) {
+pub(crate) fn step(app: &mut App, dt: f64, keys: &[KeyCode]) {
     let mut input = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
     input.reset_all();
     for key in keys {
@@ -27,7 +31,7 @@ pub(super) fn step(app: &mut App, dt: f64, keys: &[KeyCode]) {
         .advance_by(Duration::from_secs_f64(dt));
     app.update();
 }
-pub(super) fn at(app: &mut App, drone: Entity, point: Vec3) {
+pub(crate) fn at(app: &mut App, drone: Entity, point: Vec3) {
     app.world_mut()
         .get_mut::<Transform>(drone)
         .unwrap()
@@ -42,7 +46,11 @@ fn starts_full_off_and_drains_without_targets_at_consistent_rates() {
     for dt in [1. / 30., 1. / 120., 1.] {
         let (mut app, _) = app();
         near(app.world().resource::<Energy>().current, 100.);
-        assert!(!app.world().resource::<Energy>().overdrive);
+        assert!(
+            !app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
         step(&mut app, 0., &[KeyCode::Digit1]);
         for _ in 0..(3. / dt) as usize {
             step(&mut app, dt, &[]);
@@ -57,13 +65,25 @@ fn depletes_without_negative_energy_and_never_restarts_automatically() {
     step(&mut app, 11., &[]);
     let energy = app.world().resource::<Energy>();
     near(energy.current, 0.);
-    assert!(!energy.overdrive);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
     at(&mut app, drone, Vec3::new(-280., 90., 0.));
     step(&mut app, 1., &[]);
     near(app.world().resource::<Energy>().current, 25.);
-    assert!(!app.world().resource::<Energy>().overdrive);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
     step(&mut app, 0., &[KeyCode::Digit1]);
-    assert!(app.world().resource::<Energy>().overdrive);
+    assert!(
+        app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
 }
 #[test]
 fn both_nodes_charge_clamp_and_combine_drain_before_clamping() {
@@ -76,10 +96,18 @@ fn both_nodes_charge_clamp_and_combine_drain_before_clamping() {
         app.world_mut().resource_mut::<Energy>().current = 10.;
         step(&mut app, 1., &[KeyCode::Digit1]);
         near(app.world().resource::<Energy>().current, 25.);
-        assert!(app.world().resource::<Energy>().overdrive);
+        assert!(
+            app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
         step(&mut app, 10., &[]);
         near(app.world().resource::<Energy>().current, 100.);
-        assert!(app.world().resource::<Energy>().overdrive);
+        assert!(
+            app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
     }
 }
 #[test]
@@ -136,11 +164,19 @@ fn activation_threshold_rejection_and_key_holds() {
     let (mut app, _) = app();
     app.world_mut().resource_mut::<Energy>().current = 9.999;
     step(&mut app, 0., &[KeyCode::Digit1]);
-    assert!(!app.world().resource::<Energy>().overdrive);
-    assert!(app.world().resource::<Energy>().rejected_for > 0.);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
+    assert!(app.world().resource::<Modules>().rejected_for[0] > 0.);
     app.world_mut().resource_mut::<Energy>().current = 10.;
     step(&mut app, 0., &[KeyCode::Digit1]);
-    assert!(app.world().resource::<Energy>().overdrive);
+    assert!(
+        app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
     app.world_mut()
         .resource_mut::<ButtonInput<KeyCode>>()
         .clear();
@@ -148,11 +184,19 @@ fn activation_threshold_rejection_and_key_holds() {
         .resource_mut::<Time>()
         .advance_by(Duration::from_secs_f64(0.1));
     app.update();
-    assert!(app.world().resource::<Energy>().overdrive);
+    assert!(
+        app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
     step(&mut app, 0., &[KeyCode::Digit1]);
-    assert!(!app.world().resource::<Energy>().overdrive);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
     step(&mut app, 3., &[]);
-    near(app.world().resource::<Energy>().rejected_for, 0.);
+    near(app.world().resource::<Modules>().rejected_for[0], 0.);
 }
 #[test]
 fn frozen_outcomes_and_repeated_restart_win_over_toggles() {
@@ -163,20 +207,28 @@ fn frozen_outcomes_and_repeated_restart_win_over_toggles() {
         {
             let mut e = app.world_mut().resource_mut::<Energy>();
             e.current = 42.;
-            e.overdrive = true;
-            e.rejected_for = 1.;
         }
+        app.world_mut().resource_mut::<Modules>().enabled[0] = true;
+        app.world_mut().resource_mut::<Modules>().rejected_for[0] = 1.;
         step(&mut app, 5., &[KeyCode::Digit1]);
         let e = app.world().resource::<Energy>();
         near(e.current, 42.);
-        assert!(e.overdrive);
-        near(e.rejected_for, 1.);
+        assert!(
+            app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
+        near(app.world().resource::<Modules>().rejected_for[0], 1.);
         step(&mut app, 1., &[KeyCode::KeyR, KeyCode::Digit1]);
         let e = app.world().resource::<Energy>();
         near(e.current, 100.);
-        assert!(!e.overdrive);
+        assert!(
+            !app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
         assert!(e.charging.is_none());
-        near(e.rejected_for, 0.);
+        near(app.world().resource::<Modules>().rejected_for[0], 0.);
     }
     assert_eq!(
         app.world_mut()
@@ -185,4 +237,38 @@ fn frozen_outcomes_and_repeated_restart_win_over_toggles() {
             .count(),
         2
     );
+}
+
+#[test]
+fn each_of_four_slot_keys_has_independent_power_drain() {
+    for (key, drain) in [
+        (KeyCode::Digit1, 10.),
+        (KeyCode::Digit2, 8.),
+        (KeyCode::Digit3, 8.),
+        (KeyCode::Digit4, 10.),
+    ] {
+        let (mut app, _) = app();
+        step(&mut app, 1., &[key]);
+        near(app.world().resource::<Energy>().current, 100. - drain);
+        step(&mut app, 0., &[key]);
+        step(&mut app, 1., &[]);
+        near(app.world().resource::<Energy>().current, 100. - drain);
+    }
+}
+
+#[test]
+fn all_four_drain_adds_and_exceeds_charging() {
+    let (mut app, drone) = app();
+    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    step(
+        &mut app,
+        1.,
+        &[
+            KeyCode::Digit1,
+            KeyCode::Digit2,
+            KeyCode::Digit3,
+            KeyCode::Digit4,
+        ],
+    );
+    near(app.world().resource::<Energy>().current, 89.);
 }

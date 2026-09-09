@@ -637,3 +637,90 @@ A regression test reproduced the incorrect full-battery message before the
 fix, then passed with overdrive both off and on. It also checks returning below
 capacity, reaching capacity again, paused status and leaving the field.
 `cargo fmt --check`, all 88 tests, and Clippy with warnings denied passed.
+
+
+## DRO-9 — Four-slot module controls (2026-09-09)
+
+### Scope and automated behavior
+
+Four interchangeable slots now contain overdrive, a one-block powered-recharge
+shield, horizontal mobility boost, and an automatic splash rocket launcher.
+Defaults are the approved 10/8/8/10 energy-per-second drains, 5-second shield
+recharge, 1.25x horizontal acceleration/cap, and a rocket every 2 seconds dealing
+20 damage within a 70-unit 3D impact radius. Every module starts off.
+
+Baseline before changes: 88 tests passed. New tests first reproduced missing
+slot drain, shield activation protection, mobility acceleration and rocket
+launch/splash behavior. Coverage now exercises every module's actual effect in
+each of the four positions, empty slots, duplicates, independent/held/simultaneous
+keys, low-energy rejection, additive charging/drain, depletion, and manual recovery.
+Shield tests cover contact protection, pause/resume, partial paid time on depletion,
+multiple configured blocks, and no toggle refill. Rocket tests cover nearest/tied
+3D targets, impact-time moving-enemy splash, inclusive radius, one damage per target,
+kill accounting, misses, cooldown continuity and frame-rate-independent cadence.
+Flight tests preserve vertical response and restore the normal speed cap after
+mobility is disabled. Restart/freeze and reusable visual assets are covered.
+
+A staged power update lets contact observe same-frame shield activation/depletion;
+only a continuing encounter commits battery/module changes. Movement consumes the
+previous committed module state, so mobility changes apply on the next movement
+integration. This preserves post-movement charging membership and existing terminal
+energy freeze behavior.
+
+### Repeatable encounter comparison
+
+Command: `cargo test --locked compare_maximum_output_and_conservation -- --nocapture`.
+Both runs use the same authored three-minute waves and the same existing keyboard
+pilot at 60 updates/second, with real health, collisions and energy accounting.
+From 3 seconds onward, maximum output enables all four whenever at least 50 energy
+is stored; conservation enables only rockets whenever at least 20 is stored.
+These input policies never write battery, health, transforms, or enemy state.
+
+| Policy | Outcome | Run time | Hull | Kills | Final energy | Time with modules on | Time in chargers |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Maximum output | Survived | 180.00s | 20 | 51 | 14.17 | 2.77s | 0.57s |
+| Rocket-only conservation | Destroyed | 156.35s | 0 | 50 | 4.17 | 9.98s | 0.17s |
+
+Maximum output exhausted the battery in about 2.78 seconds; rockets alone lasted
+about 10 seconds. This confirms a real power-duration tradeoff, but the shared
+pilot barely visits chargers and does not tactically manage power beyond those
+simple policies. The result does not establish that maximum output is generally
+stronger or that both approaches are balanced. A human charging/defense playtest
+remains the next tuning step. No balance values were altered to force a win.
+
+### Native validation and visual checks
+
+`cargo dev -- --validate survival --seconds 30` completed a native Metal run
+through 35 seconds including warmup, with hull 100 and 9 total kills. Post-warmup
+samples: median 8.349 ms, p95 8.910 ms, p99 9.493 ms, one frame above 33.3 ms,
+0–3 live enemies, 2240x1440 physical resolution. This is a compatibility sample,
+not a new stress benchmark. The existing Bevy/winit unknown-window shutdown warning
+appeared after successful completion without a gameplay error.
+
+Temporary capture instrumentation in the native entry point supplied only number
+keypresses, window resizing, screenshot requests and exit; the existing validation
+pilot supplied ordinary movement. Gameplay, energy, health and waves were unchanged.
+The instrumentation was removed after capture. Inspected 640x480 and 1120x720
+logical-size captures with all four powered, blue rockets in flight, and subsequent
+zero-energy shutdown. Each module's key/name/state/drain is readable, with the shield
+ready state and the shared energy bar; wrapped combat text stays above the panel.
+At minimum size the HUD occupies a substantial part of the scene but does not overlap
+its own text or the bottom controls. Further HUD polish can follow human playtesting.
+
+The first native capture exposed `-0/s` for an empty drain sum and a missing middle-dot
+glyph. A failing HUD regression reproduced negative zero; the sum now normalizes to
+positive zero and the separator uses ASCII. Fresh minimum-size captures verify both.
+A separate ECS presentation check verifies rocket orientation leaves its position
+unchanged, the impact effect has radius 70, and repeated restart reuses mesh/material
+assets and clears effects.
+
+![Four powered slots at the minimum supported window size](images/four-slot-modules.png)
+
+### Final verification and review
+
+`cargo fmt --check`, `cargo test --locked` (113 passed), and
+`cargo clippy --all-targets --locked -- -D warnings` passed. A focused review of
+power/shield/mobility and an independent whole-branch review found no actionable
+issues. The remaining limitation is human assessment of charging routes, shield
+value, rocket readability in dense combat, and high-output versus conservation
+balance; the approved numeric defaults remain provisional.

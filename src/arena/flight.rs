@@ -5,6 +5,7 @@ use bevy::prelude::*;
 #[derive(Resource, Clone, Copy)]
 pub(crate) struct FlightConfig {
     pub(crate) max_horizontal_speed: f32,
+    pub(crate) horizontal_acceleration_multiplier: f32,
     pub(crate) max_tilt: f32,
     pub(crate) tilt_rate: f32,
     pub(crate) leveling_rate: f32,
@@ -21,6 +22,7 @@ impl Default for FlightConfig {
     fn default() -> Self {
         Self {
             max_horizontal_speed: 420.,
+            horizontal_acceleration_multiplier: 1.,
             max_tilt: 30_f32.to_radians(),
             tilt_rate: 240_f32.to_radians(),
             leveling_rate: 300_f32.to_radians(),
@@ -147,6 +149,8 @@ impl DroneFlight {
     fn acceleration(&self, rotation: Quat, input: &FlightInput, config: &FlightConfig) -> Vec3 {
         let mut acceleration =
             rotation * Vec3::Y * (config.gravity * input.thrust) - Vec3::Y * config.gravity;
+        acceleration.x *= config.horizontal_acceleration_multiplier;
+        acceleration.z *= config.horizontal_acceleration_multiplier;
         let horizontal = self.velocity.with_y(0.);
         let speed = horizontal.length();
         if speed > config.max_horizontal_speed * 0.9 {

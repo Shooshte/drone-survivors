@@ -22,7 +22,7 @@ The test arena opens immediately. Fly relative to the drone's heading:
 | **A/D** or **Left/Right** | Turn left/right |
 | **Q/E** | Bank left/right |
 | **Space** / **either Shift** | Boost/reduce rotor thrust |
-| **1** | Toggle weapon overdrive |
+| **1–4** | Toggle the corresponding equipped module |
 | **R** | Restart the encounter at the center, level and stationary |
 | **Escape** | Quit |
 
@@ -84,22 +84,56 @@ provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
 
 ### Energy and charging
 
-Press **1** to toggle weapon overdrive: twice the normal firing rate for
-10 energy/second, including when there is no target. The battery starts full
-at 100. Enabling requires at least 10 energy. At zero, overdrive switches off;
-ordinary automatic fire and every flight control remain available. Charging
-never reactivates overdrive automatically; press 1 again when ready.
+Four interchangeable module slots start equipped and switched off:
+
+| Key | Module | Powered benefit | Drain |
+| --- | --- | --- | --- |
+| **1** | Weapon overdrive | Double basic firing rate | 10 energy/s |
+| **2** | Shield | Block one direct hit; recharge in 5 powered seconds | 8 energy/s |
+| **3** | Mobility | +25% horizontal acceleration and speed cap | 8 energy/s |
+| **4** | Rocket launcher | Automatic rocket every 2 seconds, 20 splash damage within 70 units | 10 energy/s |
+
+The battery starts full at 100. Each module requires at least 10 stored energy
+to switch on, with no activation fee. Enabled modules drain continuously,
+including when there is no target, while stationary, or while the shield is
+ready/recharging. Holding a number key does not repeatedly toggle it.
+
+The shield starts with one ready block. Blocking prevents the whole direct hit
+and grants the ordinary 0.75-second contact protection window. Its recharge
+advances only while powered; switching off or depletion pauses progress.
+Toggling never restores a block. Mobility changes horizontal thrust acceleration
+and the speed limit from 420 to 525, preserving vertical flight and handling.
+Its state is applied on the next movement update, including restoring the normal
+speed cap when disabled. Enemy flight is unchanged.
+
+Blue rockets aim automatically at the nearest enemy within 400 units. They fly
+straight at 500 units/second and explode on the first enemy hit, damaging each
+enemy within the 70-unit 3D impact radius once, including the struck enemy.
+There is no player splash damage. Misses expire after 1.5 seconds or leave the
+arena. Switching off prevents new launches; existing rockets finish normally.
+Rocket cooldown continues while off, so toggling cannot grant extra shots.
+Weapon overdrive affects only basic fire.
+
+At zero energy all modules switch off; basic automatic fire and every normal
+flight control remain available. Charging never reactivates modules automatically.
+Press the corresponding key when enough energy is available. Death/survival
+freezes power; R restores full energy, all modules off, a ready shield, and clears
+rockets, cooldowns and feedback.
 
 Two cyan charging fields sit on opposite sides of the arena. Enter a field
-with the drone's center, below its visible top ring (height 160), to gain
-25 energy/second. Fly and fight freely while charging; leaving the field stops
-recharge. With overdrive enabled, charging yields a net 15 energy/second.
-Fields have radius 90, never run out, and provide no protection from enemies.
+with the drone's center below its visible top ring (height 160) to gain
+25 energy/second. Fly and fight freely while charging; leaving stops recharge.
+Fields have radius 90, never run out, and provide no protection. Overlapping
+fields do not stack. All four modules drain 36/s, so even charging produces a
+net loss of 11/s. Rockets alone leave a net gain of 15/s at a charger.
 
-The energy HUD shows battery level, overdrive state, charging/drain rate and
-failed activation feedback. Death/survival freezes energy; R restores the full
-battery with overdrive off. Numeric defaults live in `EnergyConfig` in
-`src/energy.rs` and are provisional playtest values.
+The HUD shows each slot's key, state and current/configured drain, shield
+readiness/recharge progress, shared battery, total drain and signed net charging.
+Failed activation identifies the affected slot. Any module can occupy any slot,
+and empty slots are safe; a type cannot be duplicated. This prototype uses a fixed
+loadout; purchasing and player-controlled rearrangement belong to DRO-16.
+Numeric defaults live in `ModuleConfig` in `src/modules.rs` and `EnergyConfig`
+in `src/energy.rs` and remain provisional playtest values.
 
 ### Repeatable native validation
 

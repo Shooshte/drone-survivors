@@ -21,7 +21,10 @@ impl Plugin for EnergyScenePlugin {
                 .after(super::setup)
                 .after(crate::combat::CombatSceneSetup),
         )
-        .add_systems(Update, present.in_set(GameplaySet::Presentation));
+        .add_systems(
+            Update,
+            (present, crate::modules::scene::present).in_set(GameplaySet::Presentation),
+        );
     }
 }
 
@@ -125,49 +128,55 @@ fn setup_scene(
                         BackgroundColor(Color::srgb(0.2, 0.9, 0.75)),
                     ));
                 });
+            parent.spawn((
+                Text::new("MODULES | current / enabled drain"),
+                TextFont::from_font_size(13.),
+                TextColor(Color::srgb(0.6, 0.7, 0.75)),
+            ));
+            for index in 0..4 {
+                parent.spawn((
+                    crate::modules::scene::ModuleHud(index),
+                    Text::default(),
+                    TextFont::from_font_size(15.),
+                    TextColor::default(),
+                ));
+            }
         })
         .id();
     commands.entity(*hud_root).add_child(panel);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn present(
     energy: Res<Energy>,
     config: Res<EnergyConfig>,
     phase: Res<GamePhase>,
+    modules: Res<Modules>,
+    module_config: Res<ModuleConfig>,
     materials: Res<FieldMaterials>,
     mut hud: Single<&mut Text, With<EnergyHud>>,
     mut fill: Single<(&mut Node, &mut BackgroundColor), With<EnergyFill>>,
     mut fields: Query<(&FieldVisual, &mut MeshMaterial3d<StandardMaterial>)>,
 ) {
     let active = *phase == GamePhase::Playing;
-    let state = if energy.overdrive {
-        "ON"
-    } else if energy.current == 0. {
-        "EMPTY"
-    } else {
-        "OFF"
-    };
+    let drain = modules.drain(&module_config);
     let flow = if !active {
         "POWER PAUSED".to_string()
     } else if energy.charging.is_some() {
-        if energy.current >= config.capacity {
+        if energy.current >= config.capacity && config.recharge >= drain {
             "BATTERY FULL | IN CHARGING FIELD".to_string()
         } else {
-            let net = config.recharge - if energy.overdrive { config.drain } else { 0. };
-            format!("CHARGING +{net:.0}/s")
+            let net = config.recharge - drain;
+            format!("CHARGING {net:+.0}/s net")
         }
-    } else if energy.overdrive {
-        format!("DRAINING -{:.0}/s", config.drain)
+    } else if drain > 0. {
+        format!("DRAINING -{drain:.0}/s")
     } else {
         "Enter a charging field to recharge".to_string()
     };
-    let rejected = if energy.rejected_for > 0. {
-        format!(" | Need {:.0} energy to activate", config.activation)
-    } else {
-        String::new()
-    };
+    let actual_drain = if active { drain } else { 0. };
     let value = format!(
-        "ENERGY  {:.0} / {:.0}   |   OVERDRIVE {state}  [1]\n{flow}{rejected}",
+        "ENERGY  {:.0} / {:.0}  |  MODULE DRAIN {actual_drain:.0}/s\n{flow}",
         energy.current.floor(),
         config.capacity
     );
@@ -198,12 +207,15 @@ mod tests {
     use crate::energy::tests::{at, step};
 
     fn text(app: &mut App) -> String {
-        app.world_mut()
-            .query_filtered::<&Text, With<EnergyHud>>()
-            .single(app.world())
-            .unwrap()
-            .0
-            .clone()
+        let mut values: Vec<String> = app
+            .world_mut()
+            .query_filtered::<&Text, Or<(With<EnergyHud>, With<crate::modules::scene::ModuleHud>)>>(
+            )
+            .iter(app.world())
+            .map(|t| t.0.clone())
+            .collect();
+        values.sort();
+        values.join("\n")
     }
     fn scene_app() -> (App, Entity) {
         let mut app = App::new();
@@ -239,8 +251,13 @@ mod tests {
             assert_eq!(app.world().resource::<Energy>().current, 100.);
             assert!(text(&mut app).contains("BATTERY FULL"));
             assert!(text(&mut app).contains("IN CHARGING FIELD"));
-            assert!(!text(&mut app).contains("/s"));
-            assert_eq!(app.world().resource::<Energy>().overdrive, overdrive);
+            assert!(!text(&mut app).contains("CHARGING +"));
+            assert_eq!(
+                app.world()
+                    .resource::<Modules>()
+                    .active(crate::modules::ModuleKind::Overdrive),
+                overdrive
+            );
 
             app.world_mut().resource_mut::<Energy>().current = 99.9;
             step(&mut app, 0., &[]);
@@ -277,6 +294,7 @@ mod tests {
             1
         );
         assert!(text(&mut app).contains("OVERDRIVE OFF"));
+        assert!(!text(&mut app).contains("-0/s"));
         let meshes = app.world().resource::<Assets<Mesh>>().len();
         let materials = app.world().resource::<Assets<StandardMaterial>>().len();
         let entities = app.world().entities().count_spawned();
@@ -305,6 +323,7 @@ mod tests {
             step(&mut app, 0., &[]);
             assert!(text(&mut app).contains("100 / 100"));
             assert!(text(&mut app).contains("OVERDRIVE OFF"));
+            assert!(!text(&mut app).contains("-0/s"));
             assert_eq!(app.world().entities().count_spawned(), entities);
             assert_eq!(app.world().resource::<Assets<Mesh>>().len(), meshes);
             assert_eq!(
@@ -312,5 +331,26 @@ mod tests {
                 materials
             );
         }
+    }
+    #[test]
+    fn all_slots_show_independent_states_and_signed_net_drain() {
+        let (mut app, drone) = scene_app();
+        at(&mut app, drone, Vec3::new(-280., 90., 0.));
+        step(&mut app, 1., &crate::modules::SLOT_KEYS);
+        let value = text(&mut app);
+        for name in ["OVERDRIVE ON", "SHIELD ON", "MOBILITY ON", "ROCKETS ON"] {
+            assert!(value.contains(name), "{value}");
+        }
+        assert!(value.contains("CHARGING -11/s"));
+        assert!(value.contains("MODULE DRAIN 36/s"));
+        assert!(value.contains("READY 1"));
+        app.world_mut()
+            .resource_mut::<Modules>()
+            .block(&ModuleConfig::default());
+        step(&mut app, 1., &[]);
+        assert!(text(&mut app).contains("4.0s recharge"));
+        step(&mut app, 0., &[KeyCode::Digit2]);
+        assert!(text(&mut app).contains("4.0s paused"));
+        assert!(text(&mut app).contains("SHIELD OFF"));
     }
 }

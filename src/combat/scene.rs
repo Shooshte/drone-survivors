@@ -20,6 +20,8 @@ pub(super) struct CombatAssets {
     pub(super) enemy_material: Handle<StandardMaterial>,
     projectile_mesh: Handle<Mesh>,
     projectile_material: Handle<StandardMaterial>,
+    rocket_mesh: Handle<Mesh>,
+    rocket_material: Handle<StandardMaterial>,
 }
 
 impl Plugin for CombatScenePlugin {
@@ -43,6 +45,12 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(CombatAssets {
+        rocket_mesh: meshes.add(Cuboid::new(7., 7., 20.)),
+        rocket_material: materials.add(StandardMaterial {
+            base_color: Color::srgb(0.4, 0.8, 1.),
+            unlit: true,
+            ..default()
+        }),
         enemy_mesh: meshes.add(Cuboid::from_size(Vec3::splat(config.enemy_half_size * 2.))),
         enemy_material: materials.add(StandardMaterial {
             base_color: Color::srgb(0.95, 0.26, 0.13),
@@ -83,7 +91,15 @@ fn add_visuals(
     mut commands: Commands,
     assets: Res<CombatAssets>,
     enemies: Query<Entity, Added<Enemy>>,
-    projectiles: Query<Entity, Added<Projectile>>,
+    mut projectiles: Query<
+        (
+            Entity,
+            &Projectile,
+            &mut Transform,
+            Option<&super::rockets::Rocket>,
+        ),
+        Added<Projectile>,
+    >,
 ) {
     // Handles survive restarts, so firing and resetting allocate no new assets.
     for entity in &enemies {
@@ -92,11 +108,19 @@ fn add_visuals(
             MeshMaterial3d(assets.enemy_material.clone()),
         ));
     }
-    for entity in &projectiles {
-        commands.entity(entity).insert((
-            Mesh3d(assets.projectile_mesh.clone()),
-            MeshMaterial3d(assets.projectile_material.clone()),
-        ));
+    for (id, projectile, mut transform, rocket) in &mut projectiles {
+        let (mesh, material) = if rocket.is_some() {
+            (&assets.rocket_mesh, &assets.rocket_material)
+        } else {
+            (&assets.projectile_mesh, &assets.projectile_material)
+        };
+        commands
+            .entity(id)
+            .insert((Mesh3d(mesh.clone()), MeshMaterial3d(material.clone())));
+        if rocket.is_some() {
+            transform.rotation =
+                Quat::from_rotation_arc(Vec3::NEG_Z, projectile.velocity.normalize_or_zero());
+        }
     }
 }
 
