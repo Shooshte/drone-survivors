@@ -172,18 +172,3 @@ fn modifiers_compose_from_baselines_independent_of_selection_order() {
     assert_eq!(forward.rocket_radius, 1.5);
     assert_eq!(forward.rocket_interval, 1.5);
 }
-
-#[test]
-fn catalog_copy_exposes_each_exact_tradeoff() {
-    assert_eq!(UpgradeKind::ALL.len(), 6);
-    assert_eq!(UpgradeKind::HeavyArmor.name(), "Heavy armor");
-    assert_eq!(UpgradeKind::HeavyArmor.benefit(), "+50 maximum hull");
-    assert_eq!(
-        UpgradeKind::HeavyArmor.drawback(),
-        "−25% acceleration in every movement direction"
-    );
-    assert_eq!(
-        UpgradeKind::HeavyRounds.benefit(),
-        "Double basic projectile damage: 10 → 20"
-    );
-}

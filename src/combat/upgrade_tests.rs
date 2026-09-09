@@ -393,3 +393,25 @@ fn fatal_contact_on_threshold_frame_suppresses_choice_and_restart_restores_picku
             .collected
     );
 }
+
+#[test]
+fn wide_area_choice_retimes_remaining_cooldown_before_first_resumed_frame() {
+    use crate::upgrades::{UpgradeKind, UpgradeRun};
+    let (mut app, _) = upgrade_app();
+    enemy(&mut app, START + Vec3::X * 300., 500);
+    tick(&mut app, 0., &[KeyCode::Digit4]);
+    let now = app.world().resource::<Time>().elapsed_secs_f64();
+    app.world_mut()
+        .resource_mut::<rockets::RocketLauncher>()
+        .ready_at = now + 0.08;
+    offer(&mut app, 50);
+    app.world_mut().resource_mut::<UpgradeRun>().offer = vec![UpgradeKind::WideAreaRockets];
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    let before = count::<rockets::Rocket>(&mut app);
+    tick(&mut app, 0.1, &[]);
+    assert_eq!(
+        count::<rockets::Rocket>(&mut app),
+        before,
+        "0.08s remaining should become 0.12s before advancing the resumed 0.1s frame"
+    );
+}

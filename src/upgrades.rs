@@ -1,4 +1,5 @@
 pub(crate) mod runtime;
+pub(crate) mod scene;
 use bevy::prelude::*;
 
 use crate::modules::{Loadout, ModuleKind};
@@ -39,7 +40,7 @@ impl UpgradeKind {
             Self::Interceptor => "+30% horizontal acceleration and maximum horizontal speed",
             Self::AgileFrame => "+40% turn, tilt, and automatic leveling response",
             Self::HeavyArmor => "+50 maximum hull",
-            Self::HeavyRounds => "Double basic projectile damage: 10 → 20",
+            Self::HeavyRounds => "Double basic projectile damage: 10 -> 20",
             Self::RapidShield => "Powered shield recharge falls from 5s to 2.5s",
             Self::WideAreaRockets => "Explosion radius grows from 70 to 105 world units",
         }
@@ -49,8 +50,8 @@ impl UpgradeKind {
         match self {
             Self::Interceptor => "Battery capacity falls from 100 to 75",
             Self::AgileFrame => "Maximum hull falls from 100 to 80",
-            Self::HeavyArmor => "−25% acceleration in every movement direction",
-            Self::HeavyRounds => "−10% acceleration in every movement direction",
+            Self::HeavyArmor => "-25% acceleration in every movement direction",
+            Self::HeavyRounds => "-10% acceleration in every movement direction",
             Self::RapidShield => "Shield drain rises from 8 to 12 energy/s",
             Self::WideAreaRockets => "Rocket launch interval increases from 2s to 3s",
         }

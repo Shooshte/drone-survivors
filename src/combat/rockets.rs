@@ -10,9 +10,21 @@ use bevy::prelude::*;
 pub(super) struct Rocket;
 
 #[derive(Resource, Default)]
-pub(super) struct RocketLauncher {
+pub(crate) struct RocketLauncher {
     pub(super) ready_at: f64,
     interval: Option<f64>,
+}
+
+impl RocketLauncher {
+    pub(crate) fn retime(&mut self, now: f64, interval: f64) {
+        if let Some(previous) = self.interval
+            && previous != interval
+            && self.ready_at > now
+        {
+            self.ready_at = now + (self.ready_at - now) / previous * interval;
+        }
+        self.interval = Some(interval);
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -31,13 +43,7 @@ pub(super) fn fire(
     }
     let now = time.elapsed_secs_f64();
     let interval = config.rocket_interval;
-    if let Some(previous) = launcher.interval
-        && previous != interval
-        && launcher.ready_at > now
-    {
-        launcher.ready_at = now + (launcher.ready_at - now) / previous * interval;
-    }
-    launcher.interval = Some(interval);
+    launcher.retime(now, interval);
 
     if !modules.active(crate::modules::ModuleKind::Rocket) {
         // Elapsed gameplay consumes the cooldown without accumulating shots.

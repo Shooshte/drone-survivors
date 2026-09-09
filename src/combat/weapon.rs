@@ -81,6 +81,19 @@ pub(super) fn fire(
     };
 }
 
+type MovingProjectiles<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static mut Projectile,
+        &'static mut Transform,
+        Option<&'static Rocket>,
+        Option<&'static ShotPayload>,
+    ),
+    Without<Enemy>,
+>;
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn advance_projectiles(
     mut commands: Commands,
@@ -88,16 +101,7 @@ pub(super) fn advance_projectiles(
     arena: Res<Arena>,
     config: Res<CombatConfig>,
     module_config: Res<ModuleConfig>,
-    mut projectiles: Query<
-        (
-            Entity,
-            &mut Projectile,
-            &mut Transform,
-            Option<&Rocket>,
-            Option<&ShotPayload>,
-        ),
-        Without<Enemy>,
-    >,
+    mut projectiles: MovingProjectiles,
     mut enemies: Query<(Entity, &mut Enemy, &Transform), Without<Projectile>>,
     mut run: ResMut<Encounter>,
     mut outcomes: ResMut<CombatOutcomes>,

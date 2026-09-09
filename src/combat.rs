@@ -10,6 +10,7 @@ mod feedback;
 use feedback::{CombatOutcome, CombatOutcomes};
 mod lifecycle;
 mod rockets;
+pub(crate) use rockets::RocketLauncher;
 pub(crate) mod validation;
 mod waves;
 mod weapon;

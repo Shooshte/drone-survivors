@@ -152,6 +152,7 @@ fn choose(
     mut health: ResMut<PlayerHealth>,
     mut energy: ResMut<Energy>,
     mut modules: ResMut<Modules>,
+    mut launcher: ResMut<crate::combat::RocketLauncher>,
 ) {
     if *phase != GamePhase::Choosing || keys.just_pressed(KeyCode::KeyR) || session.resume_pending {
         return;
@@ -225,6 +226,7 @@ fn choose(
         module_config.drains[crate::modules::ModuleKind::Shield as usize] *= effective.shield_drain;
         module_config.rocket_radius *= effective.rocket_radius;
         module_config.rocket_interval *= effective.rocket_interval;
+        launcher.retime(clock.elapsed_secs_f64(), module_config.rocket_interval);
         modules.shield.remaining *= module_config.shield_recharge / old_recharge;
     }
     session.armed = false;
