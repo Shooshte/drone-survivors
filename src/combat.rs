@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 mod collision;
 mod scene;
-pub(crate) use scene::CombatScenePlugin;
+pub(crate) use scene::{CombatHudRoot, CombatScenePlugin, CombatSceneSetup};
 mod enemies;
 mod feedback;
 use feedback::{CombatOutcome, CombatOutcomes};

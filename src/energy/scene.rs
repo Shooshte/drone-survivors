@@ -15,14 +15,20 @@ struct FieldMaterials {
 
 impl Plugin for EnergyScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_scene.after(super::setup))
-            .add_systems(Update, present.in_set(GameplaySet::Presentation));
+        app.add_systems(
+            Startup,
+            setup_scene
+                .after(super::setup)
+                .after(crate::combat::CombatSceneSetup),
+        )
+        .add_systems(Update, present.in_set(GameplaySet::Presentation));
     }
 }
 
 fn setup_scene(
     mut commands: Commands,
     nodes: Query<(Entity, &ChargingNode)>,
+    hud_root: Single<Entity, With<crate::combat::CombatHudRoot>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -86,12 +92,8 @@ fn setup_scene(
         ));
     }
     commands.insert_resource(FieldMaterials { idle, charging });
-    commands
+    let panel = commands
         .spawn(Node {
-            position_type: PositionType::Absolute,
-            top: px(126),
-            left: px(24),
-            right: px(24),
             flex_direction: FlexDirection::Column,
             row_gap: px(6),
             ..default()
@@ -123,7 +125,9 @@ fn setup_scene(
                         BackgroundColor(Color::srgb(0.2, 0.9, 0.75)),
                     ));
                 });
-        });
+        })
+        .id();
+    commands.entity(*hud_root).add_child(panel);
 }
 
 fn present(
@@ -204,8 +208,12 @@ mod tests {
             .init_resource::<ButtonInput<KeyCode>>()
             .init_resource::<Assets<Mesh>>()
             .init_resource::<Assets<StandardMaterial>>()
-            .add_plugins((crate::arena::ArenaPlugin, EnergyPlugin, EnergyScenePlugin))
-            .add_systems(Update, super::super::update.in_set(GameplaySet::Combat));
+            .add_plugins((
+                crate::arena::ArenaPlugin,
+                crate::combat::CombatPlugin,
+                crate::combat::CombatScenePlugin,
+                EnergyScenePlugin,
+            ));
         app.update();
         let drone = app
             .world_mut()

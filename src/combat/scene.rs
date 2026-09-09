@@ -8,6 +8,12 @@ pub(crate) struct CombatScenePlugin;
 #[derive(Component)]
 pub(super) struct CombatHud;
 
+#[derive(Component)]
+pub(crate) struct CombatHudRoot;
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct CombatSceneSetup;
+
 #[derive(Resource)]
 pub(super) struct CombatAssets {
     enemy_mesh: Handle<Mesh>,
@@ -20,7 +26,7 @@ impl Plugin for CombatScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<FeedbackConfig>()
             .init_resource::<DamageCue>()
-            .add_systems(Startup, (setup, feedback::setup))
+            .add_systems(Startup, (setup.in_set(CombatSceneSetup), feedback::setup))
             .add_systems(
                 Update,
                 (add_visuals, feedback::update, update_hud)
@@ -50,19 +56,27 @@ fn setup(
             ..default()
         }),
     });
-    commands.spawn((
-        CombatHud,
-        Text::default(),
-        TextFont::from_font_size(18.),
-        TextColor(Color::srgb(0.9, 0.94, 0.92)),
-        Node {
-            position_type: PositionType::Absolute,
-            top: px(52),
-            left: px(24),
-            right: px(24),
-            ..default()
-        },
-    ));
+    commands
+        .spawn((
+            CombatHudRoot,
+            Node {
+                position_type: PositionType::Absolute,
+                top: px(52),
+                left: px(24),
+                right: px(24),
+                flex_direction: FlexDirection::Column,
+                row_gap: px(24),
+                ..default()
+            },
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                CombatHud,
+                Text::default(),
+                TextFont::from_font_size(18.),
+                TextColor(Color::srgb(0.9, 0.94, 0.92)),
+            ));
+        });
 }
 
 fn add_visuals(

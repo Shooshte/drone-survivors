@@ -62,7 +62,9 @@ at the supported minimum 640 × 480 window size.
 ## Architecture and validation
 
 EnergyPlugin owns battery, tuning, node components, reset and energy updates;
-EnergyScenePlugin owns reusable field visuals and HUD. Combat consumes only
+EnergyScenePlugin owns reusable field visuals and energy HUD. CombatScenePlugin
+provides a shared HUD column so wrapped combat text pushes the energy panel
+down instead of overlapping it at narrow window sizes. Combat consumes only
 the effective firing-rate multiplier. Do not build loadouts or general module
 machinery ahead of DRO-9. No new dependencies are needed.
 

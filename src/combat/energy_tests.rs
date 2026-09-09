@@ -99,3 +99,54 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
         assert_eq!(count::<Projectile>(&mut app), 0);
     }
 }
+
+#[test]
+fn empty_drone_reaches_both_nodes_with_real_flight_under_enemy_pressure() {
+    for key in [KeyCode::KeyQ, KeyCode::KeyE] {
+        let (mut app, _) = empty_app();
+        enemy(&mut app, START + Vec3::Z * 220., 10000);
+        app.world_mut().resource_mut::<Energy>().current = 0.;
+        let mut reached = false;
+        for _ in 0..240 {
+            step(&mut app, 1. / 120., &[key]);
+            let energy = app.world().resource::<Energy>();
+            if energy.charging.is_some() && energy.current > 0. {
+                reached = true;
+                break;
+            }
+        }
+        assert!(reached, "failed to reach node with {key:?}");
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+        assert!(!app.world().resource::<Energy>().overdrive);
+    }
+}
+
+#[test]
+fn movement_determines_charge_before_activation_and_same_frame_recharge() {
+    use crate::arena::DroneFlight;
+    let (mut app, drone) = empty_app();
+    app.world_mut()
+        .get_mut::<Transform>(drone)
+        .unwrap()
+        .translation = Vec3::new(-189., 90., 0.);
+    app.world_mut()
+        .get_mut::<DroneFlight>(drone)
+        .unwrap()
+        .velocity = Vec3::NEG_X * 100.;
+    app.world_mut().resource_mut::<Energy>().current = 9.999;
+    step(&mut app, 0.02, &[KeyCode::Digit1]);
+    let energy = app.world().resource::<Energy>();
+    assert!(energy.charging.is_some());
+    assert!(energy.current > 10.);
+    assert!(!energy.overdrive);
+    assert!(energy.rejected_for > 0.);
+    let before = energy.current;
+    app.world_mut()
+        .get_mut::<DroneFlight>(drone)
+        .unwrap()
+        .velocity = Vec3::X * 100.;
+    step(&mut app, 0.04, &[]);
+    let energy = app.world().resource::<Energy>();
+    assert!(energy.charging.is_none());
+    assert_eq!(energy.current, before);
+}
