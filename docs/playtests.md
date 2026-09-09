@@ -819,3 +819,17 @@ Remaining human checks: final compact HUD after unlock, both route choices under
 sustained combat, shield/mobility timing, enemy luring, and warning readability in
 dense combat. Numeric defaults remain provisional; no balance was altered to
 force the old survival pilot to win on the new map.
+
+### Review follow-up — rotation contact trace
+
+Confirmed that rotation contact correction overwrote the first timed segment's
+start with the actor's pre-correction position. A stationary banking actor then
+appeared to translate throughout the step, and a focused hazard test reproduced
+false exposure to a field beyond the wall after the correction had already ended.
+Timed segments now retain their corrected starting position. Physical correction,
+normal velocity clipping, and existing instantaneous collision segments are unchanged.
+
+Both new regressions failed before the fix and pass afterward: stationary player
+and enemy-sized bodies do not acquire timed translation from rotation correction,
+and a field across the wall does not damage the corrected actor. The full suite
+passes all 145 tests; `cargo fmt --check` and strict all-targets Clippy pass.

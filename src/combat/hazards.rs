@@ -178,4 +178,45 @@ mod tests {
             ActiveWindow { from: 0., to: 0.3 }
         ));
     }
+
+    #[test]
+    fn rotation_correction_does_not_expose_actor_to_field_across_wall() {
+        let world = WorldGeometry {
+            solids: vec![Solid {
+                center: Vec3::new(0., 150., 0.),
+                half: Vec3::new(1., 150., 270.),
+            }],
+            hazard: None,
+        };
+        let field = Solid {
+            center: Vec3::new(2., 150., 0.),
+            half: Vec3::new(0.1, 30., 30.),
+        };
+        let mut transform = Transform::from_xyz(-36.1, 150., 0.);
+        let mut flight = crate::arena::DroneFlight::default();
+        let path = flight.step_in_world(
+            &mut transform,
+            &crate::arena::FlightInput {
+                tilt: Vec2::X,
+                yaw: 1.,
+                thrust: 1.,
+            },
+            &crate::arena::FlightConfig {
+                gravity: 0.,
+                ..default()
+            },
+            &crate::arena::Arena::default(),
+            crate::arena::DRONE_HALF_EXTENTS,
+            1. / 120.,
+            Some(&world),
+        );
+        assert!(
+            transform.translation.x < -36.2,
+            "fixture must correct contact"
+        );
+        assert!(
+            !exposed(&field, &path, ActiveWindow { from: 0.1, to: 0.2 }),
+            "field activated after the instantaneous correction on the other side of a wall"
+        );
+    }
 }

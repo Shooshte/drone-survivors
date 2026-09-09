@@ -143,8 +143,7 @@ impl DroneFlight {
         world: Option<&crate::world::WorldGeometry>,
     ) -> Vec<crate::world::MotionSegment> {
         use crate::world::MotionSegment;
-        let origin = transform.translation;
-        let mut start = origin;
+        let mut start = transform.translation;
         let old_rotation = transform.rotation;
         let before = world_half_extents(old_rotation, local_half);
         let curve_pad = (config.gravity * (config.boost_thrust + 1.)
@@ -201,6 +200,9 @@ impl DroneFlight {
             let half = collision_half + Vec3::splat(angular_pad);
             let mut remaining = desired - start;
             let mut from = 0.;
+            // Timed motion starts after rotation contact correction. Replacing its
+            // start with the pre-correction position would invent a trajectory
+            // through that displacement for hazard and projectile consumers.
             let mut path = Vec::new();
             // Three planes can constrain three axes; a fourth pass records rest.
             for _ in 0..4 {
@@ -237,9 +239,6 @@ impl DroneFlight {
                 from = to;
             }
             self.contain(transform, arena, local_half);
-            if let Some(first) = path.first_mut() {
-                first.start = origin;
-            }
             if let Some(last) = path.last_mut() {
                 last.end = transform.translation;
             }

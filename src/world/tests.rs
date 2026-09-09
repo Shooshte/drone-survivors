@@ -234,3 +234,52 @@ fn wall_contact_allows_banking_away_from_rest() {
         t.translation
     );
 }
+
+#[test]
+fn rotation_contact_does_not_create_timed_translation_for_stationary_actors() {
+    let world = WorldGeometry {
+        solids: vec![Solid {
+            center: Vec3::new(0., 150., 0.),
+            half: Vec3::new(1., 150., 270.),
+        }],
+        hazard: None,
+    };
+    // With no forces or initial velocity, banking/yawing may correct contact,
+    // but it cannot produce translation over elapsed simulation time.
+    let config = FlightConfig {
+        gravity: 0.,
+        ..default()
+    };
+    for half in [DRONE_HALF_EXTENTS, Vec3::splat(14.)] {
+        for dt in [1. / 120., 1. / 144.] {
+            let mut transform = Transform::from_xyz(-1. - half.x - 0.1, 150., 0.);
+            let origin = transform.translation;
+            let mut flight = DroneFlight::default();
+            let path = flight.step_in_world(
+                &mut transform,
+                &FlightInput {
+                    tilt: Vec2::X,
+                    yaw: 1.,
+                    thrust: 1.,
+                },
+                &config,
+                &Arena::default(),
+                half,
+                dt,
+                Some(&world),
+            );
+            assert!(
+                transform.translation.x < origin.x - 0.1,
+                "fixture must correct contact"
+            );
+            assert!(path.iter().any(|segment| segment.to > segment.from));
+            for segment in path.iter().filter(|segment| segment.to > segment.from) {
+                assert!(
+                    segment.start.distance(segment.end) < 0.0001,
+                    "contact correction was spread over elapsed time: {segment:?}"
+                );
+                assert!(segment.start.distance(transform.translation) < 0.0001);
+            }
+        }
+    }
+}
