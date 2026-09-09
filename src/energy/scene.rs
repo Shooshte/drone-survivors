@@ -150,8 +150,12 @@ fn present(
     let flow = if !active {
         "POWER PAUSED".to_string()
     } else if energy.charging.is_some() {
-        let net = config.recharge - if energy.overdrive { config.drain } else { 0. };
-        format!("CHARGING +{net:.0}/s")
+        if energy.current >= config.capacity {
+            "BATTERY FULL | IN CHARGING FIELD".to_string()
+        } else {
+            let net = config.recharge - if energy.overdrive { config.drain } else { 0. };
+            format!("CHARGING +{net:.0}/s")
+        }
     } else if energy.overdrive {
         format!("DRAINING -{:.0}/s", config.drain)
     } else {
@@ -201,8 +205,7 @@ mod tests {
             .0
             .clone()
     }
-    #[test]
-    fn hud_tracks_charge_rejection_and_freeze_without_restart_asset_growth() {
+    fn scene_app() -> (App, Entity) {
         let mut app = App::new();
         app.init_resource::<Time>()
             .init_resource::<ButtonInput<KeyCode>>()
@@ -220,6 +223,52 @@ mod tests {
             .query_filtered::<Entity, With<Drone>>()
             .single(app.world())
             .unwrap();
+        (app, drone)
+    }
+
+    #[test]
+    fn full_battery_in_field_reports_full_instead_of_positive_flow() {
+        for overdrive in [false, true] {
+            let (mut app, drone) = scene_app();
+            at(&mut app, drone, Vec3::new(-280., 90., 0.));
+            step(
+                &mut app,
+                0.1,
+                if overdrive { &[KeyCode::Digit1] } else { &[] },
+            );
+            assert_eq!(app.world().resource::<Energy>().current, 100.);
+            assert!(text(&mut app).contains("BATTERY FULL"));
+            assert!(text(&mut app).contains("IN CHARGING FIELD"));
+            assert!(!text(&mut app).contains("/s"));
+            assert_eq!(app.world().resource::<Energy>().overdrive, overdrive);
+
+            app.world_mut().resource_mut::<Energy>().current = 99.9;
+            step(&mut app, 0., &[]);
+            let expected = if overdrive {
+                "CHARGING +15/s"
+            } else {
+                "CHARGING +25/s"
+            };
+            assert!(text(&mut app).contains(expected));
+            step(&mut app, 0.01, &[]);
+            assert!(text(&mut app).contains("BATTERY FULL"));
+
+            *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+            step(&mut app, 0., &[]);
+            assert!(text(&mut app).contains("POWER PAUSED"));
+            *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Playing;
+            at(&mut app, drone, Vec3::new(0., 90., 0.));
+            step(&mut app, 0., &[]);
+            assert!(!text(&mut app).contains("IN CHARGING FIELD"));
+            if overdrive {
+                assert!(text(&mut app).contains("DRAINING -10/s"));
+            }
+        }
+    }
+
+    #[test]
+    fn hud_tracks_charge_rejection_and_freeze_without_restart_asset_growth() {
+        let (mut app, drone) = scene_app();
         assert_eq!(
             app.world_mut()
                 .query_filtered::<Entity, With<EnergyHud>>()

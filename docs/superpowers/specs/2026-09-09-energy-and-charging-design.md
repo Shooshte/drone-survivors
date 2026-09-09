@@ -53,7 +53,9 @@ node entities and reusable visual assets persist without duplication.
 ## Presentation
 
 Show an energy bar and numeric current/capacity, overdrive ON/OFF/EMPTY,
-charging state/net rate, and the 1 key hint. An activation rejected below 10
+charging state/net rate, and the 1 key hint. At capacity inside a field,
+show BATTERY FULL / IN CHARGING FIELD instead of positive net flow; display
+the charging rate again below capacity. An activation rejected below 10
 energy displays a short readable explanation. Visible floor/top boundaries
 and translucent sides communicate each field's height without obscuring the
 drone or enemies. Highlight the occupied node. Preserve combat HUD readability

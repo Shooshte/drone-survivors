@@ -624,3 +624,16 @@ charger camping, how often overdrive is useful, and whether the recharge/drain
 ratio creates satisfying choices throughout the final push. The automated and
 native checks establish behavior and readability, not final gameplay balance.
 Four-slot controls and additional powered abilities belong to DRO-9.
+
+### DRO-8 review correction — full-battery flow display
+
+The HUD previously displayed the nominal recharge-minus-drain rate even when
+capacity clamping kept stored energy constant. At capacity inside a field it
+now reads BATTERY FULL | IN CHARGING FIELD. Below capacity, +25/s or +15/s
+returns; field highlighting, overdrive operation and energy arithmetic are
+unchanged. The full-field +15/s observations above describe the earlier build.
+
+A regression test reproduced the incorrect full-battery message before the
+fix, then passed with overdrive both off and on. It also checks returning below
+capacity, reaching capacity again, paused status and leaving the field.
+`cargo fmt --check`, all 88 tests, and Clippy with warnings denied passed.
