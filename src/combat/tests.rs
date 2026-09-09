@@ -605,3 +605,9 @@ mod module_tests;
 
 #[path = "rocket_tests.rs"]
 mod rocket_tests;
+
+#[path = "world_tests.rs"]
+mod world_tests;
+
+#[path = "hazard_tests.rs"]
+mod hazard_tests;

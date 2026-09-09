@@ -82,6 +82,7 @@ impl FlightInput {
 }
 
 impl DroneFlight {
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn advance(
         &mut self,
         transform: &mut Transform,
@@ -89,13 +90,27 @@ impl DroneFlight {
         config: &FlightConfig,
         arena: &Arena,
         seconds: f32,
-    ) {
-        // Equal bounded substeps consume the whole render frame before combat.
+        world: Option<&crate::world::WorldGeometry>,
+    ) -> Vec<crate::world::MotionSegment> {
         let steps = (seconds / (1. / 120.)).ceil().max(1.) as u32;
         let dt = seconds / steps as f32;
-        for _ in 0..steps {
-            self.step(transform, input, config, arena, DRONE_HALF_EXTENTS, dt);
+        let mut path = Vec::new();
+        for index in 0..steps {
+            for mut segment in self.step_in_world(
+                transform,
+                input,
+                config,
+                arena,
+                DRONE_HALF_EXTENTS,
+                dt,
+                world,
+            ) {
+                segment.from = (index as f32 + segment.from) / steps as f32;
+                segment.to = (index as f32 + segment.to) / steps as f32;
+                path.push(segment);
+            }
         }
+        path
     }
 
     /// One bounded physics step, shared by keyboard and AI control sources.
@@ -113,6 +128,136 @@ impl DroneFlight {
         let acceleration = self.acceleration(transform.rotation, input, config);
         self.integrate(transform, acceleration, config, dt);
         self.contain(transform, arena, local_half);
+    }
+
+    /// Terrain constrains rotor-integrated motion without replacing it with kinematics.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn step_in_world(
+        &mut self,
+        transform: &mut Transform,
+        input: &FlightInput,
+        config: &FlightConfig,
+        arena: &Arena,
+        local_half: Vec3,
+        dt: f32,
+        world: Option<&crate::world::WorldGeometry>,
+    ) -> Vec<crate::world::MotionSegment> {
+        use crate::world::MotionSegment;
+        let origin = transform.translation;
+        let mut start = origin;
+        let old_rotation = transform.rotation;
+        let before = world_half_extents(old_rotation, local_half);
+        let curve_pad = (config.gravity * (config.boost_thrust + 1.)
+            + self.velocity.length() * config.vertical_drag.max(config.horizontal_drag))
+            * dt
+            * dt
+            / 8.;
+        if let Some(world) = world {
+            self.update_attitude(input, config, dt);
+            let rotation = self.rotation();
+            let angle = old_rotation.angle_between(rotation);
+            // A radius-times-angle pad contains every intermediate orientation.
+            let envelope = before.max(world_half_extents(rotation, local_half))
+                + Vec3::splat(local_half.length() * angle);
+            // Rotation contact pushes outward along the nearest face, like arena
+            // containment. A bounded attitude step causes only a bounded contact
+            // correction, and lets a stationary pilot bank away from a wall.
+            // Keep the entire swept orientation outside, including intermediate angles.
+            for _ in 0..6 {
+                let mut corrected = false;
+                for solid in &world.solids {
+                    if !solid.overlaps(start, envelope) {
+                        continue;
+                    }
+                    let reach = solid.half + envelope;
+                    let offset = start - solid.center;
+                    let depth = reach - offset.abs();
+                    let axis = if depth.x <= depth.y && depth.x <= depth.z {
+                        0
+                    } else if depth.y <= depth.z {
+                        1
+                    } else {
+                        2
+                    };
+                    let mut normal = Vec3::ZERO;
+                    normal[axis] = if offset[axis] < 0. { -1. } else { 1. };
+                    start += normal * (depth[axis] + 0.001);
+                    self.velocity -= normal * self.velocity.dot(normal).min(0.);
+                    corrected = true;
+                }
+                if !corrected {
+                    break;
+                }
+            }
+            transform.translation = start;
+            transform.rotation = rotation;
+            let acceleration = self.acceleration(transform.rotation, input, config);
+            self.integrate(transform, acceleration, config, dt);
+            let desired = transform.translation;
+            transform.translation = start;
+            let collision_half = before.max(world_half_extents(transform.rotation, local_half))
+                + Vec3::splat(curve_pad);
+            let angular_pad = local_half.length() * old_rotation.angle_between(transform.rotation);
+            let half = collision_half + Vec3::splat(angular_pad);
+            let mut remaining = desired - start;
+            let mut from = 0.;
+            let mut path = Vec::new();
+            // Three planes can constrain three axes; a fourth pass records rest.
+            for _ in 0..4 {
+                let begin = transform.translation;
+                let hit = world
+                    .solids
+                    .iter()
+                    .filter_map(|solid| solid.sweep(begin, begin + remaining, collision_half))
+                    .filter(|(_, normal)| remaining.dot(*normal) < -1e-7)
+                    .min_by(|a, b| a.0.total_cmp(&b.0));
+                let Some((fraction, normal)) = hit else {
+                    transform.translation += remaining;
+                    path.push(MotionSegment {
+                        start: begin,
+                        end: transform.translation,
+                        from,
+                        to: 1.,
+                        half,
+                    });
+                    break;
+                };
+                let to = from + (1. - from) * fraction;
+                transform.translation += remaining * fraction + normal * 0.001;
+                path.push(MotionSegment {
+                    start: begin,
+                    end: transform.translation,
+                    from,
+                    to,
+                    half,
+                });
+                remaining *= 1. - fraction;
+                remaining -= normal * remaining.dot(normal).min(0.);
+                self.velocity -= normal * self.velocity.dot(normal).min(0.);
+                from = to;
+            }
+            self.contain(transform, arena, local_half);
+            if let Some(first) = path.first_mut() {
+                first.start = origin;
+            }
+            if let Some(last) = path.last_mut() {
+                last.end = transform.translation;
+            }
+            path
+        } else {
+            self.step(transform, input, config, arena, local_half, dt);
+            let angular_pad = local_half.length()
+                * (config.yaw_rate + config.tilt_rate.max(config.leveling_rate))
+                * dt;
+            vec![MotionSegment {
+                start,
+                end: transform.translation,
+                from: 0.,
+                to: 1.,
+                half: before.max(world_half_extents(transform.rotation, local_half))
+                    + Vec3::splat(angular_pad + curve_pad),
+            }]
+        }
     }
 
     fn update_attitude(&mut self, input: &FlightInput, config: &FlightConfig, dt: f32) {

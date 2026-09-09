@@ -67,6 +67,7 @@ fn spawn_half(config: &CombatConfig) -> Vec3 {
     Vec3::splat(config.enemy_half_size * 3_f32.sqrt())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn safe(
     position: Vec3,
     half: Vec3,
@@ -75,6 +76,7 @@ fn safe(
     clearance: f32,
     occupied: &[(Entity, Vec3, Vec3)],
     ignore: Option<Entity>,
+    world: Option<&crate::world::WorldGeometry>,
 ) -> bool {
     let fits = (position - arena.center())
         .abs()
@@ -84,7 +86,14 @@ fn safe(
         ((position - player.translation).abs() - half - drone_world_half_extents(player.rotation))
             .max(Vec3::ZERO)
             .length();
-    fits && gap >= clearance
+    let navigable = world.is_none_or(|world| {
+        !world.solids.iter().any(|s| s.overlaps(position, half))
+            && !world.hazard.is_some_and(|s| s.overlaps(position, half))
+            && crate::world::navigation::next_point(world, position, player.translation, half)
+                .is_some()
+    });
+    fits && navigable
+        && gap >= clearance
         && occupied.iter().all(|(id, p, h)| {
             Some(*id) == ignore
                 || (position - *p)
@@ -131,6 +140,7 @@ pub(super) fn update(
     config: Res<WaveConfig>,
     combat: Res<CombatConfig>,
     arena: Res<Arena>,
+    world: Option<Res<crate::world::WorldGeometry>>,
     player: Single<&Transform, With<Drone>>,
     phase: Res<GamePhase>,
     mut run: ResMut<Encounter>,
@@ -176,6 +186,7 @@ pub(super) fn update(
                 config.clearance,
                 &occupied,
                 Some(id),
+                world.as_deref(),
             )
         {
             spawn_enemy(&mut commands, &combat, position, player.translation);
@@ -208,6 +219,7 @@ pub(super) fn update(
                 config.clearance,
                 &occupied,
                 None,
+                world.as_deref(),
             ) {
                 selected = Some(position);
                 break;
@@ -225,5 +237,95 @@ pub(super) fn update(
             ))
             .id();
         occupied.push((id, position, half));
+    }
+}
+
+#[cfg(test)]
+mod terrain_tests {
+    use super::*;
+    use crate::world::{Solid, WorldGeometry};
+    #[test]
+    fn warning_creation_and_activation_reject_solid_hazard_and_disconnected_locations() {
+        let mut app = App::new();
+        app.insert_resource(WaveConfig::default())
+            .insert_resource(CombatConfig::default())
+            .insert_resource(Arena::default())
+            .insert_resource(GamePhase::Playing)
+            .insert_resource(Encounter {
+                elapsed: 3.,
+                ..default()
+            })
+            .insert_resource(WorldGeometry {
+                solids: vec![Solid {
+                    center: Vec3::new(0., 150., 0.),
+                    half: Vec3::new(480., 150., 270.),
+                }],
+                hazard: None,
+            })
+            .add_systems(Update, update);
+        app.world_mut()
+            .spawn((Drone, Transform::from_xyz(-280., 90., 0.)));
+        app.update();
+        assert_eq!(
+            app.world_mut()
+                .query::<&SpawnWarning>()
+                .iter(app.world())
+                .count(),
+            0
+        );
+        // A warning that was valid before geometry changed must also be rejected.
+        app.world_mut().spawn((
+            SpawnWarning { ready_at: 3. },
+            Transform::from_xyz(280., 90., 0.),
+        ));
+        app.update();
+        assert_eq!(
+            app.world_mut().query::<&Enemy>().iter(app.world()).count(),
+            0
+        );
+    }
+    #[test]
+    fn spawn_candidates_require_hazard_clearance_and_a_connected_route() {
+        let arena = Arena::default();
+        let player = Transform::from_xyz(-280., 90., 0.);
+        let position = Vec3::new(280., 90., 0.);
+        let half = spawn_half(&CombatConfig::default());
+        for world in [
+            WorldGeometry {
+                solids: Vec::new(),
+                hazard: Some(Solid {
+                    center: position,
+                    half: Vec3::splat(30.),
+                }),
+            },
+            WorldGeometry {
+                solids: vec![Solid {
+                    center: Vec3::new(0., 150., 0.),
+                    half: Vec3::new(5., 150., 270.),
+                }],
+                hazard: None,
+            },
+        ] {
+            assert!(!safe(
+                position,
+                half,
+                &arena,
+                &player,
+                120.,
+                &[],
+                None,
+                Some(&world)
+            ));
+        }
+        assert!(safe(
+            position,
+            half,
+            &arena,
+            &player,
+            120.,
+            &[],
+            None,
+            Some(&WorldGeometry::default())
+        ));
     }
 }

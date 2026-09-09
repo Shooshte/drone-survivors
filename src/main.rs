@@ -3,6 +3,7 @@ mod combat;
 mod energy;
 mod game;
 mod modules;
+mod world;
 
 use arena::{ArenaPlugin, ArenaScenePlugin};
 use bevy::{
@@ -16,7 +17,9 @@ fn main() {
             std::process::exit(2);
         });
     let mut app = App::new();
-    app.insert_resource(ClearColor(Color::srgb(0.025, 0.045, 0.065)))
+    app.init_resource::<world::WorldGeometry>()
+        .init_resource::<world::PlayerPath>()
+        .insert_resource(ClearColor(Color::srgb(0.025, 0.045, 0.065)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Drone Survivors — Test Arena".into(),
@@ -36,6 +39,7 @@ fn main() {
             combat::CombatPlugin,
             combat::CombatScenePlugin,
             energy::scene::EnergyScenePlugin,
+            world::scene::WorldScenePlugin,
         ))
         .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)));
     if let Some(config) = validation {

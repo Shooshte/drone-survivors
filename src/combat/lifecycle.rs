@@ -58,7 +58,7 @@ pub(super) fn contact_damage(
     modules: Res<crate::modules::ModuleConfig>,
 ) {
     let now = time.elapsed_secs_f64();
-    if now + 1e-7 < health.invulnerable_until {
+    if *phase != GamePhase::Playing || now + 1e-7 < health.invulnerable_until {
         return;
     }
     if enemies.iter().any(|(enemy, target)| {
@@ -71,13 +71,41 @@ pub(super) fn contact_damage(
                 .cmple(half)
                 .all()
     }) {
-        if !power.modules.block(&modules) {
-            health.current = health.current.saturating_sub(config.contact_damage);
-            outcomes.0.push(CombatOutcome::PlayerDamaged);
-        }
-        health.invulnerable_until = now + config.invulnerability;
-        if health.current == 0 {
-            *phase = GamePhase::Dead;
-        }
+        apply_player_damage(
+            config.contact_damage,
+            now,
+            &config,
+            &mut health,
+            &mut phase,
+            &mut outcomes,
+            &mut power,
+            &modules,
+        );
     }
+}
+
+/// Returns true only when damage or a shield block was actually consumed.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn apply_player_damage(
+    amount: u32,
+    now: f64,
+    config: &CombatConfig,
+    health: &mut PlayerHealth,
+    phase: &mut GamePhase,
+    outcomes: &mut CombatOutcomes,
+    power: &mut crate::energy::PowerFrame,
+    modules: &crate::modules::ModuleConfig,
+) -> bool {
+    if *phase != GamePhase::Playing || now + 1e-7 < health.invulnerable_until {
+        return false;
+    }
+    if !power.modules.block(modules) {
+        health.current = health.current.saturating_sub(amount);
+        outcomes.0.push(CombatOutcome::PlayerDamaged);
+    }
+    health.invulnerable_until = now + config.invulnerability;
+    if health.current == 0 {
+        *phase = GamePhase::Dead;
+    }
+    true
 }

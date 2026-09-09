@@ -14,6 +14,7 @@ pub(super) fn fire(
     mut commands: Commands,
     time: Res<Time>,
     config: Res<CombatConfig>,
+    world: Option<Res<crate::world::WorldGeometry>>,
     phase: Res<GamePhase>,
     modules: Res<Modules>,
     module_config: Res<ModuleConfig>,
@@ -49,7 +50,12 @@ pub(super) fn fire(
                 transform.translation.distance_squared(drone.translation),
             )
         })
-        .filter(|(_, _, distance)| *distance <= config.target_range.powi(2))
+        .filter(|(_, position, distance)| {
+            *distance <= config.target_range.powi(2)
+                && world
+                    .as_ref()
+                    .is_none_or(|w| w.line_clear(drone.translation, *position))
+        })
         .min_by(|a, b| a.2.total_cmp(&b.2).then(a.0.to_bits().cmp(&b.0.to_bits())));
     let Some((_, position, _)) = target else {
         // A target-free interval never banks shots for a later burst.
@@ -83,6 +89,7 @@ pub(super) fn advance_projectiles(
     time: Res<Time>,
     arena: Res<Arena>,
     config: Res<CombatConfig>,
+    world: Option<Res<crate::world::WorldGeometry>>,
     module_config: Res<ModuleConfig>,
     mut projectiles: Query<
         (Entity, &mut Projectile, &mut Transform, Option<&Rocket>),
@@ -147,6 +154,16 @@ pub(super) fn advance_projectiles(
                 impact.map(|impact| (entity, impact))
             })
             .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
+        let terrain = world
+            .as_ref()
+            .and_then(|w| w.first_hit(start, end, config.projectile_radius))
+            .map(|impact| impact * fraction);
+        let hit = match (hit, terrain) {
+            (Some((_, enemy_at)), Some(wall_at)) if wall_at <= enemy_at => Some((None, wall_at)),
+            (Some((target, at)), _) => Some((Some(target), at)),
+            (None, Some(at)) => Some((None, at)),
+            (None, None) => None,
+        };
         if let Some((target, impact)) = hit {
             if rocket.is_some() {
                 let impact_position = start + shot.velocity * (dt * impact);
@@ -160,8 +177,13 @@ pub(super) fn advance_projectiles(
                         continue;
                     }
                     let position = enemy_position_at(&enemy, enemy_transform, impact);
-                    if entity != target
-                        && position.distance_squared(impact_position) > radius_squared
+                    let visibility_origin =
+                        impact_position - shot.velocity.normalize_or_zero() * 0.01;
+                    if (Some(entity) != target
+                        && position.distance_squared(impact_position) > radius_squared)
+                        || world
+                            .as_ref()
+                            .is_some_and(|w| !w.line_clear(visibility_origin, position))
                     {
                         continue;
                     }
@@ -177,7 +199,7 @@ pub(super) fn advance_projectiles(
                         commands.entity(entity).despawn();
                     }
                 }
-            } else {
+            } else if let Some(target) = target {
                 let (_, mut enemy, enemy_transform) = enemies.get_mut(target).unwrap();
                 enemy.health = enemy.health.saturating_sub(config.shot_damage);
                 outcomes.0.push(CombatOutcome::Hit {
