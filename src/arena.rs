@@ -75,7 +75,16 @@ fn move_drone(
     arena: Res<Arena>,
     config: Res<FlightConfig>,
     mut drones: Query<(&mut Transform, &mut DroneFlight), With<Drone>>,
+    modules: Option<Res<crate::modules::Modules>>,
+    module_config: Option<Res<crate::modules::ModuleConfig>>,
 ) {
+    let mut config = *config;
+    if let (Some(modules), Some(tuning)) = (modules, module_config)
+        && modules.active(crate::modules::ModuleKind::Mobility)
+    {
+        config.max_horizontal_speed *= tuning.mobility_multiplier;
+        config.horizontal_acceleration_multiplier *= tuning.mobility_multiplier;
+    }
     let input = FlightInput::read(&keys, &config);
     for (mut transform, mut flight) in &mut drones {
         // Reset wins over every held control and restores the model root too.

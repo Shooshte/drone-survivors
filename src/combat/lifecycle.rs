@@ -23,11 +23,13 @@ pub(super) fn setup(mut commands: Commands, config: Res<CombatConfig>) {
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn restart(
     mut commands: Commands,
     config: Res<CombatConfig>,
     mut health: ResMut<PlayerHealth>,
     mut weapon: ResMut<Weapon>,
+    mut rockets: ResMut<super::rockets::RocketLauncher>,
     mut phase: ResMut<GamePhase>,
     mut run: ResMut<Encounter>,
     transient: Query<Entity, CombatEntities>,
@@ -38,10 +40,12 @@ pub(super) fn restart(
     health.current = config.player_health;
     health.invulnerable_until = 0.;
     *weapon = Weapon::default();
+    *rockets = default();
     *run = Encounter::default();
     *phase = GamePhase::Playing;
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn contact_damage(
     time: Res<Time>,
     config: Res<CombatConfig>,
@@ -50,6 +54,8 @@ pub(super) fn contact_damage(
     mut health: ResMut<PlayerHealth>,
     mut phase: ResMut<GamePhase>,
     mut outcomes: ResMut<CombatOutcomes>,
+    mut power: ResMut<crate::energy::PowerFrame>,
+    modules: Res<crate::modules::ModuleConfig>,
 ) {
     let now = time.elapsed_secs_f64();
     if now + 1e-7 < health.invulnerable_until {
@@ -65,8 +71,10 @@ pub(super) fn contact_damage(
                 .cmple(half)
                 .all()
     }) {
-        health.current = health.current.saturating_sub(config.contact_damage);
-        outcomes.0.push(CombatOutcome::PlayerDamaged);
+        if !power.modules.block(&modules) {
+            health.current = health.current.saturating_sub(config.contact_damage);
+            outcomes.0.push(CombatOutcome::PlayerDamaged);
+        }
         health.invulnerable_until = now + config.invulnerability;
         if health.current == 0 {
             *phase = GamePhase::Dead;

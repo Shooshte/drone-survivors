@@ -356,6 +356,7 @@ fn measure(
                     data.kills += usize::from(*killed);
                 }
                 CombatOutcome::PlayerDamaged => data.damage += 1,
+                CombatOutcome::RocketExplosion { .. } => {}
             }
         }
     }

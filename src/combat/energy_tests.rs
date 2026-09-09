@@ -1,5 +1,6 @@
 use super::*;
 use crate::energy::{Energy, EnergyConfig};
+use crate::modules::{ModuleKind, Modules};
 
 #[test]
 fn overdrive_doubles_actual_shots_without_changing_projectiles() {
@@ -44,14 +45,18 @@ fn zero_energy_keeps_flight_and_basic_weapon_operational() {
     {
         let mut e = app.world_mut().resource_mut::<Energy>();
         e.current = 0.1;
-        e.overdrive = true;
     }
+    app.world_mut().resource_mut::<Modules>().enabled[0] = true;
     step(&mut app, 0.1, &[KeyCode::KeyW, KeyCode::Space]);
     assert_ne!(position(&app, drone), START);
     assert_eq!(count::<Projectile>(&mut app), 1);
     let e = app.world().resource::<Energy>();
     assert_eq!(e.current, 0.);
-    assert!(!e.overdrive);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
     assert_eq!(app.world().resource::<Weapon>().interval, Some(0.5));
 }
 
@@ -71,8 +76,8 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
         {
             let mut e = app.world_mut().resource_mut::<Energy>();
             e.current = 40.;
-            e.overdrive = true;
         }
+        app.world_mut().resource_mut::<Modules>().enabled[0] = true;
         step(&mut app, 0.2, &[KeyCode::Digit1]);
         assert_eq!(
             *app.world().resource::<GamePhase>(),
@@ -83,7 +88,11 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
             }
         );
         assert_eq!(app.world().resource::<Energy>().current, 40.);
-        assert!(app.world().resource::<Energy>().overdrive);
+        assert!(
+            app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
         step(
             &mut app,
             1.,
@@ -95,7 +104,11 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
             app.world().resource::<Energy>().current,
             app.world().resource::<EnergyConfig>().capacity
         );
-        assert!(!app.world().resource::<Energy>().overdrive);
+        assert!(
+            !app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
         assert_eq!(count::<Projectile>(&mut app), 0);
     }
 }
@@ -117,7 +130,11 @@ fn empty_drone_reaches_both_nodes_with_real_flight_under_enemy_pressure() {
         }
         assert!(reached, "failed to reach node with {key:?}");
         assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
-        assert!(!app.world().resource::<Energy>().overdrive);
+        assert!(
+            !app.world()
+                .resource::<Modules>()
+                .active(ModuleKind::Overdrive)
+        );
     }
 }
 
@@ -138,8 +155,12 @@ fn movement_determines_charge_before_activation_and_same_frame_recharge() {
     let energy = app.world().resource::<Energy>();
     assert!(energy.charging.is_some());
     assert!(energy.current > 10.);
-    assert!(!energy.overdrive);
-    assert!(energy.rejected_for > 0.);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
+    assert!(app.world().resource::<Modules>().rejected_for[0] > 0.);
     let before = energy.current;
     app.world_mut()
         .get_mut::<DroneFlight>(drone)

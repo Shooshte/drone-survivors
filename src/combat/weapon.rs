@@ -1,10 +1,11 @@
 use super::{
     CombatConfig, CombatOutcome, CombatOutcomes, Encounter, Enemy, Projectile, Weapon,
-    collision::segment_box,
+    collision::segment_box, rockets::Rocket,
 };
 use crate::{
     arena::{Arena, Drone, world_half_extents},
     game::GamePhase,
+    modules::{ModuleConfig, ModuleKind, Modules},
 };
 use bevy::prelude::*;
 
@@ -14,8 +15,8 @@ pub(super) fn fire(
     time: Res<Time>,
     config: Res<CombatConfig>,
     phase: Res<GamePhase>,
-    energy: Res<crate::energy::Energy>,
-    energy_config: Res<crate::energy::EnergyConfig>,
+    modules: Res<Modules>,
+    module_config: Res<ModuleConfig>,
     mut weapon: ResMut<Weapon>,
     drone: Single<&Transform, With<Drone>>,
     enemies: Query<(Entity, &Enemy, &Transform)>,
@@ -24,7 +25,12 @@ pub(super) fn fire(
         return;
     }
     let now = time.elapsed_secs_f64();
-    let interval = config.fire_interval / energy.fire_multiplier(&energy_config);
+    let multiplier = if modules.active(ModuleKind::Overdrive) {
+        module_config.overdrive_multiplier
+    } else {
+        1.
+    };
+    let interval = config.fire_interval / multiplier;
     if let Some(previous) = weapon.interval
         && previous != interval
         && weapon.ready_at > now
@@ -77,13 +83,17 @@ pub(super) fn advance_projectiles(
     time: Res<Time>,
     arena: Res<Arena>,
     config: Res<CombatConfig>,
-    mut projectiles: Query<(Entity, &mut Projectile, &mut Transform), Without<Enemy>>,
+    module_config: Res<ModuleConfig>,
+    mut projectiles: Query<
+        (Entity, &mut Projectile, &mut Transform, Option<&Rocket>),
+        Without<Enemy>,
+    >,
     mut enemies: Query<(Entity, &mut Enemy, &Transform), Without<Projectile>>,
     mut run: ResMut<Encounter>,
     mut outcomes: ResMut<CombatOutcomes>,
 ) {
     let dt = time.delta_secs();
-    for (id, mut shot, mut transform) in &mut projectiles {
+    for (id, mut shot, mut transform, rocket) in &mut projectiles {
         let start = transform.translation;
         if shot.remaining <= 0. || (start - arena.center()).abs().cmpgt(arena.half_size).any() {
             commands.entity(id).despawn();
@@ -137,17 +147,48 @@ pub(super) fn advance_projectiles(
                 impact.map(|impact| (entity, impact))
             })
             .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
-        if let Some((target, _)) = hit {
-            let (_, mut enemy, enemy_transform) = enemies.get_mut(target).unwrap();
-            enemy.health = enemy.health.saturating_sub(config.shot_damage);
-            outcomes.0.push(CombatOutcome::Hit {
-                entity: target,
-                position: enemy_transform.translation,
-                killed: enemy.health == 0,
-            });
-            if enemy.health == 0 {
-                run.kills = run.kills.saturating_add(1);
-                commands.entity(target).despawn();
+        if let Some((target, impact)) = hit {
+            if rocket.is_some() {
+                let impact_position = start + shot.velocity * (dt * impact);
+                outcomes.0.push(CombatOutcome::RocketExplosion {
+                    position: impact_position,
+                    radius: module_config.rocket_radius,
+                });
+                let radius_squared = module_config.rocket_radius.powi(2);
+                for (entity, mut enemy, enemy_transform) in &mut enemies {
+                    if enemy.health == 0 {
+                        continue;
+                    }
+                    let position = enemy_position_at(&enemy, enemy_transform, impact);
+                    if entity != target
+                        && position.distance_squared(impact_position) > radius_squared
+                    {
+                        continue;
+                    }
+                    enemy.health = enemy.health.saturating_sub(module_config.rocket_damage);
+                    let killed = enemy.health == 0;
+                    outcomes.0.push(CombatOutcome::Hit {
+                        entity,
+                        position,
+                        killed,
+                    });
+                    if killed {
+                        run.kills = run.kills.saturating_add(1);
+                        commands.entity(entity).despawn();
+                    }
+                }
+            } else {
+                let (_, mut enemy, enemy_transform) = enemies.get_mut(target).unwrap();
+                enemy.health = enemy.health.saturating_sub(config.shot_damage);
+                outcomes.0.push(CombatOutcome::Hit {
+                    entity: target,
+                    position: enemy_transform.translation,
+                    killed: enemy.health == 0,
+                });
+                if enemy.health == 0 {
+                    run.kills = run.kills.saturating_add(1);
+                    commands.entity(target).despawn();
+                }
             }
             commands.entity(id).despawn();
         } else {
@@ -158,4 +199,22 @@ pub(super) fn advance_projectiles(
             }
         }
     }
+}
+
+fn enemy_position_at(enemy: &Enemy, transform: &Transform, fraction: f32) -> Vec3 {
+    if enemy.path.is_empty() {
+        return enemy.previous.lerp(transform.translation, fraction);
+    }
+    let segment = enemy
+        .path
+        .iter()
+        .find(|segment| fraction >= segment.from && fraction <= segment.to)
+        .unwrap_or_else(|| enemy.path.last().unwrap());
+    let span = segment.to - segment.from;
+    let local = if span > 0. {
+        ((fraction - segment.from) / span).clamp(0., 1.)
+    } else {
+        1.
+    };
+    segment.start.lerp(segment.end, local)
 }

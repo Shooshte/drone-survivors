@@ -599,3 +599,9 @@ mod validation_tests;
 
 #[path = "energy_tests.rs"]
 mod energy_tests;
+
+#[path = "module_tests.rs"]
+mod module_tests;
+
+#[path = "rocket_tests.rs"]
+mod rocket_tests;

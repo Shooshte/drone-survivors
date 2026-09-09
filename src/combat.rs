@@ -9,6 +9,7 @@ mod enemies;
 mod feedback;
 use feedback::{CombatOutcome, CombatOutcomes};
 mod lifecycle;
+mod rockets;
 pub(crate) mod validation;
 mod waves;
 mod weapon;
@@ -99,6 +100,7 @@ impl Plugin for CombatPlugin {
             .init_resource::<CombatConfig>()
             .init_resource::<GamePhase>()
             .init_resource::<Weapon>()
+            .init_resource::<rockets::RocketLauncher>()
             .init_resource::<WaveConfig>()
             .init_resource::<Encounter>()
             .init_resource::<CombatOutcomes>()
@@ -120,11 +122,13 @@ impl Plugin for CombatPlugin {
                     waves::advance_clock,
                     enemies::chase,
                     weapon::advance_projectiles,
+                    crate::energy::prepare,
                     lifecycle::contact_damage,
                     waves::finish,
                     waves::update,
                     crate::energy::update,
                     weapon::fire,
+                    rockets::fire,
                 )
                     .chain()
                     .in_set(GameplaySet::Combat)
