@@ -5,6 +5,7 @@ pub(crate) enum GamePhase {
     #[default]
     Playing,
     Dead,
+    Survived,
 }
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]

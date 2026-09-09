@@ -29,6 +29,11 @@ fn empty_app() -> (App, Entity) {
         app.world_mut().despawn(entity);
     }
     *app.world_mut().resource_mut::<Weapon>() = Weapon::default();
+    app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
+    // Keep the original collision/damage fixtures independent of scenario balance.
+    app.world_mut()
+        .resource_mut::<CombatConfig>()
+        .contact_damage = 25;
     (app, drone)
 }
 
@@ -88,9 +93,9 @@ fn quiet(app: &mut App) {
 }
 
 #[test]
-fn starts_with_three_chasers_and_full_health() {
+fn starts_empty_before_first_warning_with_full_health() {
     let (mut app, _) = app();
-    assert_eq!(count::<Enemy>(&mut app), 3);
+    assert_eq!(count::<Enemy>(&mut app), 0);
     assert_eq!(app.world().resource::<PlayerHealth>().current, 100);
 }
 
@@ -351,23 +356,13 @@ fn repeated_reset_restores_encounter_and_wins_over_movement_and_combat() {
             app.world().resource::<PlayerHealth>().invulnerable_until,
             0.
         );
-        assert_eq!(count::<Enemy>(&mut app), 3);
+        assert_eq!(count::<Enemy>(&mut app), 0);
         assert_eq!(count::<Projectile>(&mut app), 0);
         assert_eq!(count::<Drone>(&mut app), 1);
         assert!(app.world().get_entity(stale_enemy).is_err());
         assert!(app.world().get_entity(stale_shot).is_err());
-        let mut positions: Vec<_> = app
-            .world_mut()
-            .query_filtered::<&Transform, With<Enemy>>()
-            .iter(app.world())
-            .map(|t| t.translation)
-            .collect();
-        for expected in ENEMY_STARTS {
-            assert!(positions.contains(&expected));
-        }
-        positions.clear();
         step(&mut app, 0., &[]);
-        assert_eq!(count::<Projectile>(&mut app), 1);
+        assert_eq!(count::<Projectile>(&mut app), 0);
     }
 }
 
@@ -415,7 +410,7 @@ fn presentation_reuses_assets_and_hud_across_death_and_repeated_restart() {
         .add_plugins((ArenaPlugin, CombatPlugin, CombatScenePlugin));
     app.update();
     assert_eq!(count::<CombatHud>(&mut app), 1);
-    assert_eq!(count::<Mesh3d>(&mut app), 4); // Three chasers and first shot.
+    assert_eq!(count::<Mesh3d>(&mut app), 0); // Quiet opening.
     let meshes = app.world().resource::<Assets<Mesh>>().len();
     let materials = app.world().resource::<Assets<StandardMaterial>>().len();
     let entity_count = app.world().entities().count_spawned();
@@ -433,7 +428,7 @@ fn presentation_reuses_assets_and_hud_across_death_and_repeated_restart() {
         step(&mut app, 0., &[KeyCode::KeyR]);
         step(&mut app, 0., &[]);
         assert_eq!(count::<CombatHud>(&mut app), 1);
-        assert_eq!(count::<Mesh3d>(&mut app), 4);
+        assert_eq!(count::<Mesh3d>(&mut app), 0);
         assert_eq!(app.world().entities().count_spawned(), entity_count);
         assert_eq!(app.world().resource::<Assets<Mesh>>().len(), meshes);
         assert_eq!(
@@ -592,3 +587,12 @@ fn death_freezes_existing_velocity_and_tilt_then_restart_clears_them() {
 
 #[path = "enemy_flight_tests.rs"]
 mod enemy_flight_tests;
+
+#[path = "wave_tests.rs"]
+mod wave_tests;
+
+#[path = "feedback_tests.rs"]
+mod feedback_tests;
+
+#[path = "validation_tests.rs"]
+mod validation_tests;

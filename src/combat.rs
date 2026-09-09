@@ -6,17 +6,16 @@ mod collision;
 mod scene;
 pub(crate) use scene::CombatScenePlugin;
 mod enemies;
+mod feedback;
+use feedback::{CombatOutcome, CombatOutcomes};
 mod lifecycle;
+pub(crate) mod validation;
+mod waves;
 mod weapon;
+use waves::{Encounter, SpawnWarning, WaveConfig};
 
 #[cfg(test)]
 mod tests;
-
-const ENEMY_STARTS: [Vec3; 3] = [
-    Vec3::new(-240., 90., 0.),
-    Vec3::new(240., 90., 0.),
-    Vec3::new(0., 210., -180.),
-];
 
 #[derive(Resource)]
 struct CombatConfig {
@@ -32,14 +31,16 @@ struct CombatConfig {
     enemy_half_size: f32,
     projectile_radius: f32,
     invulnerability: f64,
+    separation_radius: f32,
+    separation_acceleration: f32,
 }
 
 impl Default for CombatConfig {
     fn default() -> Self {
         Self {
             player_health: 100,
-            enemy_health: 40,
-            contact_damage: 25,
+            enemy_health: 20,
+            contact_damage: 10,
             shot_damage: 10,
             enemy_flight: crate::arena::FlightConfig {
                 max_horizontal_speed: 260.,
@@ -58,6 +59,8 @@ impl Default for CombatConfig {
             enemy_half_size: 14.,
             projectile_radius: 3.,
             invulnerability: 0.75,
+            separation_radius: 65.,
+            separation_acceleration: 160.,
         }
     }
 }
@@ -94,11 +97,15 @@ impl Plugin for CombatPlugin {
         app.init_resource::<CombatConfig>()
             .init_resource::<GamePhase>()
             .init_resource::<Weapon>()
+            .init_resource::<WaveConfig>()
+            .init_resource::<Encounter>()
+            .init_resource::<CombatOutcomes>()
             .insert_resource(PlayerHealth {
                 current: 100,
                 invulnerable_until: 0.,
             })
             .add_systems(Startup, lifecycle::setup)
+            .add_systems(Update, feedback::clear.in_set(GameplaySet::Reset))
             .add_systems(
                 Update,
                 lifecycle::restart
@@ -108,15 +115,24 @@ impl Plugin for CombatPlugin {
             .add_systems(
                 Update,
                 (
+                    waves::advance_clock,
                     enemies::chase,
                     weapon::advance_projectiles,
                     lifecycle::contact_damage,
+                    waves::finish,
+                    waves::update,
                     weapon::fire,
                 )
                     .chain()
                     .in_set(GameplaySet::Combat)
                     .run_if(is_playing)
                     .run_if(not(input_just_pressed(KeyCode::KeyR))),
+            )
+            .add_systems(
+                Update,
+                waves::update
+                    .in_set(GameplaySet::Combat)
+                    .run_if(not(is_playing)),
             );
     }
 }

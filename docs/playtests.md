@@ -3,6 +3,149 @@
 The latest entry describes current movement. Older entries are retained as
 historical validation records and may describe superseded tuning or behavior.
 
+## DRO-7 — Swarms and combat feedback — 2026-09-08
+
+### Implemented encounter and final starting values
+
+The fixed three-enemy start is replaced by a 180-second survival encounter.
+Warnings occur at 3/15/27/39 seconds (three enemies), 60/70/80/90 (four), and
+120/128/136/144/152 (five). Each warning lasts 0.75 seconds. Living enemies and
+pending warnings share a cap of 30; unsafe activations, saturated bursts, and
+missed older bursts are discarded without accumulating debt. Spawn candidates
+must fit inside the arena and clear the player's rotated bounds by 120 units.
+
+Enemy health is now 20 (two 10-damage hits), and contact damage is 10. Player
+health remains 100, shared invulnerability remains 0.75 seconds, and the gun
+retains its 0.5-second cadence, 650-unit/second straight projectiles, 400-unit
+range, and one-second projectile lifetime. The original four-hit/25-contact
+configuration killed the initial scripted pilot after 18 seconds. Two-hit
+chasers improved survival, but sustained play without healing still needed a
+less punishing contact value. Faster projectiles and a faster firing cadence
+were explored in test-only probes and were not retained.
+
+Separation has a 65-unit neighborhood and bounded acceleration of 160, entering
+physical pilot inputs rather than directly displacing bodies. Feedback uses a
+0.12-second enemy hit flash, a 0.35-second kill effect, a 0.22-second damage cue,
+and a maximum of 48 simultaneous kill effects. All values remain provisional.
+
+### Repeatable checks
+
+1. Run `cargo dev`. The opening is quiet. Pink warning rings precede activation;
+   move toward a ring and check that an unsafe activation is cancelled. Watch
+   spawns from different sides and altitudes.
+2. Fly through the encounter. Orange chasers pursue in 3D, bank/turn physically,
+   and steer apart. Hits flash only the damaged enemy; kills create brief amber
+   effects. The HUD shows time, hull, living enemies, kills, phase/lull and incoming
+   warnings. A lull is not an early victory, even when no enemies remain.
+3. Take contact damage. The HUD flashes red and displays cyan HULL PROTECTED
+   during shared invulnerability. Multiple overlapping chasers cannot multiply
+   contact damage within that window.
+4. Die deliberately, then press R while holding a movement key. Repeat during
+   warnings, combat, and after surviving 180 seconds. The entire run resets,
+   including player attitude and momentum; held movement resumes next update.
+5. Complete the full encounter. Survival freezes combat and shows SURVIVED with
+   the kill count and restart prompt, even if enemies remain. Resize the window
+   and check HUD/control readability. Escape quits.
+6. Run the README's opt-in survival, idle, and stress commands for repeatable
+   native probes. Survival synthesizes actual keyboard controls with simple
+   collision avoidance; it never grants extra health or changes combat rules.
+   Stress disables authored waves, grants invulnerability, bypasses normal spawn
+   warnings/clearance and replenishes real killed enemies to sustain the target
+   population. These overrides are not normal gameplay.
+
+### Automated evidence and review
+
+- All 73 tests pass. New cases cover warning duration/position, reservations and
+  cap saturation, no spawn debt, unsafe activation, bounded candidate search,
+  hitch behavior, terminal/reset precedence, local physical separation, exact
+  kill accounting, material isolation, effect caps/expiry, HUD states, stable
+  asset counts, validation options, sustained stress population and frame summaries.
+- Three complete controlled-time keyboard runs at 30/60/120 Hz survived 180
+  seconds with 51 kills each, remaining hull 10/10/30, and peak five live enemies.
+  These are deterministic viability checks, not substitutes for human feel.
+- The original damage/collision fixtures explicitly retain 25 contact damage so
+  scenario tuning does not weaken those established regressions.
+- Formatting, Clippy with warnings denied, and the native dynamic-linking build
+  pass. The full suite runs in approximately two seconds on this machine.
+- Independent read-only review found no actionable gameplay findings. Harness
+  review found lost global keys and a stale terminal-exit deadline across restart;
+  both have failing-then-passing regressions and are fixed. Frozen terminal frames
+  are excluded from performance samples.
+
+### Native measurement method
+
+Apple M1 Pro, 16 GiB RAM, macOS 26.6.2 (25G83), Rust nightly 1.100.0
+(cea272fa3, 2026-09-07), Bevy 0.19.1. `cargo dev` uses project optimization level
+1, dependency level 3, and dynamic linking. Window size is 1120 × 720 logical /
+2240 × 1440 physical pixels, with the existing presentation settings. No release
+build or GPU-only timing is claimed.
+
+Measurements are wall-clock intervals between completed gameplay/presentation
+updates; they include the renderer/presentation pacing between updates. Exclude
+five seconds of warm-up and all frozen terminal frames. Stress reports must show
+150 actually live enemies, not 150 total spawns over time. The harness also
+reports hit/kill activity and projectile count so an idle workload cannot stand
+in for combat.
+
+### Native results
+
+| Scenario | Code commit | Active sample | Actual live enemies | Median / p95 / p99 (ms) | >33.3 ms frames |
+| --- | --- | --- | --- | --- | --- |
+| Initial 150 stress | 1efb3cb | 30.000 s / 1,800 frames | 150–150 | 16.670 / 16.977 / 17.475 | 0 |
+| 30 stress comparison | 76a8bf6 | 30.000 s / 3,600 frames | 30–30 | 8.325 / 8.788 / 8.974 | 0 |
+| Full survival | 76a8bf6 | 174.991 s / 20,999 frames | 0–5 | 8.330 / 8.792 / 8.960 | 0 |
+| Repeat 150 stress | 76a8bf6 | 30.000 s / 3,600 frames | 150–150 | 8.332 / 8.852 / 9.019 | 0 |
+
+The full native survival run ended at exactly 180 run seconds with 51 total kills
+and 20 hull remaining. The sampled interval contained 100 hits, 50 kills, eight
+applied player hits, and at most two simultaneous projectiles. One kill happened
+during excluded warm-up.
+
+The repeat 150-enemy stress run recorded 60 real hits and 20 kills during its
+sample, with 150 live enemies maintained throughout and one simultaneous
+projectile at peak. Its p95 of 8.852 ms meets the provisional <=16.7 ms target.
+The playable cap remains 30 for encounter balance; 150 is only the stress target.
+
+The first 150 run narrowly missed the strict p95 target and ran at a different
+presentation cadence. It coincided with a locked-Mac UI-access failure. Later
+runs measured approximately 120 updates/second, and native UI access subsequently
+worked. The cause of that cadence change was not isolated; keep both results
+rather than treating the first run as a density limit or hiding it. No density
+reduction or visual simplification was needed for the repeat 150 run.
+
+All command-line native runs exited successfully. Bevy emitted the existing
+"Skipped event Destroyed for unknown winit Window Id" warning during shutdown;
+no gameplay/runtime error was reported.
+
+### Native visual checks and limits
+
+The UI tool cannot target the raw Cargo executable. Visual checks used a temporary
+macOS app bundle containing the same built executable, with only the Rust dynamic
+library search path adjusted and an assets symlink. No packaging or bundle files
+are part of this change.
+
+Observed the scout, readable hull/time/hostile/kill HUD, orange physically banking
+chasers, straight yellow shots, amber kill feedback, and advancing kill counts.
+R visibly restored full hull, 180 seconds, zero kills and the quiet empty opening.
+Zooming the native window retained the complete arena, HUD and control legend.
+Stationary play subsequently reached the red DRONE DESTROYED state with zero
+hull, 41 kills, two remaining hostiles, and 40 seconds on the frozen timer.
+R visibly restored the empty opening, full hull, zero kills, and 180 seconds.
+Escape terminated the game process, verified without reopening the app.
+The initial locked-Mac restriction was resolved during the session.
+
+Brief hit-flash/warning timing, invulnerability colors, sustained manual handling,
+minimum-size layout, and subjective danger/readability still need a human feel
+check. Those temporal rules and reset/death behavior have automated coverage;
+this is not a claim that screenshot observations validate every short effect.
+
+### Next step
+
+Human-play the documented scenarios and adjust numeric balance if needed before
+combining this with energy, modules and XP. No energy, module, upgrade, reward,
+or campaign system is included in DRO-7.
+
+
 ## Scout response and enemy flight — 2026-09-08
 
 ### Repeatable handling and pursuit check
