@@ -23,15 +23,15 @@ Interface: EnergyConfig tuning, Energy resource (current, overdrive, charging,
 rejected_for), ChargingNode component with contains(Vec3), EnergyPlugin,
 and update system accepting time, input, drone transform, phase and nodes.
 
-- [ ] Establish baseline with `cargo test --locked`.
-- [ ] Write headless ECS tests for depletion, refill, geometry, both nodes,
+- [x] Establish baseline with `cargo test --locked`.
+- [x] Write headless ECS tests for depletion, refill, geometry, both nodes,
   overlapping nodes, input threshold/holds, manual recovery and terminal/reset.
   Start with a no-op update and watch behavioral assertions fail.
-- [ ] Implement combined-rate clamping and persistent nodes. For example:
+- [x] Implement combined-rate clamping and persistent nodes. For example:
   `current = (current + (recharge - drain) * dt).clamp(0., capacity);`
   `if current == 0. { overdrive = false; }`
-- [ ] Run `cargo test --locked energy::tests` and fix rule failures.
-- [ ] Commit the tested rules and spec/plan.
+- [x] Run `cargo test --locked energy::tests` and fix rule failures.
+- [x] Commit the tested rules and spec/plan.
 
 ## Task 2: Weapon and encounter integration
 
@@ -40,14 +40,14 @@ create src/combat/energy_tests.rs and register from combat module.
 Interface: Energy::fire_multiplier(&EnergyConfig) -> f64; Weapon tracks previous
 cadence so `remaining / old_interval * new_interval` preserves cooldown progress.
 
-- [ ] Add failing tests proving double cadence, ordinary shots and movement at
+- [x] Add failing tests proving double cadence, ordinary shots and movement at
   zero, no extra shots from toggles, restart precedence and terminal ordering.
-- [ ] Place energy update after waves::finish and before weapon::fire in combat's
+- [x] Place energy update after waves::finish and before weapon::fire in combat's
   ordered chain. Reset belongs to GameplaySet::Reset. Install EnergyPlugin with
   CombatPlugin so existing headless combat fixtures exercise integration.
-- [ ] Retain all existing firing protections and projectile attributes; only
+- [x] Retain all existing firing protections and projectile attributes; only
   change effective interval and retime outstanding cooldown on transitions.
-- [ ] Run `cargo test --locked` and commit combat integration.
+- [x] Run `cargo test --locked` and commit combat integration.
 
 ## Task 3: Field visuals and HUD
 
@@ -55,23 +55,25 @@ Files: create src/energy/scene.rs; modify src/main.rs and README.md.
 Interface: EnergyScenePlugin reads Energy/Config/ChargingNode and owns persistent
 visual handles, an energy fill node and energy status text.
 
-- [ ] Render identical translucent cylinders with clear floor/top rings and
+- [x] Render identical translucent cylinders with clear floor/top rings and
   occupied-field highlighting. Use assets allocated at setup, not each frame.
-- [ ] Place energy HUD below combat text, with numeric battery and net rate,
+- [x] Place energy HUD below combat text, with numeric battery and net rate,
   ON/OFF/EMPTY and rejected-activation explanation; include key 1 hint.
-- [ ] Verify HUD transitions and no asset/entity growth over repeated restarts.
-- [ ] Run formatting, tests and Clippy; commit presentation and controls docs.
+- [x] Verify HUD transitions and no asset/entity growth over repeated restarts.
+- [x] Run formatting, tests and Clippy; commit presentation and controls docs.
 
 ## Task 4: Native validation, review and delivery
 
 Files: docs/playtests.md and any fixes supported by review/validation evidence.
 
-- [ ] Run `cargo dev`; inspect fields/HUD, key toggle, depletion, recovery and
+Result: 87 tests, formatting, Clippy and native checks passed; see docs/playtests.md.
+
+- [x] Run `cargo dev`; inspect fields/HUD, key toggle, depletion, recovery and
   restart. Use repeatable native validation for encounter compatibility.
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, and
+- [x] Run `cargo fmt --check`, `cargo test --locked`, and
   `cargo clippy --all-targets --locked -- -D warnings`.
-- [ ] Request read-only independent code review of origin/main..HEAD while
+- [x] Request read-only independent code review of origin/main..HEAD while
   documenting native results. Fix actionable issues with regression tests.
-- [ ] Record actual results and limits in docs/playtests.md; commit.
-- [ ] Push codex/dro-8-energy-and-charging and create PR against main with
+- [x] Record actual results and limits in docs/playtests.md; commit.
+Delivery command: push codex/dro-8-energy-and-charging and create PR against main with
   `gh pr create --base main --body-file <prepared-file>`.

@@ -539,3 +539,88 @@ arena dimensions (960 × 540) are initial playtest values.
 DRO-6: add the first chasing enemy, basic automatic weapon, damage, death, and
 restart lifecycle. This arena currently has no combat or transient run entities;
 reset restores the existing drone instead of recreating the scene.
+
+## DRO-8 — Energy and charging — 2026-09-09
+
+### Delivered rules and repeatable checks
+
+Key **1** enables/disables weapon overdrive: 2× firing rate, 10 energy/s drain,
+100 capacity, at least 10 energy to enable. Depletion disables overdrive and
+requires a new keypress after recovery. All normal flight and basic firing stay
+available. Two non-solid radius-90 charging fields at x ±280, z 0 span heights
+0–160. Center containment is inclusive. Recharge is 25/s or net 15/s with
+overdrive on; fields never stack, protect the player, heal, or run out.
+
+1. Run `cargo dev`. Confirm full energy and OFF, both cylinders and top rings,
+   battery meter, and key hint. Press 1: ON and DRAINING -10/s appear.
+2. Remain outside fields until empty. Ordinary fire and flight remain usable.
+   Press 1 below 10: the explanation appears, without enabling overdrive.
+3. Enter either field below its top ring. Observe CHARGING +25/s and recovery
+   without automatic reactivation. Press 1 after reaching 10: ON and +15/s.
+   Fly above the ring or outside the radius: charging stops. Return to resume.
+4. Let enemies pursue through a field; charging does not protect hull. At an
+   outcome energy freezes. R restores full energy/OFF and clears rejection and
+   charging feedback, even when other controls are pressed on the same frame.
+5. Resize to 640×480; wrapped combat status pushes the energy panel downward.
+   Repeat restart and toggling without duplicate nodes or HUD panels.
+
+### Automated evidence
+
+- Baseline: 73 tests passed before implementation.
+- Final `cargo fmt --check`, `cargo test --locked`, and
+  `cargo clippy --all-targets --locked -- -D warnings`: passed; 87 tests total.
+- `cargo build --locked --features bevy/dynamic_linking`: passed.
+- Test-first rule run produced seven expected failures; the combat run then
+  reproduced missing cadence/depletion integration before implementation.
+- Tests cover 30/120 Hz rates, zero/capacity clamps, inclusive radial/height
+  bounds and just-outside positions, both nodes, non-stacking overlap, held
+  keys, rejection threshold, manual recovery, combined charging/drain,
+  target-free drain, real firing throughput, cooldown-preserving toggles,
+  movement and base fire at zero, fatal/survival frame ordering, restart,
+  HUD state transitions, and reusable assets/entities across restarts.
+- Added integration checks show an empty drone reaching each field through real
+  flight under enemy pressure. Crossing into a field is evaluated after movement;
+  a 9.999-energy activation still rejects before that frame's recharge. Leaving
+  the volume stops recharge immediately at the next movement sample.
+- Independent read-only review and a follow-up review found no actionable
+  defects. The review's narrow-window concern prompted replacing fixed energy
+  HUD positioning with a shared layout column and native verification.
+
+### Native evidence
+
+`cargo dev -- --validate survival` completed the full authored encounter with
+normal health, flight and basic weapon, with overdrive off. Result: SURVIVED,
+180.000 game seconds, 10 hull, 52 total kills. At 2240×1440 physical resolution,
+the 175.016-second post-warmup sample measured median 15.931 ms, p95 16.867 ms,
+p99 17.048 ms, and one frame over 33.3 ms. Observed live-enemy range was 0–5.
+These are compatibility observations on this machine, not a new stress benchmark.
+A Bevy/winit unknown-window warning occurred during shutdown after successful
+completion; no gameplay failure accompanied it.
+
+The native development executable also ran in a temporary macOS app bundle,
+with only the development-library lookup path adjusted and an assets symlink.
+UI keypresses visibly enabled ON/drain, reached EMPTY, showed rejection below
+threshold, restored full/OFF on restart, and exited with Escape.
+
+Brief UI key taps did not establish held-key flight reliably. For charging
+visuals, a temporary native driver compiled the current shared gameplay/scene
+modules and supplied only keyboard inputs: deplete at center, fly to the left
+node, explicitly re-enable overdrive, then fly to the right node. It did not
+change transforms, health, battery, enemy waves, physics, or recharge rules.
+Observed left-field recovery at 61/100 with OFF and CHARGING +25/s; later it
+showed ON, 100/100 and +15/s. The right field subsequently highlighted around
+the drone and showed ON, 100/100 and +15/s. Enemies and ordinary combat remained
+active during the approaches. The temporary driver is not shipped.
+
+At the minimum 640×480 content size, native captures show wrapped combat text
+and incoming-spawn feedback above the energy panel without overlap. Both field
+volumes, their occupied highlight, drone and enemies remained distinguishable.
+The shared column handles further combat-text wrapping without fixed offsets.
+
+### Remaining tuning
+
+Values remain the approved starting points. A human playtest should judge
+charger camping, how often overdrive is useful, and whether the recharge/drain
+ratio creates satisfying choices throughout the final push. The automated and
+native checks establish behavior and readability, not final gameplay balance.
+Four-slot controls and additional powered abilities belong to DRO-9.
