@@ -1036,3 +1036,11 @@ new waves in an **empty arena**, because those fixtures do not install world
 geometry. Armored survives 300 seconds there; this is not evidence of survival
 on the normal terrain map. The explicitly named legacy three-minute empty-arena
 fixture retains its previous survival checks at 30/60/120 Hz.
+
+The isolated follow-up used the complete scene from `b8addec`, with no concurrent
+build/test processes. At the same 2240 × 1440 resolution it sustained 30–30 live
+enemies for 29.866 sampled seconds (3,583 frames): median/p95/p99
+8.338/8.689/8.863 ms, no hitches above 33.3 ms, and 42 sampled kills. This sample
+passes the provisional p95 target at the retained cap of 30. It does not erase
+the preceding miss or establish a performance guarantee under unrelated workloads.
+There were no asset/gameplay errors; the existing shutdown warning remained.
