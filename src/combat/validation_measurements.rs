@@ -81,6 +81,17 @@ pub(super) struct Measurements {
     progress: u64,
     pub(super) done: bool,
     stages: Vec<StagePopulation>,
+    pub(super) reports: usize,
+    pub(super) reported_attempt: Option<ReportedAttempt>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct ReportedAttempt {
+    pub(super) phase: GamePhase,
+    pub(super) run_seconds: f64,
+    pub(super) total_kills: u32,
+    pub(super) spawns: SpawnCounts,
+    pub(super) observations: String,
 }
 
 impl Measurements {
@@ -210,7 +221,8 @@ pub(super) fn measure(
             waves.cap,
         );
     }
-    if matches!(*phase, GamePhase::Dead | GamePhase::Survived) {
+    let terminal_phase = matches!(*phase, GamePhase::Dead | GamePhase::Survived);
+    if terminal_phase {
         data.terminal.get_or_insert(now);
     } else {
         data.terminal = None;
@@ -218,59 +230,72 @@ pub(super) fn measure(
     let terminal_done = data
         .terminal
         .is_some_and(|at| now.duration_since(at).as_secs_f64() >= 2.);
-    if elapsed < config.seconds + 5. && !terminal_done {
+    let timed_out = elapsed >= config.seconds + 5.;
+    if (terminal_phase || timed_out) && data.reported_attempt.is_none() {
+        let resolution = windows
+            .iter()
+            .next()
+            .map(|w| (w.physical_width(), w.physical_height()));
+        let build = build_summary(
+            upgrades.as_deref(),
+            energy.as_deref(),
+            energy_config.as_deref(),
+        );
+        let stages = data.stage_population_summary();
+        let observation_summary = observations.summary();
+        data.reports += 1;
+        data.reported_attempt = Some(ReportedAttempt {
+            phase: *phase,
+            run_seconds: run.elapsed,
+            total_kills: run.kills,
+            spawns: run.spawns,
+            observations: observation_summary,
+        });
+        let attempt = data.reported_attempt.as_ref().unwrap();
+        let spawns = spawn_summary(attempt.spawns);
+        let observation_summary = &attempt.observations;
+        if let Some(s) = summarize(&data.samples) {
+            println!(
+                "VALIDATION RESULT mode={:?} sample_seconds={:.3} frames={} frame_ms_median={:.3} p95={:.3} p99={:.3} hitches_gt_33_3={} enemies_min={} enemies_max={} warnings_pending={reserved} active_population={} cap={} projectiles_max={} hits={} kills={} damage={} phase={:?} stage={} wave_status={:?} hull={} run_seconds={:.3} total_kills={} physical_resolution={resolution:?} stages=[{stages}] spawns[{spawns}] observations[{observation_summary}] {build}",
+                config.mode,
+                data.samples.iter().sum::<f64>() / 1000.,
+                data.samples.len(),
+                s.median,
+                s.p95,
+                s.p99,
+                s.hitches,
+                data.min_enemies.unwrap_or(0),
+                data.max_enemies,
+                live + reserved,
+                waves.cap,
+                data.max_projectiles,
+                data.hits,
+                data.kills,
+                data.damage,
+                attempt.phase,
+                stage.unwrap_or("TERMINAL"),
+                waves.status_at(run.elapsed),
+                health.current,
+                attempt.run_seconds,
+                attempt.total_kills
+            );
+        } else {
+            println!(
+                "VALIDATION RESULT no post-warmup samples; mode={:?} phase={:?} stage={} wave_status={:?} enemies_live={live} warnings_pending={reserved} active_population={} cap={} run_seconds={:.3} total_kills={} stages=[{stages}] spawns[{spawns}] observations[{observation_summary}] {build}",
+                config.mode,
+                attempt.phase,
+                stage.unwrap_or("TERMINAL"),
+                waves.status_at(run.elapsed),
+                live + reserved,
+                waves.cap,
+                attempt.run_seconds,
+                attempt.total_kills,
+            );
+        }
+    }
+    if !timed_out && !terminal_done {
         return;
     }
     data.done = true;
-    let resolution = windows
-        .iter()
-        .next()
-        .map(|w| (w.physical_width(), w.physical_height()));
-    let build = build_summary(
-        upgrades.as_deref(),
-        energy.as_deref(),
-        energy_config.as_deref(),
-    );
-    let spawns = spawn_summary(run.spawns);
-    let stages = data.stage_population_summary();
-    let observations = observations.summary();
-    if let Some(s) = summarize(&data.samples) {
-        println!(
-            "VALIDATION RESULT mode={:?} sample_seconds={:.3} frames={} frame_ms_median={:.3} p95={:.3} p99={:.3} hitches_gt_33_3={} enemies_min={} enemies_max={} warnings_pending={reserved} active_population={} cap={} projectiles_max={} hits={} kills={} damage={} phase={:?} stage={} wave_status={:?} hull={} run_seconds={:.3} total_kills={} physical_resolution={resolution:?} stages=[{stages}] spawns[{spawns}] observations[{observations}] {build}",
-            config.mode,
-            data.samples.iter().sum::<f64>() / 1000.,
-            data.samples.len(),
-            s.median,
-            s.p95,
-            s.p99,
-            s.hitches,
-            data.min_enemies.unwrap_or(0),
-            data.max_enemies,
-            live + reserved,
-            waves.cap,
-            data.max_projectiles,
-            data.hits,
-            data.kills,
-            data.damage,
-            *phase,
-            stage.unwrap_or("TERMINAL"),
-            waves.status_at(run.elapsed),
-            health.current,
-            run.elapsed,
-            run.kills
-        );
-    } else {
-        println!(
-            "VALIDATION RESULT no post-warmup samples; mode={:?} phase={:?} stage={} wave_status={:?} enemies_live={live} warnings_pending={reserved} active_population={} cap={} run_seconds={:.3} total_kills={} stages=[{stages}] spawns[{spawns}] observations[{observations}] {build}",
-            config.mode,
-            *phase,
-            stage.unwrap_or("TERMINAL"),
-            waves.status_at(run.elapsed),
-            live + reserved,
-            waves.cap,
-            run.elapsed,
-            run.kills,
-        );
-    }
     exit.write(AppExit::Success);
 }

@@ -324,3 +324,99 @@ fn observation_choice_entry_keeps_the_selected_upgrade_name() {
     };
     assert_eq!(entry.action.unwrap().name(), "Agile frame");
 }
+
+#[test]
+fn terminal_attempt_is_reported_before_immediate_restart_and_next_attempt_can_report() {
+    let mut app = manual_app();
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    {
+        let mut encounter = app.world_mut().resource_mut::<Encounter>();
+        encounter.elapsed = 2.;
+        encounter.kills = 3;
+        encounter.spawns = SpawnCounts {
+            requested: 2,
+            admitted: 2,
+            activated: 2,
+            ..default()
+        };
+    }
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+    tick(&mut app, 0., &[]);
+
+    let first = app
+        .world()
+        .resource::<Measurements>()
+        .reported_attempt
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        (first.phase, first.run_seconds, first.total_kills),
+        (GamePhase::Dead, 2., 3)
+    );
+    assert_eq!(first.spawns.requested, 2);
+    assert_eq!(first.spawns.activated, 2);
+    assert_eq!(
+        first.observations,
+        "module_changes=1 charger_entries=0 charger_exits=0 route_crossings=0"
+    );
+
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    {
+        let reset = app.world().resource::<Measurements>();
+        assert!(reset.reported_attempt.is_none());
+        assert_eq!(reset.reports, 0);
+    }
+
+    app.world_mut().resource_mut::<Encounter>().elapsed = 1.;
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+    tick(&mut app, 0., &[]);
+    let second = app
+        .world()
+        .resource::<Measurements>()
+        .reported_attempt
+        .as_ref()
+        .unwrap();
+    assert_eq!(second.run_seconds, 1.);
+    assert_eq!(app.world().resource::<Measurements>().reports, 1);
+}
+
+#[test]
+fn terminal_wait_reports_once_then_emits_one_exit_after_two_seconds() {
+    let mut app = manual_app();
+    let mut exits = app
+        .world()
+        .resource::<Messages<AppExit>>()
+        .get_cursor_current();
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<Measurements>().reports, 1);
+    assert!(!app.world().resource::<Measurements>().done);
+    assert_eq!(
+        exits
+            .read(app.world().resource::<Messages<AppExit>>())
+            .count(),
+        0
+    );
+
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<Measurements>().reports, 1);
+    app.world_mut().resource_mut::<Measurements>().terminal =
+        Some(Instant::now() - Duration::from_secs(3));
+    tick(&mut app, 0., &[]);
+    assert!(app.world().resource::<Measurements>().done);
+    assert_eq!(app.world().resource::<Measurements>().reports, 1);
+    assert_eq!(
+        exits
+            .read(app.world().resource::<Messages<AppExit>>())
+            .count(),
+        1
+    );
+
+    tick(&mut app, 0., &[]);
+    assert_eq!(
+        exits
+            .read(app.world().resource::<Messages<AppExit>>())
+            .count(),
+        0
+    );
+}
