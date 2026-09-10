@@ -170,9 +170,9 @@ fn hitch_only_warns_latest_due_burst_and_gives_full_warning_duration() {
 #[test]
 fn default_schedule_generates_authored_windows_and_phase_lulls() {
     let config = WaveConfig::default();
-    assert_eq!(&config.bursts[..3], &[(3., 3), (18., 3), (33., 3)]);
+    assert_eq!(&config.bursts[..3], &[(3., 3), (13., 3), (23., 3)]);
     for (start, end, size, interval, expected) in [
-        (45, 105, 3, 12, 5),
+        (30, 105, 3, 8, 9),
         (105, 165, 4, 8, 7),
         (165, 225, 6, 6, 9),
         (225, 300, 8, 4, 18),
@@ -192,14 +192,14 @@ fn default_schedule_generates_authored_windows_and_phase_lulls() {
         );
         assert!(in_window.iter().all(|(at, _)| *at < (end - 6) as f64));
     }
-    assert_eq!(config.bursts.len(), 42);
+    assert_eq!(config.bursts.len(), 46);
     assert_eq!(
         config.bursts.iter().map(|(_, count)| count).sum::<usize>(),
-        250
+        262
     );
 
     for (at, label) in [
-        (39., "OPENING"),
+        (24., "OPENING"),
         (99., "PRESSURE I"),
         (159., "PRESSURE II"),
         (219., "PRESSURE III"),
@@ -216,7 +216,7 @@ fn default_schedule_generates_authored_windows_and_phase_lulls() {
 
 #[test]
 fn each_pressure_boundary_creates_one_real_warning_with_fixed_enemy_stats() {
-    for (at, size) in [(45., 3), (105., 4), (165., 6), (225., 8)] {
+    for (at, size) in [(30., 3), (105., 4), (165., 6), (225., 8)] {
         let (mut app, _) = wave_app();
         let burst_index = app
             .world()

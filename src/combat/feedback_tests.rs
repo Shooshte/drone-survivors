@@ -157,7 +157,7 @@ fn hud_uses_authored_non_minute_lulls_and_phase_boundaries() {
     use super::super::scene::CombatHud;
     let (mut app, _) = scene_app();
     enemy(&mut app, START + Vec3::X * 200., 100);
-    app.world_mut().resource_mut::<Encounter>().elapsed = 44.;
+    app.world_mut().resource_mut::<Encounter>().elapsed = 29.;
     step(&mut app, 0., &[]);
     let mut text = app
         .world_mut()
@@ -165,7 +165,7 @@ fn hud_uses_authored_non_minute_lulls_and_phase_boundaries() {
         .single(app.world())
         .unwrap();
     assert!(text.0.contains("LULL"), "{}", text.0);
-    app.world_mut().resource_mut::<Encounter>().elapsed = 45.;
+    app.world_mut().resource_mut::<Encounter>().elapsed = 30.;
     step(&mut app, 0., &[]);
     text = app
         .world_mut()
