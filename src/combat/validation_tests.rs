@@ -395,3 +395,48 @@ fn validation_pilot_preserves_restart_and_escape_input() {
             .just_pressed(KeyCode::Escape)
     );
 }
+
+#[test]
+fn wave_override_modes_do_not_report_authored_phases_or_lulls() {
+    use super::super::scene::{CombatHud, CombatScenePlugin};
+    for mode in [ValidationMode::Stress, ValidationMode::Routes] {
+        let mut app = App::new();
+        app.init_resource::<Time>()
+            .init_resource::<ButtonInput<KeyCode>>()
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .add_message::<AppExit>()
+            .add_plugins((crate::arena::ArenaPlugin, CombatPlugin, CombatScenePlugin));
+        validation::install(
+            &mut app,
+            ValidationConfig {
+                mode,
+                seconds: 30.,
+                enemies: 3,
+            },
+        );
+        app.update();
+        let waves = app.world().resource::<WaveConfig>();
+        assert!(waves.bursts.is_empty());
+        for at in [0., 39., 45., 60., 105., 299.] {
+            assert!(waves.phase_at(at).is_none(), "{mode:?} stale phase at {at}");
+            assert!(
+                waves.status_at(at).is_none(),
+                "{mode:?} stale status at {at}"
+            );
+        }
+        for at in [0., 39., 45.] {
+            app.world_mut().resource_mut::<Encounter>().elapsed = at;
+            step(&mut app, 0., &[]);
+            let text = app
+                .world_mut()
+                .query_filtered::<&Text, With<CombatHud>>()
+                .single(app.world())
+                .unwrap();
+            assert!(text.0.contains("AUTO FIRE"));
+            for stale in ["OPENING", "PRESSURE", "SPAWNING LULL"] {
+                assert!(!text.0.contains(stale), "{mode:?}: {}", text.0);
+            }
+        }
+    }
+}

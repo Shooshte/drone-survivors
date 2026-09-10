@@ -180,10 +180,10 @@ pub(super) fn measure(
     let elapsed = now.duration_since(start).as_secs_f64();
     let live = enemies.iter().filter(|e| e.health > 0).count();
     let reserved = warnings.iter().count();
-    let stage = if config.mode == ValidationMode::Stress {
-        Some("STRESS OVERRIDE")
-    } else {
-        waves.phase_at(run.elapsed).map(|stage| stage.label)
+    let stage = match config.mode {
+        ValidationMode::Stress => Some("STRESS OVERRIDE"),
+        ValidationMode::Routes => Some("ROUTE OVERRIDE"),
+        _ => waves.phase_at(run.elapsed).map(|stage| stage.label),
     };
     if *phase == GamePhase::Playing
         && let Some(label) = stage

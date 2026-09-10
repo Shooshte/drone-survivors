@@ -256,10 +256,10 @@ fn configure(
     run: Option<ResMut<UpgradeRun>>,
 ) {
     if config.mode == ValidationMode::Routes {
-        waves.bursts.clear();
+        waves.disable_authored_waves();
     }
     if config.mode == ValidationMode::Stress {
-        waves.bursts.clear();
+        waves.disable_authored_waves();
         waves.cap = config.enemies;
         waves.duration = config.seconds + 30.;
     }

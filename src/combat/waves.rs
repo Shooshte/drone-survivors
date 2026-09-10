@@ -99,6 +99,11 @@ impl Default for WaveConfig {
 }
 
 impl WaveConfig {
+    pub(super) fn disable_authored_waves(&mut self) {
+        self.bursts.clear();
+        self.phases.clear();
+    }
+
     pub(crate) fn phase_at(&self, elapsed: f64) -> Option<&WavePhase> {
         self.phases
             .iter()
