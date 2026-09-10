@@ -119,7 +119,7 @@ fn earn(
     }
     let kills = encounter.kills.saturating_sub(session.credited_kills);
     session.credited_kills = encounter.kills;
-    run.award(kills.saturating_mul(experience.kill_xp));
+    run.award(kills.saturating_mul(experience.kill_xp_at(encounter.elapsed)));
     if *phase != GamePhase::Playing {
         return;
     }

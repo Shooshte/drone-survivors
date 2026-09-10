@@ -73,14 +73,14 @@ fn xp_kills_and_pickup_are_credited_once_and_terminal_beats_choice() {
     app.world_mut().resource_mut::<Encounter>().kills = 1;
     tick(&mut app, 0., &[]);
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 7);
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 10);
     app.world_mut()
         .get_mut::<Transform>(drone)
         .unwrap()
         .translation = Vec3::new(0., 90., -180.);
     tick(&mut app, 0., &[]);
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 37);
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 40);
     app.world_mut().resource_mut::<Encounter>().kills = 3;
     *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
     tick(&mut app, 0., &[]);
@@ -490,4 +490,25 @@ fn upgrade_choice_freezes_hazard_then_resumes_remaining_warning() {
         HazardPhase::Active
     );
     assert_eq!(app.world().resource::<PlayerHealth>().current, 90);
+}
+
+#[test]
+fn kill_xp_reduces_at_dense_phase_once_and_restart_restores_early_reward() {
+    use crate::upgrades::UpgradeRun;
+    let (mut app, _) = upgrade_app();
+    app.world_mut().resource_mut::<Encounter>().elapsed = 104.9;
+    app.world_mut().resource_mut::<Encounter>().kills = 1;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 10);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 105.;
+    app.world_mut().resource_mut::<Encounter>().kills = 2;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 17);
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 17);
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 0);
+    app.world_mut().resource_mut::<Encounter>().kills = 1;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 10);
 }

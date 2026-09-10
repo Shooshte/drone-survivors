@@ -7,11 +7,27 @@ use crate::modules::{Loadout, ModuleKind};
 #[derive(Resource)]
 pub(crate) struct ExperienceConfig {
     pub kill_xp: u32,
+    pub early_kill_xp: u32,
+    pub reduction_starts_at: f64,
 }
 
 impl Default for ExperienceConfig {
     fn default() -> Self {
-        Self { kill_xp: 7 }
+        Self {
+            kill_xp: 7,
+            early_kill_xp: 10,
+            reduction_starts_at: 105.,
+        }
+    }
+}
+
+impl ExperienceConfig {
+    pub(crate) fn kill_xp_at(&self, elapsed: f64) -> u32 {
+        if elapsed < self.reduction_starts_at {
+            self.early_kill_xp
+        } else {
+            self.kill_xp
+        }
     }
 }
 
