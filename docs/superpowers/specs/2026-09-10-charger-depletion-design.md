@@ -1,6 +1,6 @@
 # DRO-32: Temporary charger depletion
 
-Proposed for review on September 10, 2026. Implementation starts from main
+Approved by the user on September 10, 2026. Implementation starts from main
 `2012fc3` in the `codex/dro-32-charger-depletion` worktree.
 
 ## Purpose
@@ -10,7 +10,7 @@ conservation. Both stationary overdrive and overdrive/shield currently survive
 the full encounter at either charger. Enemy behavior, waves, XP, scout handling,
 arena geometry, module costs, and campaign systems stay outside this change.
 
-## Proposed rules and initial tuning
+## Approved rules and initial tuning
 
 Each existing charging field starts with an independent 200-energy reserve.
 Delivery remains capped at the existing 25 energy/second. Deduct only energy

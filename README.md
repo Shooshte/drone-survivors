@@ -140,8 +140,19 @@ rockets, cooldowns and feedback.
 Two cyan charging fields sit on opposite sides of the arena. Enter a field
 with the drone's center below its visible top ring (height 160) to gain
 25 energy/second. Fly and fight freely while charging; leaving stops recharge.
-Fields have radius 90, never run out, and provide no protection. Overlapping
-fields do not stack. All four modules drain 36/s, so even charging produces a
+Fields have radius 90 and provide no protection. Each has a separate **200-energy
+reserve**. Charging uses up that reserve only when energy actually reaches the
+battery or sustains enabled modules; full-battery overdrive still costs the field
+10/s. A depleted field supplies nothing.
+
+Leave a field for **eight uninterrupted active seconds** to begin recovery at
+10 reserve/second. Returning resets that delay, so briefly crossing the boundary
+cannot refill it. Occupied fields never recover, even with modules off. Partial
+reserves can be used immediately; an empty field takes 28 seconds away to refill.
+Overlapping fields share the same 25/s delivery ceiling and never double charge.
+The HUD shows LEFT/RIGHT reserves and recovery status before arrival; each field
+also has a shrinking reserve indicator. Choices and outcomes pause recovery;
+R restores both reserves. All four modules drain 36/s, so even charging produces a
 net loss of 11/s. Rockets alone leave a net gain of 15/s at a charger.
 
 The HUD shows each slot's key, state and current/configured drain, shield
@@ -150,7 +161,7 @@ Failed activation identifies the affected slot. Any module can occupy any slot,
 and empty slots are safe; a type cannot be duplicated. This prototype uses a fixed
 loadout; purchasing and player-controlled rearrangement belong to DRO-16.
 Numeric defaults live in `ModuleConfig` in `src/modules.rs` and `EnergyConfig`
-in `src/energy.rs` and remain provisional playtest values.
+in `src/energy.rs`, alongside `ChargerConfig`, and remain provisional playtest values.
 
 ### Obstacles, hazards, and routes
 
@@ -231,10 +242,22 @@ cargo test --locked camping_balance_probe -- --ignored --nocapture
 This opt-in 30 Hz simulation compares the previous and current waves/XP at both
 chargers, with overdrive and overdrive-plus-shield builds, plus a moving keyboard
 pilot. It uses the actual terrain/hazard and normally earned upgrade choices.
-Camping fixtures start at a charger; the harness does not hold their position,
+Historical wave/XP profiles use effectively unlimited test-only charger reserves
+to preserve the earlier comparison. Camping fixtures start at a charger; the harness does not hold their position,
 refill health, or grant XP. Output includes outcomes, choice times, energy,
 peak population and spawn accounting. It is not a rendering benchmark or a human
 playtest; surviving camping probes leave the experiential gate pending.
+
+For the charger-only comparison on the current waves and XP:
+
+```sh
+cargo test --locked charger_depletion_probe -- --ignored --nocapture
+```
+
+This compares all four camps plus a pilot alternating chargers with power
+conservation, using finite versus effectively unlimited test-only reserves. It
+reports actual reserve delivery, sampled powered time, visits, choices, and
+outcomes. [Results and limitations](docs/playtests/dro-32-charger-depletion.md).
 
 ### Repeatable native validation
 
@@ -243,6 +266,7 @@ cargo dev -- --validate manual --seconds 600
 cargo dev -- --validate survival
 cargo dev -- --validate idle
 cargo dev -- --validate routes --seconds 40
+cargo dev -- --validate chargers --seconds 60
 cargo dev -- --validate mobile
 cargo dev -- --validate armored
 cargo dev -- --validate choices
@@ -271,13 +295,21 @@ trip's travel and waiting time. It does not override hull or move the drone by
 writing its position. The corresponding tests repeat at 30/60/144 FPS with an
 empty battery and recharge disabled in the test fixture.
 
-To capture the three hazard states during native validation:
+Chargers is an explicit UI fixture with authored waves disabled. It flies normally
+to the left field, powers overdrive until the reserve empties, waits two seconds,
+then conserves power while taking the detour to the right field. It applies no
+health, energy, reserve, or XP overrides. R restarts the fixture. It checks native
+presentation and route behavior, not encounter difficulty.
+
+To capture hazard and charger states during native validation:
 
 ```sh
 DRONE_CAPTURE_DIR=/tmp/drone-captures cargo dev -- --validate idle --seconds 20
 DRONE_CAPTURE_DIR=/tmp/drone-captures DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate idle --seconds 20
 ```
 
+Use `--validate chargers --seconds 60` with the same capture environment to save
+in-use, depleted, recovery-delay and recovering charger states automatically.
 The second command uses the minimum 640 × 480 logical window. These environment
 options are ignored during ordinary play. Keep the macOS session unlocked for
 usable window captures; locked-session captures may be black.
