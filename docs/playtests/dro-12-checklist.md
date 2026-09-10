@@ -61,10 +61,11 @@ of the enemies, shots, charging, or hazard warnings and cause no catch-up on res
 
 ## Gate decision
 
-- [ ] Opening allows orientation; pressure accelerates after approximately 45 seconds.
+- [ ] Opening allows orientation; pressure accelerates after approximately 30 seconds.
 - [ ] Final minute challenges an upgraded build instead of flattening at the cap.
 - [ ] Two meaningfully different tactics each survive 300 active seconds.
 - [ ] Players can explain power decisions and upgrade benefits/drawbacks.
+- [ ] After the final eligible upgrade, Build complete replaces level/XP progress immediately; no empty choice appears.
 - [ ] Critical information stays readable at both window sizes.
 - [ ] Highest-impact observed problems were fixed and affected scenarios repeated.
 - [ ] Evidence limitations, including same-player fallback, are recorded honestly.

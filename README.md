@@ -64,8 +64,9 @@ can miss; each disappears after its first hit, after one second, or on leaving
 the arena. Keep moving to avoid contact.
 
 The five-minute encounter starts with three quiet seconds and a forgiving
-45-second opening. Enemy arrivals then accelerate through four pressure stages:
-3 every 12 seconds, 4 every 8 seconds, 6 every 6 seconds, and finally 8 every
+30-second opening with three-enemy warnings at 3, 13, and 23 seconds.
+Enemy arrivals then accelerate through four pressure stages: 3 every 8 seconds,
+4 every 8 seconds, 6 every 6 seconds, and finally 8 every
 4 seconds. Each pressure stage ends with at least six seconds without new spawn
 warnings. Surviving is intended to take a few attempts; that difficulty target
 still needs human playtesting.
@@ -167,7 +168,10 @@ authored route graph while retaining their normal thrust and momentum.
 Kills award 10 XP automatically. One green exploration pickup at the far side
 of the arena grants 30 XP when the drone's center enters its visible 30-unit
 sphere; it can be collected once per run. The HUD shows level, XP to the next
-level, and acquired upgrades. Start at level 1: the first choice costs 50 XP,
+level, and acquired upgrades. Once no eligible upgrades remain, it immediately
+shows **Build complete** and the acquired upgrades instead of level/XP progress.
+XP accounting continues internally, but no further choices are promised.
+Start at level 1: the first choice costs 50 XP,
 then each level costs 25 more. Excess XP carries over.
 
 Leveling pauses the encounter and offers up to three eligible upgrades. Select

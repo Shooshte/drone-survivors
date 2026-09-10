@@ -175,8 +175,10 @@ fn modifiers_compose_from_baselines_independent_of_selection_order() {
 
 #[test]
 fn final_selection_marks_build_complete_without_another_level() {
-    let mut run = UpgradeRun::default();
-    run.selected = UpgradeKind::ALL[..5].to_vec();
+    let mut run = UpgradeRun {
+        selected: UpgradeKind::ALL[..5].to_vec(),
+        ..default()
+    };
     run.award(50);
     run.prepare_offer(&Loadout::default());
     assert_eq!(run.offer, vec![UpgradeKind::WideAreaRockets]);

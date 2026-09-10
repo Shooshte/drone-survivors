@@ -177,3 +177,19 @@ Record final tuning, attempts, observations, validation results, remaining limit
 and the explicit gate decision in docs/playtests.md. Review and commit the
 implementation separately. The original five-session allowance is provisional;
 reassess after the first combined playtest rather than expanding feature scope.
+
+
+## Approved minimal amendment after manual feedback
+
+The user chose opening pacing and honest exhausted-catalog UI for PR #11, with
+handling/arena/progression redesign deferred. This supersedes the initial
+0–45-second opening and 45–105-second first pressure phase above: opening is
+0–30 seconds with warnings at 3/13/23, then 3 every 8 seconds from 30 until the final
+six-second lull at 99. Later phases retain their original timing and sizes.
+Total 46 bursts request 262 enemies before rejection or skipped outcomes.
+
+Immediately after no eligible upgrades remain, show Build complete and acquired
+upgrades without level/XP progress. Retain internal XP accounting, all existing
+upgrade rules, and the six-upgrade catalog. A four-slot build limit was proposed
+but not accepted for this PR. See the final schedule, evidence, and follow-up
+Linear links in docs/playtests.md. Another human playthrough remains required.

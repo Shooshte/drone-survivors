@@ -1093,3 +1093,45 @@ checks both death and survival, deferred cleanup, and later frozen updates.
 
 At `1b776bf`, all **193 tests**, formatting, and strict all-targets Clippy pass.
 These fixes do not supply the outstanding human playtest evidence.
+
+
+### Manual feedback and approved minimal refinement
+
+The user reported a boring opening, cramped flight space, floaty controls,
+expected banked curves, and a desire for a fast evasive scout with modest damage.
+They also found the upgrade pool too short for the encounter and early choices
+weak because unchosen options return later. No attempt counts, survival times,
+or two successful tactic recordings were supplied with this feedback.
+
+The user selected a minimal PR scope. The final authored schedule is now:
+
+| Active window | Warnings | Final-six-second lull |
+| --- | --- | --- |
+| 0–30 s | 3 enemies at 3, 13, 23 s | 24–30 s |
+| 30–105 s | 3 every 8 s, starting at 30 s | 99–105 s |
+| 105–165 s | 4 every 8 s | 159–165 s |
+| 165–225 s | 6 every 6 s | 219–225 s |
+| 225–300 s | 8 every 4 s | 294–300 s |
+
+This produces 46 bursts / 262 requested enemies before cap/safety/hitch/terminal
+outcomes. Spawn warnings, cap 30, enemy behavior/stats, flight, arena geometry,
+and player balance are unchanged. This supersedes the earlier schedule above;
+earlier native measurements/captures retain their stated source checkpoints.
+
+Once the final eligible upgrade is selected, the HUD immediately displays
+**Build complete | No more upgrades this run** and acquired names. It stops
+showing level/XP progress that implies another reward. Internal XP accounting,
+thresholds, the six-upgrade catalog, offer eligibility, and Skip remain unchanged.
+There is no new slot limit or progression system in this PR.
+
+Regression tests failed before the changes and pass afterward. They cover
+revised authored/HUD boundaries, immediate exhaustion without another level,
+complete-build display, and restoration of normal progress display on reset.
+All **195 tests**, formatting, and strict all-targets Clippy pass; focused review
+found no substantive issues. Human confirmation of the new opening and overall
+experiential gate remains pending another playthrough.
+
+Deferred improvements are tracked separately:
+- [DRO-29: Refine scout banking, steering response, and braking](https://linear.app/drone-survivors/issue/DRO-29/refine-scout-banking-steering-response-and-braking)
+- [DRO-30: Give the scout room for fast evasive flight](https://linear.app/drone-survivors/issue/DRO-30/give-the-scout-room-for-fast-evasive-flight)
+- [DRO-31: Make temporary upgrade choices meaningful throughout a run](https://linear.app/drone-survivors/issue/DRO-31/make-temporary-upgrade-choices-meaningful-throughout-a-run)
