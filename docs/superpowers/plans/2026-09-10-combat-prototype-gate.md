@@ -180,3 +180,14 @@ Execute inline in the existing PR worktree with the user's tuning authorization.
 - [x] Run formatting, full locked tests and strict all-targets Clippy. Update
   README, playtest evidence/checklist, Linear DRO-12 and PR #11. Commit tuning and
   evidence separately, push, retain draft status and the human acceptance gate.
+
+
+## Approved adjustment: one fewer enemy per burst
+
+The user found the midpoint-pressure opening too intense and requested exactly
+one fewer enemy in every wave. Change stage sizes 6/8/9/10/12 to **5/7/8/9/11**,
+keeping all warning times, intervals, lulls and the 4 XP kill reward unchanged.
+This removes 50 enemies from the 50-burst schedule: **447 requested total**.
+Update existing count regressions and the current diagnostic expectation, run
+formatting/locked tests/strict Clippy plus the opt-in comparison, record fresh
+results, and commit/push to the existing PR. No other balance changes.

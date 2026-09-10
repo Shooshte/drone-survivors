@@ -239,3 +239,14 @@ Final midpoint comparison retains 4 XP throughout: camping choice deltas stay
 within ten seconds and the moving pilot's five shared choices within eight.
 All camping profiles still win; the moving pilot dies at 134 seconds versus
 181.233 previously. Evidence is in `docs/playtests/dro-12-midpoint-comparison.md`.
+
+
+## Approved adjustment: one fewer enemy per burst
+
+The user found the midpoint-pressure opening too intense and requested exactly
+one fewer enemy in every wave. Change stage sizes 6/8/9/10/12 to **5/7/8/9/11**,
+keeping all warning times, intervals, lulls and the 4 XP kill reward unchanged.
+This removes 50 enemies from the 50-burst schedule: **447 requested total**.
+Update existing count regressions and the current diagnostic expectation, run
+formatting/locked tests/strict Clippy plus the opt-in comparison, record fresh
+results, and commit/push to the existing PR. No other balance changes.

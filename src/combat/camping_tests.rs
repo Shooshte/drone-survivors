@@ -47,7 +47,7 @@ impl Balance {
     fn expected_requests(self) -> usize {
         match self {
             Self::Baseline => 375,
-            Self::Tuned => 497,
+            Self::Tuned => 447,
         }
     }
 }

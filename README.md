@@ -63,20 +63,20 @@ weapon automatically fires yellow projectiles at the nearest enemy within
 can miss; each disappears after its first hit, after one second, or on leaving
 the arena. Keep moving to avoid contact.
 
-The five-minute encounter starts with three quiet seconds, then six enemies
-every eight seconds—the previous schedule's pressure at 150 seconds remaining.
+The five-minute encounter starts with three quiet seconds, then five enemies
+every eight seconds.
 Pressure increases through larger bursts and shorter intervals:
 
 | Active time | Enemies per burst | Interval |
 | --- | --- | --- |
-| 0–30 seconds | 6 | 8 seconds; first warning at 3 seconds |
-| 30–105 seconds | 8 | 8 seconds |
-| 105–165 seconds | 9 | 6 seconds |
-| 165–225 seconds | 10 | 5 seconds |
-| 225–300 seconds | 12 | 4 seconds |
+| 0–30 seconds | 5 | 8 seconds; first warning at 3 seconds |
+| 30–105 seconds | 7 | 8 seconds |
+| 105–165 seconds | 8 | 6 seconds |
+| 165–225 seconds | 9 | 5 seconds |
+| 225–300 seconds | 11 | 4 seconds |
 
 Each stage ends with at least six seconds without new spawn warnings. The
-schedule requests 497 enemies in 50 bursts before spawn rejection or skipped
+schedule requests 447 enemies in 50 bursts before spawn rejection or skipped
 bursts. Surviving is intended to take a few attempts; that difficulty target
 still needs human playtesting.
 

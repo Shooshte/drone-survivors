@@ -1224,3 +1224,34 @@ All **196 tests**, formatting and strict all-targets Clippy pass. The ignored
 balance probe passed all ten scenarios when explicitly run. Focused code review
 found no substantive issues. The older native performance records retain their
 original source checkpoints.
+
+
+### One fewer enemy in every burst
+
+After the `ac7aaaa` tuning, the user found the pressure too high and requested
+exactly one fewer enemy per wave. Stage sizes are now **5/7/8/9/11**, with the
+same warning times, intervals, lulls and 4 XP per kill. There are still 50 bursts,
+now requesting **447 enemies**. Active arrival rates are 37.5/52.5/80/108/165 per
+minute before lulls and spawn limits. No other gameplay tuning changed.
+
+Fresh verification: **196 tests passed**, 0 failed, 1 ignored; formatting and
+strict all-targets Clippy passed. The ignored ten-scenario diagnostic passed
+when explicitly run. All four current charger profiles survived 300 seconds and
+killed all 447 requested enemies, with no rejected/skipped spawns or cancelled
+warnings. Peak enemies were 13 at the left charger and 14 at the right; peak
+warnings were 11. Final hull/energy were 130/75 and earned kill XP was 1788.
+
+Choice times (active seconds, identical timing for both module profiles):
+
+- Left: 21.900 / 48.033 / 74.733 / 112.600 / 139.200 / 176.100.
+- Right: 21.433 / 48.033 / 74.533 / 112.600 / 139.733 / 176.133.
+
+With unchanged per-kill XP, fewer enemies delay sampled choices relative to the
+497-enemy tuning. The moving scripted pilot died at 65.700 seconds with 45 kills,
+compared with 134.000 seconds previously; its two choices occurred at 31.600 and
+49.600. Requested/admitted spawns were 50, activated 47, cancelled 3, with no
+rejected or skipped spawns. This scripted trajectory is not evidence that fewer
+enemies necessarily make every run easier; it earns fewer early upgrades and
+follows a deterministic pilot. Preserve the user's exact count-only adjustment
+and assess feel with the next human playthrough. Camping/DRO-32 and the human
+experiential gate remain pending.

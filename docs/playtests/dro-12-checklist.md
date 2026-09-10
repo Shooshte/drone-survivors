@@ -61,7 +61,7 @@ of the enemies, shots, charging, or hazard warnings and cause no catch-up on res
 
 ## Gate decision
 
-- [ ] Opening begins at the previous midpoint pressure (6 enemies every 8 seconds); pressure rises through each later stage without an unattended early stretch.
+- [ ] Opening begins at 5 enemies every 8 seconds; pressure rises through each later stage without an unattended early stretch.
 - [ ] Final minute challenges an upgraded build instead of flattening at the cap.
 - [ ] Test stationary overdrive camping at both chargers, including normally earned offensive upgrades; record whether it still wins.
 - [ ] Compare earned-choice times with the previous run after the denser opening and 4 XP per kill throughout the run.
