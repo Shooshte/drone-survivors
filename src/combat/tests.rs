@@ -613,3 +613,6 @@ mod world_tests;
 mod hazard_tests;
 #[path = "upgrade_tests.rs"]
 mod upgrade_tests;
+
+#[path = "camping_tests.rs"]
+mod camping_tests;

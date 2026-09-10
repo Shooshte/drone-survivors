@@ -1,5 +1,6 @@
 use super::{ChoiceAction, UpgradeKind, UpgradeRun};
 use crate::{
+    arena::{ArenaSceneSetup, FooterFont, UpgradeFooterSlot},
     combat::CombatSceneSetup,
     game::{GamePhase, GameplaySet},
 };
@@ -43,39 +44,44 @@ type PresentedNodes<'w, 's> = Query<
 
 impl Plugin for UpgradeScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup.after(CombatSceneSetup))
-            .add_systems(
-                Update,
-                (present, hover_buttons)
-                    .chain()
-                    .in_set(GameplaySet::Presentation),
-            );
+        app.add_systems(
+            Startup,
+            setup.after(CombatSceneSetup).after(ArenaSceneSetup),
+        )
+        .add_systems(
+            Update,
+            (present, hover_buttons)
+                .chain()
+                .in_set(GameplaySet::Presentation),
+        );
     }
 }
 
 fn setup(
     mut commands: Commands,
     pickup: Res<ExplorationPickup>,
+    footer_slot: Single<Entity, With<UpgradeFooterSlot>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     setup_pickup(&mut commands, &pickup, &mut meshes, &mut materials);
 
-    commands.spawn((
-        UpgradeHud,
-        UpgradeCopy::Hud,
-        Text::default(),
-        TextFont::from_font_size(14.),
-        TextColor(Color::srgb(0.66, 0.86, 0.88)),
-        TextLayout::new(Justify::Right, LineBreak::WordBoundary),
-        Node {
-            position_type: PositionType::Absolute,
-            right: px(24),
-            bottom: px(112),
-            max_width: px(560),
-            ..default()
-        },
-    ));
+    let hud = commands
+        .spawn((
+            UpgradeHud,
+            UpgradeCopy::Hud,
+            FooterFont::new(14., 11.),
+            Text::default(),
+            TextFont::from_font_size(14.),
+            TextColor(Color::srgb(0.66, 0.86, 0.88)),
+            TextLayout::new(Justify::Right, LineBreak::WordBoundary),
+            Node {
+                width: percent(100),
+                ..default()
+            },
+        ))
+        .id();
+    commands.entity(*footer_slot).add_child(hud);
 
     commands
         .spawn((
@@ -419,17 +425,14 @@ fn hud_copy(run: &UpgradeRun) -> String {
             .collect::<Vec<_>>()
             .join("  |  ")
     };
-    let exhausted = if run.exhausted {
-        "  |  CATALOG EXHAUSTED"
-    } else {
-        ""
-    };
+    if run.exhausted {
+        return format!("BUILD COMPLETE | No more upgrades this run\nRUN UPGRADES  |  {selected}");
+    }
     format!(
-        "LEVEL  {}   |   XP  {} / {}{}\nRUN UPGRADES  |  {selected}",
+        "LEVEL  {}   |   XP  {} / {}\nRUN UPGRADES  |  {selected}",
         run.level,
         run.xp,
         run.threshold(),
-        exhausted
     )
 }
 
@@ -463,6 +466,7 @@ mod tests {
             .init_resource::<UpgradeRun>()
             .init_resource::<GamePhase>()
             .add_plugins(UpgradeScenePlugin);
+        app.world_mut().spawn((UpgradeFooterSlot, Node::default()));
         app.update();
         app
     }
@@ -473,6 +477,38 @@ mod tests {
             .iter(app.world())
             .filter(|(_, node)| node.display == Display::Flex)
             .count()
+    }
+
+    #[test]
+    fn completed_build_hud_removes_progress_promises_and_reset_restores_them() {
+        let mut app = scene_app();
+        {
+            let mut run = app.world_mut().resource_mut::<UpgradeRun>();
+            run.selected = UpgradeKind::ALL.to_vec();
+            run.exhausted = true;
+            run.award(500);
+        }
+        app.update();
+        let text = app
+            .world_mut()
+            .query_filtered::<&Text, With<UpgradeHud>>()
+            .single(app.world())
+            .unwrap();
+        assert!(text.0.contains("BUILD COMPLETE"));
+        assert!(!text.0.contains("XP"));
+        assert!(!text.0.contains("LEVEL"));
+        for kind in UpgradeKind::ALL {
+            assert!(text.0.contains(kind.name()));
+        }
+        *app.world_mut().resource_mut::<UpgradeRun>() = UpgradeRun::default();
+        app.update();
+        let text = app
+            .world_mut()
+            .query_filtered::<&Text, With<UpgradeHud>>()
+            .single(app.world())
+            .unwrap();
+        assert!(text.0.contains("XP"));
+        assert!(!text.0.contains("BUILD COMPLETE"));
     }
 
     #[test]

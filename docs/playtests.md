@@ -939,3 +939,319 @@ warning before resuming damage. The rotation-correction regressions remain green
 
 `cargo test --locked` passes all 175 tests. `cargo fmt --check` and
 `cargo clippy --all-targets --locked -- -D warnings` also pass.
+
+## DRO-12 — Five-minute combat prototype — 2026-09-10
+
+### Scope and baseline
+
+The approved direction preserves the existing terrain, chaser behavior/stats,
+player tuning, modules, upgrades, and hazard cycle. Difficulty grows through
+numbers alone after a forgiving opening. The authored five-minute schedule is
+provisional until human playtests establish the desired retry curve.
+
+The integrated main baseline was `08dd355`; all 175 tests passed before changes.
+A native Armored probe using that unchanged gameplay ran for 64.973 active seconds
+before its sampling limit, reaching 16 kills and 30 hull. It chose Heavy rounds
+at 17.606s and Wide-area rockets at 61.198s. The old elliptical pilot did not plan
+around the hazard or use modules. This was a baseline integration observation,
+not evidence that its tactic should win the new scenario.
+
+On an Apple M1 Pro (10 CPU cores), 16 GiB RAM, macOS 26.6.2 (25G83), native
+`cargo dev` at 1120 × 720 logical / 2240 × 1440 physical pixels reported 59.950
+sampled seconds, median/p95/p99 8.340/8.729/9.034 ms, two hitches above 33.3 ms,
+and 0–4 live enemies. This light workload does not validate the playable cap.
+The normal-size opening/warning/active screenshots rendered successfully; the
+translucent divider, hazard boundaries, charging fields, drone, and text were
+visible. An existing Bevy/winit unknown-window warning appeared on clean shutdown.
+
+### Human acceptance
+
+Use [the DRO-12 playtest checklist](playtests/dro-12-checklist.md) with the manual
+validation mode. Save logs and observations from failed attempts as well as wins.
+Two unfamiliar players are preferred; the original ticket permits two recorded
+fresh human runs as a fallback. State that fallback's limits explicitly.
+
+**Gate status: pending human evidence.** No unfamiliar-player observations or two
+human wins with contrasting tactics have been supplied during implementation.
+Automated runs cannot demonstrate player understanding, a first-win distribution,
+or perceived benefits and drawbacks. Keep this gate pending until those checks
+and any resulting tuning are completed; do not infer acceptance from passing tests.
+
+A separate direct-executable 30-enemy stress attempt omitted the scout model
+because Bevy resolved assets relative to the executable. Its frame timings are
+excluded from acceptance evidence. Direct launches must set BEVY_ASSET_ROOT to
+the worktree root (or use cargo dev); final measurements use the complete scene.
+
+### Presentation fix and inspected captures
+
+The baseline minimum-size capture reproduced overlapping hazard and XP text:
+their independent absolute nodes both occupied the area around 110 pixels above
+the bottom edge. The footer now lays out hazard instructions, XP/acquired upgrades,
+and controls in one wrapping column, using compact text below 800 logical pixels.
+
+Inspected complete-scene warning captures at both sizes after the fix. Hazard
+copy, XP, and controls occupy separate rows; the scout model, charging fields,
+and full-height divider are visible. These opening-state captures establish the
+reported overlap fix, not dense-combat readability or human handling acceptance.
+
+![Five-minute arena at minimum size](images/combat-prototype-640x480.png)
+
+![Five-minute arena at normal size](images/combat-prototype-1120x720.png)
+
+### Five-minute configuration: native Armored probe
+
+The unchanged scripted pilot, normal terrain/hazards, real hull, and naturally
+earned choices reached death at 89.307 active seconds with 20 kills. It selected
+Heavy rounds at 21.499s and Wide-area rockets at 58.774s. No modules were enabled;
+it still follows the old ellipse rather than planning hazard crossings. This
+validates integrated execution and terminal reporting, not a successful tactic
+or the desired retry count. It does not exercise the final pressure stages.
+
+The report reconciled 21 requested/admitted warnings with 20 activations and one
+cancelled unsafe warning; no cap/space/hitch rejections occurred. At 2240 × 1440
+physical resolution, 84.255 active sampled seconds gave median/p95/p99
+8.340/8.748/9.093 ms and one hitch above 33.3 ms. The branch build contained the
+wave milestone and recording code; this is an observed desktop run, not a
+controlled performance comparison. No asset or gameplay errors occurred.
+
+An initial complete-scene cap-30 stress sample, with concurrent development
+compilation, reported median/p95/p99 16.612/18.210/18.583 ms over 29.746 sampled
+seconds, 30–30 enemies, and no >33.3 ms hitches. That sample **misses** the p95
+16.7 ms target and is retained here rather than being replaced by a later result.
+Stress uses invulnerability and replacement enemies; it cannot establish
+natural spawning, human tactics, or difficulty. An isolated follow-up checks
+whether the miss persists without compilation.
+
+### Automated verification
+
+The initial combined checkpoint passed `cargo fmt --check`, `cargo test --locked`
+(187 passed, 0 failed), and `cargo clippy --all-targets --locked -- -D warnings`.
+New checks exercise 300-second terminal/reset rules, authored non-minute phase
+and lull boundaries, spawn-accounting outcomes, record-only input behavior,
+observation reset, and exclusion of a long choice pause and resume boundary from
+frame samples. Existing terrain, hazard/XP, module, and upgrade regressions remain.
+
+The controlled-time Mobile/Armored fixtures exercise upgrade selection and the
+new waves in an **empty arena**, because those fixtures do not install world
+geometry. Armored survives 300 seconds there; this is not evidence of survival
+on the normal terrain map. The explicitly named legacy three-minute empty-arena
+fixture retains its previous survival checks at 30/60/120 Hz.
+
+The isolated follow-up used the complete scene from `b8addec`, with no concurrent
+build/test processes. At the same 2240 × 1440 resolution it sustained 30–30 live
+enemies for 29.866 sampled seconds (3,583 frames): median/p95/p99
+8.338/8.689/8.863 ms, no hitches above 33.3 ms, and 42 sampled kills. This sample
+passes the provisional p95 target at the retained cap of 30. It does not erase
+the preceding miss or establish a performance guarantee under unrelated workloads.
+There were no asset/gameplay errors; the existing shutdown warning remained.
+
+The final `choices` preview also rendered at 640 × 480 and exited cleanly while
+remaining paused at 0.000 active seconds. Inspected all three cards, exact
+benefit/drawback copy, Skip, queued-choice count, and restart instructions. This
+explicit preview granted 140 synthetic XP, so it is UI/pause evidence only.
+No synthetic XP is granted by the manual recorder or normal launch.
+
+Review reproduced a terminal-crossing hitch reporting zero requested enemies
+when two authored requests became due on the outcome update. The new
+`skipped_terminal` counter records due requests suppressed by death/survival
+without creating a warning or enemy. The regression covers both survival and
+fatal damage and confirms that later frozen updates do not count them again.
+The test failed before the fix and passed afterward; all 11 wave checks and
+10 observation checks pass. The subsequent full suite passes all 188 tests,
+with formatting and strict all-targets Clippy also passing at that checkpoint.
+
+Whole-branch review also found that an immediate R after death could clear the
+completed attempt before its delayed result print. At `5d602fe`, outcome entry
+prints and snapshots the final attempt once; the two-second exit delay is
+separate. Regressions failed before the fix and now cover immediate restart,
+subsequent attempts, duplicate suppression, and delayed exit. Focused re-review
+found no remaining code issues.
+
+Final verification at `5d602fe`: `cargo fmt --check`, `cargo test --locked --quiet`
+(**190 passed, 0 failed**), and `cargo clippy --all-targets --locked -- -D warnings`
+all pass. The final two fixes affect accounting/reporting, not gameplay or render
+workloads; native evidence above identifies the earlier source checkpoints.
+The implementation is ready for PR review. **The experiential gate remains
+pending**: no human first-win attempt counts, two successful tactics, or natural
+late-stage pressure/readability observations have been supplied. Use the
+[DRO-12 checklist](playtests/dro-12-checklist.md) to collect that evidence.
+
+
+### PR feedback follow-up
+
+Two accounting/presentation issues were confirmed and fixed after the initial
+handoff. Stress and route probes now clear authored phase metadata together with
+their bursts. Their HUD no longer shows opening/pressure/lull labels, and their
+reports use override stage labels with `wave_status=None`. Earlier native stress
+logs can contain a stale authored wave status; that label does not establish
+normal wave activity and does not change the recorded frame timings/population.
+
+Calling terminal wave cleanup twice before deferred despawns reproduced six
+cancellations for three warnings. Warnings now record cancellation synchronously,
+so later cleanup calls neither recount nor requeue them. Regression coverage
+checks both death and survival, deferred cleanup, and later frozen updates.
+
+At `1b776bf`, all **193 tests**, formatting, and strict all-targets Clippy pass.
+These fixes do not supply the outstanding human playtest evidence.
+
+
+### Manual feedback and approved minimal refinement
+
+The user reported a boring opening, cramped flight space, floaty controls,
+expected banked curves, and a desire for a fast evasive scout with modest damage.
+They also found the upgrade pool too short for the encounter and early choices
+weak because unchosen options return later. No attempt counts, survival times,
+or two successful tactic recordings were supplied with this feedback.
+
+The user selected a minimal PR scope. The final authored schedule is now:
+
+| Active window | Warnings | Final-six-second lull |
+| --- | --- | --- |
+| 0–30 s | 3 enemies at 3, 13, 23 s | 24–30 s |
+| 30–105 s | 3 every 8 s, starting at 30 s | 99–105 s |
+| 105–165 s | 4 every 8 s | 159–165 s |
+| 165–225 s | 6 every 6 s | 219–225 s |
+| 225–300 s | 8 every 4 s | 294–300 s |
+
+This produces 46 bursts / 262 requested enemies before cap/safety/hitch/terminal
+outcomes. Spawn warnings, cap 30, enemy behavior/stats, flight, arena geometry,
+and player balance are unchanged. This supersedes the earlier schedule above;
+earlier native measurements/captures retain their stated source checkpoints.
+
+Once the final eligible upgrade is selected, the HUD immediately displays
+**Build complete | No more upgrades this run** and acquired names. It stops
+showing level/XP progress that implies another reward. Internal XP accounting,
+thresholds, the six-upgrade catalog, offer eligibility, and Skip remain unchanged.
+There is no new slot limit or progression system in this PR.
+
+Regression tests failed before the changes and pass afterward. They cover
+revised authored/HUD boundaries, immediate exhaustion without another level,
+complete-build display, and restoration of normal progress display on reset.
+All **195 tests**, formatting, and strict all-targets Clippy pass; focused review
+found no substantive issues. Human confirmation of the new opening and overall
+experiential gate remains pending another playthrough.
+
+Deferred improvements are tracked separately:
+- [DRO-29: Refine scout banking, steering response, and braking](https://linear.app/drone-survivors/issue/DRO-29/refine-scout-banking-steering-response-and-braking)
+- [DRO-30: Give the scout room for fast evasive flight](https://linear.app/drone-survivors/issue/DRO-30/give-the-scout-room-for-fast-evasive-flight)
+- [DRO-31: Make temporary upgrade choices meaningful throughout a run](https://linear.app/drone-survivors/issue/DRO-31/make-temporary-upgrade-choices-meaningful-throughout-a-run)
+
+
+### Charger-camping feedback: stronger bursts and matched XP pacing
+
+The user reported surviving by staying in a charging zone with overdrive on and
+selecting upgrades. They approved larger late bursts plus a camping comparison
+in this PR, a separate depletion ticket, and reduced kill XP to preserve choice
+timing. The final three stages now spawn **6/9/12** enemies per burst instead of
+4/6/8; times, lulls, the first 105 seconds, cap 30 and enemy behavior are unchanged.
+The schedule requests **375 enemies in 46 bursts** before rejection/outcomes.
+
+Kill XP remains **10 before 105 active seconds, then 7**, based on kill time.
+The pickup still awards 30 XP, and thresholds/choices are unchanged. A global
+7-XP trial delayed the first six left-charger choices by about
+11.6/10.8/27.0/25.7/16.4/9.2 seconds, so the final reduction starts only when
+bursts get larger. This preserves early choices instead of slowing the unchanged
+opening. The estimated authored XP budget is 2733 versus the previous 2620 if
+all enemies are killed in their spawn phase; actual timing is measured below.
+
+The reproducible diagnostic is opt-in:
+
+```sh
+cargo test --locked camping_balance_probe -- --ignored --nocapture
+```
+
+It runs baseline/current pairs at both chargers with overdrive alone and with
+overdrive+shield, plus a moving keyboard-pilot pair: ten deterministic 30 Hz
+simulations with the normal world geometry/hazard, damage, charging and earned
+upgrade offers. Camp cases are placed at a charger once; subsequent movement,
+health, invulnerability and XP are not overridden. This is a combat/XP diagnostic,
+not native rendering performance evidence or a human playthrough.
+
+Temporary charger depletion is tracked in
+[DRO-32](https://linear.app/drone-survivors/issue/DRO-32/temporarily-deplete-charging-zones-to-prevent-unlimited-stationary).
+
+
+At source commit `552d118`, the paired results were:
+
+| Tactic | Previous schedule | Final schedule |
+| --- | --- | --- |
+| Left charger, overdrive with or without shield | Survived 300 s; 262 kills; peak 10 enemies | Survived 300 s; 375 kills; peak 14 enemies |
+| Right charger, overdrive with or without shield | Survived 300 s; 262 kills; peak 11 enemies | Survived 300 s; 375 kills; peak 15 enemies |
+| Moving keyboard pilot | Died at 169.067 s; 65 kills | Died at 181.233 s; 99 kills |
+
+Every requested camping enemy was admitted, activated and killed: there were no
+cap/space rejections or skipped spawns. All camping profiles still won with 130
+hull and 75 energy. More simultaneous enemies therefore do **not** resolve the
+stationary-sustain issue; charger depletion and the human experiential gate
+remain pending. The scripted moving result does not establish a human tactic.
+
+The first four choice times matched exactly in every baseline/current pair.
+Camping choices five and six arrived at most 2.167 seconds earlier; the moving
+pilot's fifth was 0.400 seconds earlier. This supports roughly preserved choice
+pacing for the sampled tactics. Full outcomes, accounting and choice records are
+in [the camping comparison](playtests/dro-12-camping-comparison.md).
+
+Final verification: **196 tests passed, 0 failed, 1 ignored** in the default
+suite. The ignored camping diagnostic was explicitly run and passed all ten
+scenarios. Formatting and strict all-targets Clippy passed; focused final review
+found no substantive issues. These headless results do not replace the earlier
+native performance evidence or the outstanding human playtest.
+
+
+### Start at the previous midpoint pressure
+
+The user reports that the early game can be left unattended until about 150
+seconds remain, and asks to start at that difficulty then steadily increase.
+At source `f159e56`, the opening now has six enemies every eight seconds, with
+warnings at 3/11/19. Later stages use 8 every 8 seconds, 9 every 6, 10 every 5,
+and 12 every 4. Phase boundaries and six-second lulls remain unchanged. This
+supersedes the earlier forgiving opening and yields **50 bursts / 497 enemies**,
+with scheduled active arrival rates of 45/60/90/120/180 per minute.
+
+Kill rewards are now **4 XP throughout** to offset earlier kills. Pickup rewards,
+thresholds, choices, enemy behavior, cap and spawn safety are unchanged. Paired
+normal-arena probes against the immediately previous 375-enemy / 10→7 XP tuning
+place all six camping choices within ten seconds of their previous times, and
+the moving pilot's five shared choices within eight seconds. The moving pilot
+now dies at 134.000 seconds versus 181.233; this is one automated control, not
+human acceptance evidence. All four tuned camping profiles still survive 300
+seconds and kill every one of the 497 requested enemies, with no rejected or
+skipped spawns. Charger depletion remains DRO-32; the experiential gate stays
+pending.
+
+[Full paired results, choice records and limitations](playtests/dro-12-midpoint-comparison.md).
+All **196 tests**, formatting and strict all-targets Clippy pass. The ignored
+balance probe passed all ten scenarios when explicitly run. Focused code review
+found no substantive issues. The older native performance records retain their
+original source checkpoints.
+
+
+### One fewer enemy in every burst
+
+After the `ac7aaaa` tuning, the user found the pressure too high and requested
+exactly one fewer enemy per wave. Stage sizes are now **5/7/8/9/11**, with the
+same warning times, intervals, lulls and 4 XP per kill. There are still 50 bursts,
+now requesting **447 enemies**. Active arrival rates are 37.5/52.5/80/108/165 per
+minute before lulls and spawn limits. No other gameplay tuning changed.
+
+Fresh verification: **196 tests passed**, 0 failed, 1 ignored; formatting and
+strict all-targets Clippy passed. The ignored ten-scenario diagnostic passed
+when explicitly run. All four current charger profiles survived 300 seconds and
+killed all 447 requested enemies, with no rejected/skipped spawns or cancelled
+warnings. Peak enemies were 13 at the left charger and 14 at the right; peak
+warnings were 11. Final hull/energy were 130/75 and earned kill XP was 1788.
+
+Choice times (active seconds, identical timing for both module profiles):
+
+- Left: 21.900 / 48.033 / 74.733 / 112.600 / 139.200 / 176.100.
+- Right: 21.433 / 48.033 / 74.533 / 112.600 / 139.733 / 176.133.
+
+With unchanged per-kill XP, fewer enemies delay sampled choices relative to the
+497-enemy tuning. The moving scripted pilot died at 65.700 seconds with 45 kills,
+compared with 134.000 seconds previously; its two choices occurred at 31.600 and
+49.600. Requested/admitted spawns were 50, activated 47, cancelled 3, with no
+rejected or skipped spawns. This scripted trajectory is not evidence that fewer
+enemies necessarily make every run easier; it earns fewer early upgrades and
+follows a deterministic pilot. Preserve the user's exact count-only adjustment
+and assess feel with the next human playthrough. Camping/DRO-32 and the human
+experiential gate remain pending.

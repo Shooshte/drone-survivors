@@ -9,6 +9,7 @@ pub(crate) use flight::{
 
 mod scene;
 pub use scene::ArenaScenePlugin;
+pub(crate) use scene::{ArenaSceneSetup, FooterFont, HazardFooterSlot, UpgradeFooterSlot};
 
 #[cfg(test)]
 mod tests;

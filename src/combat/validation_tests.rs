@@ -13,8 +13,8 @@ fn validation_arguments_are_opt_in_bounded_and_mode_specific() {
         (ValidationMode::Stress, 150, 30.)
     );
     for (name, mode, seconds) in [
-        ("mobile", ValidationMode::Mobile, 185.),
-        ("armored", ValidationMode::Armored, 185.),
+        ("mobile", ValidationMode::Mobile, 305.),
+        ("armored", ValidationMode::Armored, 305.),
         ("choices", ValidationMode::Choices, 60.),
     ] {
         let config = parse(&["--validate", name]).unwrap().unwrap();
@@ -71,7 +71,7 @@ fn upgrade_validation_app(mode: ValidationMode) -> App {
             seconds: if mode == ValidationMode::Choices {
                 60.
             } else {
-                185.
+                305.
             },
             enemies: 150,
         },
@@ -235,7 +235,7 @@ fn full_mobile_and_armored_runs_finish_and_log_deterministic_builds() {
         ),
     ] {
         let mut app = upgrade_validation_app(mode);
-        for _ in 0..(190 * 30) {
+        for _ in 0..(310 * 30) {
             validation_tick(&mut app, 1. / 30., &[]);
             if matches!(
                 *app.world().resource::<GamePhase>(),
@@ -306,10 +306,29 @@ fn stress_harness_maintains_actual_live_population_while_real_hits_and_kills_run
 }
 
 #[test]
-fn scripted_keyboard_pilot_completes_full_survival_with_real_health() {
+fn legacy_three_minute_empty_arena_pilot_survives_the_previous_schedule() {
     use crate::arena::DroneFlight;
     for rate in [30, 60, 120] {
         let (mut app, drone) = app();
+        {
+            let mut waves = app.world_mut().resource_mut::<WaveConfig>();
+            waves.duration = 180.;
+            waves.bursts = vec![
+                (3., 3),
+                (15., 3),
+                (27., 3),
+                (39., 3),
+                (60., 4),
+                (70., 4),
+                (80., 4),
+                (90., 4),
+                (120., 5),
+                (128., 5),
+                (136., 5),
+                (144., 5),
+                (152., 5),
+            ];
+        }
         let mut peak_enemies = 0;
         for _ in 0..(181 * rate) {
             let run = app.world().resource::<Encounter>().elapsed;
@@ -375,4 +394,49 @@ fn validation_pilot_preserves_restart_and_escape_input() {
             .resource::<ButtonInput<KeyCode>>()
             .just_pressed(KeyCode::Escape)
     );
+}
+
+#[test]
+fn wave_override_modes_do_not_report_authored_phases_or_lulls() {
+    use super::super::scene::{CombatHud, CombatScenePlugin};
+    for mode in [ValidationMode::Stress, ValidationMode::Routes] {
+        let mut app = App::new();
+        app.init_resource::<Time>()
+            .init_resource::<ButtonInput<KeyCode>>()
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .add_message::<AppExit>()
+            .add_plugins((crate::arena::ArenaPlugin, CombatPlugin, CombatScenePlugin));
+        validation::install(
+            &mut app,
+            ValidationConfig {
+                mode,
+                seconds: 30.,
+                enemies: 3,
+            },
+        );
+        app.update();
+        let waves = app.world().resource::<WaveConfig>();
+        assert!(waves.bursts.is_empty());
+        for at in [0., 39., 45., 60., 105., 299.] {
+            assert!(waves.phase_at(at).is_none(), "{mode:?} stale phase at {at}");
+            assert!(
+                waves.status_at(at).is_none(),
+                "{mode:?} stale status at {at}"
+            );
+        }
+        for at in [0., 39., 45.] {
+            app.world_mut().resource_mut::<Encounter>().elapsed = at;
+            step(&mut app, 0., &[]);
+            let text = app
+                .world_mut()
+                .query_filtered::<&Text, With<CombatHud>>()
+                .single(app.world())
+                .unwrap();
+            assert!(text.0.contains("AUTO FIRE"));
+            for stale in ["OPENING", "PRESSURE", "SPAWNING LULL"] {
+                assert!(!text.0.contains(stale), "{mode:?}: {}", text.0);
+            }
+        }
+    }
 }

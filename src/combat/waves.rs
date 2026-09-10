@@ -10,33 +10,127 @@ pub(super) struct WaveConfig {
     pub warning_seconds: f64,
     pub clearance: f32,
     pub bursts: Vec<(f64, usize)>,
+    phases: Vec<WavePhase>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct WavePhase {
+    pub label: &'static str,
+    pub start: f64,
+    pub end: f64,
+    pub lull_start: f64,
+    first_warning: usize,
+    burst_size: usize,
+    interval: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WaveStatus {
+    Active,
+    Lull,
 }
 
 impl Default for WaveConfig {
     fn default() -> Self {
+        let phases = vec![
+            WavePhase {
+                label: "OPENING",
+                start: 0.,
+                end: 30.,
+                lull_start: 24.,
+                first_warning: 3,
+                burst_size: 5,
+                interval: 8,
+            },
+            WavePhase {
+                label: "PRESSURE I",
+                start: 30.,
+                end: 105.,
+                lull_start: 99.,
+                first_warning: 30,
+                burst_size: 7,
+                interval: 8,
+            },
+            WavePhase {
+                label: "PRESSURE II",
+                start: 105.,
+                end: 165.,
+                lull_start: 159.,
+                first_warning: 105,
+                burst_size: 8,
+                interval: 6,
+            },
+            WavePhase {
+                label: "PRESSURE III",
+                start: 165.,
+                end: 225.,
+                lull_start: 219.,
+                first_warning: 165,
+                burst_size: 9,
+                interval: 5,
+            },
+            WavePhase {
+                label: "FINAL PUSH",
+                start: 225.,
+                end: 300.,
+                lull_start: 294.,
+                first_warning: 225,
+                burst_size: 11,
+                interval: 4,
+            },
+        ];
+        let bursts = phases
+            .iter()
+            .flat_map(|phase| {
+                (phase.first_warning..phase.lull_start as usize)
+                    .step_by(phase.interval)
+                    .map(|at| (at as f64, phase.burst_size))
+            })
+            .collect();
         Self {
-            duration: 180.,
+            duration: phases.last().unwrap().end,
             cap: 30,
             warning_seconds: 0.75,
             clearance: 120.,
-            bursts: [
-                (3., 3),
-                (15., 3),
-                (27., 3),
-                (39., 3),
-                (60., 4),
-                (70., 4),
-                (80., 4),
-                (90., 4),
-                (120., 5),
-                (128., 5),
-                (136., 5),
-                (144., 5),
-                (152., 5),
-            ]
-            .into(),
+            bursts,
+            phases,
         }
     }
+}
+
+impl WaveConfig {
+    pub(super) fn disable_authored_waves(&mut self) {
+        self.bursts.clear();
+        self.phases.clear();
+    }
+
+    pub(crate) fn phase_at(&self, elapsed: f64) -> Option<&WavePhase> {
+        self.phases
+            .iter()
+            .find(|phase| elapsed >= phase.start && elapsed < phase.end)
+    }
+
+    pub(crate) fn status_at(&self, elapsed: f64) -> Option<WaveStatus> {
+        self.phase_at(elapsed).map(|phase| {
+            if elapsed >= phase.lull_start {
+                WaveStatus::Lull
+            } else {
+                WaveStatus::Active
+            }
+        })
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SpawnCounts {
+    pub requested: usize,
+    pub admitted: usize,
+    pub rejected_cap: usize,
+    pub rejected_space: usize,
+    pub skipped_hitch: usize,
+    pub skipped_terminal: usize,
+    pub activated: usize,
+    pub cancelled: usize,
 }
 
 #[derive(Resource, Default)]
@@ -45,11 +139,13 @@ pub(crate) struct Encounter {
     pub kills: u32,
     pub next_burst: usize,
     pub candidate: usize,
+    pub spawns: SpawnCounts,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub(super) struct SpawnWarning {
     pub ready_at: f64,
+    pub cancelled: bool,
 }
 
 pub(super) fn advance_clock(time: Res<Time>, config: Res<WaveConfig>, mut run: ResMut<Encounter>) {
@@ -129,7 +225,7 @@ type Occupants<'w, 's> = Query<
         Entity,
         &'static Transform,
         Option<&'static Enemy>,
-        Option<&'static SpawnWarning>,
+        Option<&'static mut SpawnWarning>,
     ),
     Or<(With<Enemy>, With<SpawnWarning>)>,
 >;
@@ -144,14 +240,22 @@ pub(super) fn update(
     player: Single<&Transform, With<Drone>>,
     phase: Res<GamePhase>,
     mut run: ResMut<Encounter>,
-    occupants: Occupants,
+    mut occupants: Occupants,
 ) {
     let mut warnings = Vec::new();
     let mut occupied = Vec::new();
     let half = spawn_half(&combat);
     let mut live = 0;
-    for (id, transform, enemy, warning) in &occupants {
-        if let Some(w) = warning {
+    for (id, transform, enemy, warning) in &mut occupants {
+        if let Some(mut w) = warning {
+            if w.cancelled {
+                continue;
+            }
+            if matches!(*phase, GamePhase::Dead | GamePhase::Survived) {
+                // Despawns are deferred; a second cleanup must see this decision
+                // immediately so it cannot count or queue the same warning twice.
+                w.cancelled = true;
+            }
             warnings.push((id, transform.translation, w.ready_at));
             occupied.push((id, transform.translation, half));
         } else if enemy.is_some_and(|e| e.health > 0) {
@@ -168,6 +272,17 @@ pub(super) fn update(
         return;
     }
     if *phase != GamePhase::Playing {
+        // The outcome wins over spawning, but due requests still need an outcome
+        // in the report (including a hitch crossing the final authored burst).
+        while let Some(&(at, count)) = config.bursts.get(run.next_burst) {
+            if run.elapsed + 1e-7 < at {
+                break;
+            }
+            run.spawns.requested += count;
+            run.spawns.skipped_terminal += count;
+            run.next_burst += 1;
+        }
+        run.spawns.cancelled += warnings.len();
         for (id, _, _) in warnings {
             commands.entity(id).despawn();
         }
@@ -194,8 +309,10 @@ pub(super) fn update(
         {
             spawn_enemy(&mut commands, &combat, position, player.translation);
             live += 1;
+            run.spawns.activated += 1;
         } else {
             occupied.retain(|(other, _, _)| *other != id);
+            run.spawns.cancelled += 1;
         }
     }
     let mut burst = None;
@@ -203,13 +320,18 @@ pub(super) fn update(
         if run.elapsed + 1e-7 < at {
             break;
         }
-        burst = Some(count);
+        run.spawns.requested += count;
+        if let Some(discarded) = burst.replace(count) {
+            run.spawns.skipped_hitch += discarded;
+        }
         run.next_burst += 1;
     }
-    let count = burst
-        .unwrap_or(0)
-        .min(config.cap.saturating_sub(live + pending));
-    for _ in 0..count {
+    let Some(requested) = burst else {
+        return;
+    };
+    let count = requested.min(config.cap.saturating_sub(live + pending));
+    run.spawns.rejected_cap += requested - count;
+    for offset in 0..count {
         let mut selected = None;
         for _ in 0..60 {
             let position = candidate(run.candidate, &arena, half);
@@ -229,17 +351,20 @@ pub(super) fn update(
             }
         }
         let Some(position) = selected else {
+            run.spawns.rejected_space += count - offset;
             break;
         };
         let id = commands
             .spawn((
                 SpawnWarning {
                     ready_at: run.elapsed + config.warning_seconds,
+                    ..default()
                 },
                 Transform::from_translation(position),
             ))
             .id();
         occupied.push((id, position, half));
+        run.spawns.admitted += 1;
     }
 }
 
@@ -278,7 +403,10 @@ mod terrain_tests {
         );
         // A warning that was valid before geometry changed must also be rejected.
         app.world_mut().spawn((
-            SpawnWarning { ready_at: 3. },
+            SpawnWarning {
+                ready_at: 3.,
+                ..default()
+            },
             Transform::from_xyz(280., 90., 0.),
         ));
         app.update();

@@ -4,6 +4,33 @@ use bevy::prelude::*;
 
 use crate::modules::{Loadout, ModuleKind};
 
+#[derive(Resource)]
+pub(crate) struct ExperienceConfig {
+    pub kill_xp: u32,
+    pub early_kill_xp: u32,
+    pub reduction_starts_at: f64,
+}
+
+impl Default for ExperienceConfig {
+    fn default() -> Self {
+        Self {
+            kill_xp: 4,
+            early_kill_xp: 4,
+            reduction_starts_at: 105.,
+        }
+    }
+}
+
+impl ExperienceConfig {
+    pub(crate) fn kill_xp_at(&self, elapsed: f64) -> u32 {
+        if elapsed < self.reduction_starts_at {
+            self.early_kill_xp
+        } else {
+            self.kill_xp
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UpgradeKind {
     Interceptor,
@@ -121,7 +148,7 @@ impl UpgradeRun {
     }
 
     pub(crate) fn prepare_offer(&mut self, loadout: &Loadout) {
-        if self.pending == 0 || !self.offer.is_empty() || self.exhausted {
+        if !self.offer.is_empty() || self.exhausted {
             return;
         }
 
@@ -136,6 +163,11 @@ impl UpgradeRun {
             return;
         }
 
+        // Completion must be visible immediately after the last selection,
+        // without making the player earn another level to discover it.
+        if self.pending == 0 {
+            return;
+        }
         let count = eligible.len().min(3);
         for index in 0..count {
             let sampled = index + self.random_index(eligible.len() - index);

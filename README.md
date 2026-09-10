@@ -63,12 +63,29 @@ weapon automatically fires yellow projectiles at the nearest enemy within
 can miss; each disappears after its first hit, after one second, or on leaving
 the arena. Keep moving to avoid contact.
 
-The three-minute encounter starts with three quiet seconds, then sends increasingly
-frequent groups of three, four, and five chasers. Pink rings warn of incoming
-enemies for 0.75 seconds. Spawns are cancelled if their position becomes unsafe;
-live enemies and pending warnings share a cap of 30. Pauses between bursts let
-you reduce the remaining threat. Nearby chasers steer apart while retaining their
-physical flight.
+The five-minute encounter starts with three quiet seconds, then five enemies
+every eight seconds.
+Pressure increases through larger bursts and shorter intervals:
+
+| Active time | Enemies per burst | Interval |
+| --- | --- | --- |
+| 0–30 seconds | 5 | 8 seconds; first warning at 3 seconds |
+| 30–105 seconds | 7 | 8 seconds |
+| 105–165 seconds | 8 | 6 seconds |
+| 165–225 seconds | 9 | 5 seconds |
+| 225–300 seconds | 11 | 4 seconds |
+
+Each stage ends with at least six seconds without new spawn warnings. The
+schedule requests 447 enemies in 50 bursts before spawn rejection or skipped
+bursts. Surviving is intended to take a few attempts; that difficulty target
+still needs human playtesting.
+
+Only enemy numbers increase. Chaser health, damage, movement, and behavior stay
+constant. Pink rings warn of incoming enemies for 0.75 seconds. Spawns are
+cancelled if their position becomes unsafe; living enemies and pending warnings
+share a cap of 30. Rejected spawns are discarded. Lulls leave surviving enemies
+in play, and existing warnings may still finish. Nearby chasers steer apart
+while retaining their physical flight.
 
 The HUD shows hull, time remaining, living enemies, kills, and the current phase
 or spawning lull. Chasers take two 10-damage hits to kill. Hits briefly flash the
@@ -76,7 +93,7 @@ affected enemy; a small amber burst marks a kill. Contact deals 10 hull damage,
 followed by 0.75 seconds of shared invulnerability. The HUD flashes red on damage
 and shows cyan **HULL PROTECTED** during that protection window.
 
-At zero hull, gameplay freezes and **R** restarts. Survive until 3:00 to freeze
+At zero hull, gameplay freezes and **R** restarts. Survive until 5:00 to freeze
 the encounter with **SURVIVED** and your kill count; remaining enemies do not need
 to be cleared. R also restarts during combat or lulls, clearing enemies, shots,
 warnings, effects, kills, timers, and flight momentum. Balance values are
@@ -157,10 +174,14 @@ authored route graph while retaining their normal thrust and momentum.
 
 ### Experience and temporary choices
 
-Kills award 10 XP automatically. One green exploration pickup at the far side
+Kills award 4 XP throughout the encounter to offset the denser opening.
+One green exploration pickup at the far side
 of the arena grants 30 XP when the drone's center enters its visible 30-unit
 sphere; it can be collected once per run. The HUD shows level, XP to the next
-level, and acquired upgrades. Start at level 1: the first choice costs 50 XP,
+level, and acquired upgrades. Once no eligible upgrades remain, it immediately
+shows **Build complete** and the acquired upgrades instead of level/XP progress.
+XP accounting continues internally, but no further choices are promised.
+Start at level 1: the first choice costs 50 XP,
 then each level costs 25 more. Excess XP carries over.
 
 Leveling pauses the encounter and offers up to three eligible upgrades. Select
@@ -201,9 +222,24 @@ the next queued choice with held input. **R** restarts even during a choice,
 restoring baseline stats, XP, pickup, modules and the encounter. Death or victory
 on a threshold frame takes precedence over selection. All tuning is provisional.
 
+### Charger-camping balance comparison
+
+```sh
+cargo test --locked camping_balance_probe -- --ignored --nocapture
+```
+
+This opt-in 30 Hz simulation compares the previous and current waves/XP at both
+chargers, with overdrive and overdrive-plus-shield builds, plus a moving keyboard
+pilot. It uses the actual terrain/hazard and normally earned upgrade choices.
+Camping fixtures start at a charger; the harness does not hold their position,
+refill health, or grant XP. Output includes outcomes, choice times, energy,
+peak population and spawn accounting. It is not a rendering benchmark or a human
+playtest; surviving camping probes leave the experiential gate pending.
+
 ### Repeatable native validation
 
 ```sh
+cargo dev -- --validate manual --seconds 600
 cargo dev -- --validate survival
 cargo dev -- --validate idle
 cargo dev -- --validate routes --seconds 40
@@ -212,6 +248,14 @@ cargo dev -- --validate armored
 cargo dev -- --validate choices
 cargo dev -- --validate stress --enemies 150 --seconds 30
 ```
+
+Manual records a human-controlled run without driving the drone, choosing
+upgrades, granting XP, or changing gameplay. It logs module changes, charging,
+route crossings, upgrade resolutions, and spawn pressure. Use `--seconds 600`
+to leave time for reading upgrade choices; the limit includes wall time. R
+restarts and clears the observations for the new attempt. Completed results print
+immediately on death or survival, before the two-second exit delay. Save terminal output
+alongside the human observations in [the playtest checklist](docs/playtests/dro-12-checklist.md).
 
 Survival uses a repeatable keyboard pilot with collision avoidance; it does not
 change health, damage, movement physics, or the authored waves. Idle applies no
