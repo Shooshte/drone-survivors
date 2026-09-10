@@ -149,3 +149,11 @@ so upgrade choice timing remains roughly stable.
   recovery, readable status, and pause/reset requirements; link it to DRO-12.
 - Update README, spec/checklist and evidence; run formatting, full tests and
   strict Clippy, commit, push and update PR11. Preserve all flight/enemy rules.
+
+
+XP refinement during verification: a global 7-XP candidate delayed the first
+six left-charger choices by roughly 12/11/27/26/16/9 seconds. Retain 10 XP until
+105 active seconds and reduce to 7 thereafter. ExperienceConfig exposes
+`early_kill_xp`, `reduction_starts_at`, and `kill_xp`; reward uses kill time.
+A regression covers the phase boundary, exact-once credit, and reset. Baseline
+and final diagnostic scenarios must use the same module profiles at each charger.

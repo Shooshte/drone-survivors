@@ -1135,3 +1135,64 @@ Deferred improvements are tracked separately:
 - [DRO-29: Refine scout banking, steering response, and braking](https://linear.app/drone-survivors/issue/DRO-29/refine-scout-banking-steering-response-and-braking)
 - [DRO-30: Give the scout room for fast evasive flight](https://linear.app/drone-survivors/issue/DRO-30/give-the-scout-room-for-fast-evasive-flight)
 - [DRO-31: Make temporary upgrade choices meaningful throughout a run](https://linear.app/drone-survivors/issue/DRO-31/make-temporary-upgrade-choices-meaningful-throughout-a-run)
+
+
+### Charger-camping feedback: stronger bursts and matched XP pacing
+
+The user reported surviving by staying in a charging zone with overdrive on and
+selecting upgrades. They approved larger late bursts plus a camping comparison
+in this PR, a separate depletion ticket, and reduced kill XP to preserve choice
+timing. The final three stages now spawn **6/9/12** enemies per burst instead of
+4/6/8; times, lulls, the first 105 seconds, cap 30 and enemy behavior are unchanged.
+The schedule requests **375 enemies in 46 bursts** before rejection/outcomes.
+
+Kill XP remains **10 before 105 active seconds, then 7**, based on kill time.
+The pickup still awards 30 XP, and thresholds/choices are unchanged. A global
+7-XP trial delayed the first six left-charger choices by about
+11.6/10.8/27.0/25.7/16.4/9.2 seconds, so the final reduction starts only when
+bursts get larger. This preserves early choices instead of slowing the unchanged
+opening. The estimated authored XP budget is 2733 versus the previous 2620 if
+all enemies are killed in their spawn phase; actual timing is measured below.
+
+The reproducible diagnostic is opt-in:
+
+```sh
+cargo test --locked camping_balance_probe -- --ignored --nocapture
+```
+
+It runs baseline/current pairs at both chargers with overdrive alone and with
+overdrive+shield, plus a moving keyboard-pilot pair: ten deterministic 30 Hz
+simulations with the normal world geometry/hazard, damage, charging and earned
+upgrade offers. Camp cases are placed at a charger once; subsequent movement,
+health, invulnerability and XP are not overridden. This is a combat/XP diagnostic,
+not native rendering performance evidence or a human playthrough.
+
+Temporary charger depletion is tracked in
+[DRO-32](https://linear.app/drone-survivors/issue/DRO-32/temporarily-deplete-charging-zones-to-prevent-unlimited-stationary).
+
+
+At source commit `552d118`, the paired results were:
+
+| Tactic | Previous schedule | Final schedule |
+| --- | --- | --- |
+| Left charger, overdrive with or without shield | Survived 300 s; 262 kills; peak 10 enemies | Survived 300 s; 375 kills; peak 14 enemies |
+| Right charger, overdrive with or without shield | Survived 300 s; 262 kills; peak 11 enemies | Survived 300 s; 375 kills; peak 15 enemies |
+| Moving keyboard pilot | Died at 169.067 s; 65 kills | Died at 181.233 s; 99 kills |
+
+Every requested camping enemy was admitted, activated and killed: there were no
+cap/space rejections or skipped spawns. All camping profiles still won with 130
+hull and 75 energy. More simultaneous enemies therefore do **not** resolve the
+stationary-sustain issue; charger depletion and the human experiential gate
+remain pending. The scripted moving result does not establish a human tactic.
+
+The first four choice times matched exactly in every baseline/current pair.
+Camping choices five and six arrived at most 2.167 seconds earlier; the moving
+pilot's fifth was 0.400 seconds earlier. This supports roughly preserved choice
+pacing for the sampled tactics. Full outcomes, accounting and choice records are
+in [the camping comparison](playtests/dro-12-camping-comparison.md).
+
+Final verification: **196 tests passed, 0 failed, 1 ignored** in the default
+suite. The ignored camping diagnostic was explicitly run and passed all ten
+scenarios. Formatting and strict all-targets Clippy passed; focused final review
+found no substantive issues. These headless results do not replace the earlier
+native performance evidence or the outstanding human playtest.

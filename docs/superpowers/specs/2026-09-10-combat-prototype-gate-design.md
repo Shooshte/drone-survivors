@@ -193,3 +193,22 @@ upgrades without level/XP progress. Retain internal XP accounting, all existing
 upgrade rules, and the six-upgrade catalog. A four-slot build limit was proposed
 but not accepted for this PR. See the final schedule, evidence, and follow-up
 Linear links in docs/playtests.md. Another human playthrough remains required.
+
+
+## Approved camping-pressure amendment
+
+The user approved increasing the final three burst sizes from 4/6/8 to 6/9/12
+and lowering kill XP to preserve approximate upgrade-choice timing. The opening,
+first pressure phase, all burst times/lulls, cap 30, warning/safety behavior,
+and enemy/player rules remain unchanged. The authored total becomes 375 enemies
+across 46 bursts. Kill XP stays at 10 before 105 active seconds and becomes 7
+from 105 seconds onward, using the time of the kill. This preserves the unchanged
+early waves' reward budget. The theoretical budget is 2733 versus the previous
+2620 if all requested enemies die in their respective phases. Pickup XP and
+thresholds remain unchanged; actual choice timing is checked separately.
+
+The PR includes a repeatable full-arena camping comparison with normal damage,
+charging and earned choices. If camping still wins, keep the experiential gate
+pending rather than infer success from increased enemy requests. Temporary
+charger depletion is approved as separate follow-up
+[DRO-32](https://linear.app/drone-survivors/issue/DRO-32/temporarily-deplete-charging-zones-to-prevent-unlimited-stationary).

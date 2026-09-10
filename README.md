@@ -66,7 +66,7 @@ the arena. Keep moving to avoid contact.
 The five-minute encounter starts with three quiet seconds and a forgiving
 30-second opening with three-enemy warnings at 3, 13, and 23 seconds.
 Enemy arrivals then accelerate through four pressure stages: 3 every 8 seconds,
-4 every 8 seconds, 6 every 6 seconds, and finally 8 every
+6 every 8 seconds, 9 every 6 seconds, and finally 12 every
 4 seconds. Each pressure stage ends with at least six seconds without new spawn
 warnings. Surviving is intended to take a few attempts; that difficulty target
 still needs human playtesting.
@@ -165,7 +165,8 @@ authored route graph while retaining their normal thrust and momentum.
 
 ### Experience and temporary choices
 
-Kills award 10 XP automatically. One green exploration pickup at the far side
+Kills award 10 XP before 105 active seconds, then 7 XP during the denser phases.
+The reward uses the time of the kill. One green exploration pickup at the far side
 of the arena grants 30 XP when the drone's center enters its visible 30-unit
 sphere; it can be collected once per run. The HUD shows level, XP to the next
 level, and acquired upgrades. Once no eligible upgrades remain, it immediately
@@ -211,6 +212,20 @@ protection, spawning and projectiles. Selecting cannot toggle a module or consum
 the next queued choice with held input. **R** restarts even during a choice,
 restoring baseline stats, XP, pickup, modules and the encounter. Death or victory
 on a threshold frame takes precedence over selection. All tuning is provisional.
+
+### Charger-camping balance comparison
+
+```sh
+cargo test --locked camping_balance_probe -- --ignored --nocapture
+```
+
+This opt-in 30 Hz simulation compares the previous and current waves/XP at both
+chargers, with overdrive and overdrive-plus-shield builds, plus a moving keyboard
+pilot. It uses the actual terrain/hazard and normally earned upgrade choices.
+Camping fixtures start at a charger; the harness does not hold their position,
+refill health, or grant XP. Output includes outcomes, choice times, energy,
+peak population and spawn accounting. It is not a rendering benchmark or a human
+playtest; surviving camping probes leave the experiential gate pending.
 
 ### Repeatable native validation
 
