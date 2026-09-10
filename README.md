@@ -63,12 +63,19 @@ weapon automatically fires yellow projectiles at the nearest enemy within
 can miss; each disappears after its first hit, after one second, or on leaving
 the arena. Keep moving to avoid contact.
 
-The three-minute encounter starts with three quiet seconds, then sends increasingly
-frequent groups of three, four, and five chasers. Pink rings warn of incoming
-enemies for 0.75 seconds. Spawns are cancelled if their position becomes unsafe;
-live enemies and pending warnings share a cap of 30. Pauses between bursts let
-you reduce the remaining threat. Nearby chasers steer apart while retaining their
-physical flight.
+The five-minute encounter starts with three quiet seconds and a forgiving
+45-second opening. Enemy arrivals then accelerate through four pressure stages:
+3 every 12 seconds, 4 every 8 seconds, 6 every 6 seconds, and finally 8 every
+4 seconds. Each pressure stage ends with at least six seconds without new spawn
+warnings. Surviving is intended to take a few attempts; that difficulty target
+still needs human playtesting.
+
+Only enemy numbers increase. Chaser health, damage, movement, and behavior stay
+constant. Pink rings warn of incoming enemies for 0.75 seconds. Spawns are
+cancelled if their position becomes unsafe; living enemies and pending warnings
+share a cap of 30. Rejected spawns are discarded. Lulls leave surviving enemies
+in play, and existing warnings may still finish. Nearby chasers steer apart
+while retaining their physical flight.
 
 The HUD shows hull, time remaining, living enemies, kills, and the current phase
 or spawning lull. Chasers take two 10-damage hits to kill. Hits briefly flash the
@@ -76,7 +83,7 @@ affected enemy; a small amber burst marks a kill. Contact deals 10 hull damage,
 followed by 0.75 seconds of shared invulnerability. The HUD flashes red on damage
 and shows cyan **HULL PROTECTED** during that protection window.
 
-At zero hull, gameplay freezes and **R** restarts. Survive until 3:00 to freeze
+At zero hull, gameplay freezes and **R** restarts. Survive until 5:00 to freeze
 the encounter with **SURVIVED** and your kill count; remaining enemies do not need
 to be cleared. R also restarts during combat or lulls, clearing enemies, shots,
 warnings, effects, kills, timers, and flight momentum. Balance values are
@@ -204,6 +211,7 @@ on a threshold frame takes precedence over selection. All tuning is provisional.
 ### Repeatable native validation
 
 ```sh
+cargo dev -- --validate manual --seconds 600
 cargo dev -- --validate survival
 cargo dev -- --validate idle
 cargo dev -- --validate routes --seconds 40
@@ -212,6 +220,13 @@ cargo dev -- --validate armored
 cargo dev -- --validate choices
 cargo dev -- --validate stress --enemies 150 --seconds 30
 ```
+
+Manual records a human-controlled run without driving the drone, choosing
+upgrades, granting XP, or changing gameplay. It logs module changes, charging,
+route crossings, upgrade resolutions, and spawn pressure. Use `--seconds 600`
+to leave time for reading upgrade choices; the limit includes wall time. R
+restarts and clears the observations for the new attempt. Save terminal output
+alongside the human observations in [the playtest checklist](docs/playtests/dro-12-checklist.md).
 
 Survival uses a repeatable keyboard pilot with collision avoidance; it does not
 change health, damage, movement physics, or the authored waves. Idle applies no

@@ -939,3 +939,100 @@ warning before resuming damage. The rotation-correction regressions remain green
 
 `cargo test --locked` passes all 175 tests. `cargo fmt --check` and
 `cargo clippy --all-targets --locked -- -D warnings` also pass.
+
+## DRO-12 — Five-minute combat prototype — 2026-09-10
+
+### Scope and baseline
+
+The approved direction preserves the existing terrain, chaser behavior/stats,
+player tuning, modules, upgrades, and hazard cycle. Difficulty grows through
+numbers alone after a forgiving opening. The authored five-minute schedule is
+provisional until human playtests establish the desired retry curve.
+
+The integrated main baseline was `08dd355`; all 175 tests passed before changes.
+A native Armored probe using that unchanged gameplay ran for 64.973 active seconds
+before its sampling limit, reaching 16 kills and 30 hull. It chose Heavy rounds
+at 17.606s and Wide-area rockets at 61.198s. The old elliptical pilot did not plan
+around the hazard or use modules. This was a baseline integration observation,
+not evidence that its tactic should win the new scenario.
+
+On an Apple M1 Pro (10 CPU cores), 16 GiB RAM, macOS 26.6.2 (25G83), native
+`cargo dev` at 1120 × 720 logical / 2240 × 1440 physical pixels reported 59.950
+sampled seconds, median/p95/p99 8.340/8.729/9.034 ms, two hitches above 33.3 ms,
+and 0–4 live enemies. This light workload does not validate the playable cap.
+The normal-size opening/warning/active screenshots rendered successfully; the
+translucent divider, hazard boundaries, charging fields, drone, and text were
+visible. An existing Bevy/winit unknown-window warning appeared on clean shutdown.
+
+### Human acceptance
+
+Use [the DRO-12 playtest checklist](playtests/dro-12-checklist.md) with the manual
+validation mode. Save logs and observations from failed attempts as well as wins.
+Two unfamiliar players are preferred; the original ticket permits two recorded
+fresh human runs as a fallback. State that fallback's limits explicitly.
+
+**Gate status: pending human evidence.** No unfamiliar-player observations or two
+human wins with contrasting tactics have been supplied during implementation.
+Automated runs cannot demonstrate player understanding, a first-win distribution,
+or perceived benefits and drawbacks. Keep this gate pending until those checks
+and any resulting tuning are completed; do not infer acceptance from passing tests.
+
+A separate direct-executable 30-enemy stress attempt omitted the scout model
+because Bevy resolved assets relative to the executable. Its frame timings are
+excluded from acceptance evidence. Direct launches must set BEVY_ASSET_ROOT to
+the worktree root (or use cargo dev); final measurements use the complete scene.
+
+### Presentation fix and inspected captures
+
+The baseline minimum-size capture reproduced overlapping hazard and XP text:
+their independent absolute nodes both occupied the area around 110 pixels above
+the bottom edge. The footer now lays out hazard instructions, XP/acquired upgrades,
+and controls in one wrapping column, using compact text below 800 logical pixels.
+
+Inspected complete-scene warning captures at both sizes after the fix. Hazard
+copy, XP, and controls occupy separate rows; the scout model, charging fields,
+and full-height divider are visible. These opening-state captures establish the
+reported overlap fix, not dense-combat readability or human handling acceptance.
+
+![Five-minute arena at minimum size](images/combat-prototype-640x480.png)
+
+![Five-minute arena at normal size](images/combat-prototype-1120x720.png)
+
+### Five-minute configuration: native Armored probe
+
+The unchanged scripted pilot, normal terrain/hazards, real hull, and naturally
+earned choices reached death at 89.307 active seconds with 20 kills. It selected
+Heavy rounds at 21.499s and Wide-area rockets at 58.774s. No modules were enabled;
+it still follows the old ellipse rather than planning hazard crossings. This
+validates integrated execution and terminal reporting, not a successful tactic
+or the desired retry count. It does not exercise the final pressure stages.
+
+The report reconciled 21 requested/admitted warnings with 20 activations and one
+cancelled unsafe warning; no cap/space/hitch rejections occurred. At 2240 × 1440
+physical resolution, 84.255 active sampled seconds gave median/p95/p99
+8.340/8.748/9.093 ms and one hitch above 33.3 ms. The branch build contained the
+wave milestone and recording code; this is an observed desktop run, not a
+controlled performance comparison. No asset or gameplay errors occurred.
+
+An initial complete-scene cap-30 stress sample, with concurrent development
+compilation, reported median/p95/p99 16.612/18.210/18.583 ms over 29.746 sampled
+seconds, 30–30 enemies, and no >33.3 ms hitches. That sample **misses** the p95
+16.7 ms target and is retained here rather than being replaced by a later result.
+Stress uses invulnerability and replacement enemies; it cannot establish
+natural spawning, human tactics, or difficulty. An isolated follow-up checks
+whether the miss persists without compilation.
+
+### Automated verification
+
+The combined implementation passes `cargo fmt --check`, `cargo test --locked`
+(187 passed, 0 failed), and `cargo clippy --all-targets --locked -- -D warnings`.
+New checks exercise 300-second terminal/reset rules, authored non-minute phase
+and lull boundaries, spawn-accounting outcomes, record-only input behavior,
+observation reset, and exclusion of a long choice pause and resume boundary from
+frame samples. Existing terrain, hazard/XP, module, and upgrade regressions remain.
+
+The controlled-time Mobile/Armored fixtures exercise upgrade selection and the
+new waves in an **empty arena**, because those fixtures do not install world
+geometry. Armored survives 300 seconds there; this is not evidence of survival
+on the normal terrain map. The explicitly named legacy three-minute empty-arena
+fixture retains its previous survival checks at 30/60/120 Hz.

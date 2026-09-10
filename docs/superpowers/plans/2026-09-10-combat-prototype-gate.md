@@ -53,6 +53,17 @@ for (start, end, size, interval) in [(45,105,3,12), (105,165,4,8), (165,225,6,6)
 - [ ] Update README to explain five-minute pacing and manual recording command. Record exact final schedule, actual results, and a repeatable human playtest sheet. Keep the gate pending when human evidence is unavailable.
 - [ ] Run cargo fmt --check, cargo test --locked, cargo clippy --all-targets --locked -- -D warnings. Commit validated observation/documentation milestone.
 
+## Additional validated scope: footer readability
+
+The baseline 640 × 480 native capture reproduces an overlap between hazard
+instructions and XP summary: independent absolute nodes share bottom offsets of
+108 and 112 pixels. Group the hazard summary, XP/acquired upgrades, and controls
+in a shared footer flow, with compact text at minimum size. Keep critical state
+and acquired names visible. This fixes a demonstrated acceptance failure within
+the existing arena; it does not change game rules. Inspect native recaptures at
+both sizes, including an acquired-upgrade list. Commit the presentation fix
+separately and include it in whole-branch review.
+
 ## Task 3: Review and delivery
 
 - [ ] Review the complete branch against the approved spec and fix substantive findings with focused regressions.
@@ -62,3 +73,8 @@ for (start, end, size, interval) in [(45,105,3,12), (105,165,4,8), (165,225,6,6)
 ## Progress
 
 - Baseline: all 175 tests pass on 08dd355. Spec approved by user's implementation request.
+
+- Wave milestone committed 612461d; full 187tests pass.
+- Footer milestone committed 005cf92; separate review clean and complete-scene native captures inspected.
+- Combined formatting, 187tests, and strict all-targets Clippy passed during root verification.
+- Native terrain Armored probe died at 89.307s; this does not establish a winning tactic. Human acceptance remains pending.
