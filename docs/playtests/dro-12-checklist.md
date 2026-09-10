@@ -10,8 +10,9 @@ Run `cargo dev -- --validate manual --seconds 600` from the project and save the
 terminal output. Manual mode leaves flight, module keys, mouse/keyboard upgrade
 choices, and Skip to the player. It applies no combat overrides. The ten-minute
 wall-time limit allows pauses to read cards; survival still requires five minutes
-of gameplay. R starts a fresh attempt; save the previous attempt's result first.
-Escape quits. Launch again if the process exits after a result.
+of gameplay. Results print immediately on death or survival, before the two-second
+exit delay. R starts a fresh attempt and clears its measurements; keep the terminal
+log to retain previous results. Escape quits. Launch again if the process exits.
 
 Use two players unfamiliar with the game when available. Otherwise record/review
 two fresh runs yourself and mark the same-player fallback. The fallback cannot

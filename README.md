@@ -225,7 +225,8 @@ Manual records a human-controlled run without driving the drone, choosing
 upgrades, granting XP, or changing gameplay. It logs module changes, charging,
 route crossings, upgrade resolutions, and spawn pressure. Use `--seconds 600`
 to leave time for reading upgrade choices; the limit includes wall time. R
-restarts and clears the observations for the new attempt. Save terminal output
+restarts and clears the observations for the new attempt. Completed results print
+immediately on death or survival, before the two-second exit delay. Save terminal output
 alongside the human observations in [the playtest checklist](docs/playtests/dro-12-checklist.md).
 
 Survival uses a repeatable keyboard pilot with collision avoidance; it does not

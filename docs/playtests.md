@@ -1024,7 +1024,7 @@ whether the miss persists without compilation.
 
 ### Automated verification
 
-The combined implementation passes `cargo fmt --check`, `cargo test --locked`
+The initial combined checkpoint passed `cargo fmt --check`, `cargo test --locked`
 (187 passed, 0 failed), and `cargo clippy --all-targets --locked -- -D warnings`.
 New checks exercise 300-second terminal/reset rules, authored non-minute phase
 and lull boundaries, spawn-accounting outcomes, record-only input behavior,
@@ -1044,3 +1044,34 @@ enemies for 29.866 sampled seconds (3,583 frames): median/p95/p99
 passes the provisional p95 target at the retained cap of 30. It does not erase
 the preceding miss or establish a performance guarantee under unrelated workloads.
 There were no asset/gameplay errors; the existing shutdown warning remained.
+
+The final `choices` preview also rendered at 640 × 480 and exited cleanly while
+remaining paused at 0.000 active seconds. Inspected all three cards, exact
+benefit/drawback copy, Skip, queued-choice count, and restart instructions. This
+explicit preview granted 140 synthetic XP, so it is UI/pause evidence only.
+No synthetic XP is granted by the manual recorder or normal launch.
+
+Review reproduced a terminal-crossing hitch reporting zero requested enemies
+when two authored requests became due on the outcome update. The new
+`skipped_terminal` counter records due requests suppressed by death/survival
+without creating a warning or enemy. The regression covers both survival and
+fatal damage and confirms that later frozen updates do not count them again.
+The test failed before the fix and passed afterward; all 11 wave checks and
+10 observation checks pass. The subsequent full suite passes all 188 tests,
+with formatting and strict all-targets Clippy also passing at that checkpoint.
+
+Whole-branch review also found that an immediate R after death could clear the
+completed attempt before its delayed result print. At `5d602fe`, outcome entry
+prints and snapshots the final attempt once; the two-second exit delay is
+separate. Regressions failed before the fix and now cover immediate restart,
+subsequent attempts, duplicate suppression, and delayed exit. Focused re-review
+found no remaining code issues.
+
+Final verification at `5d602fe`: `cargo fmt --check`, `cargo test --locked --quiet`
+(**190 passed, 0 failed**), and `cargo clippy --all-targets --locked -- -D warnings`
+all pass. The final two fixes affect accounting/reporting, not gameplay or render
+workloads; native evidence above identifies the earlier source checkpoints.
+The implementation is ready for PR review. **The experiential gate remains
+pending**: no human first-win attempt counts, two successful tactics, or natural
+late-stage pressure/readability observations have been supplied. Use the
+[DRO-12 checklist](playtests/dro-12-checklist.md) to collect that evidence.

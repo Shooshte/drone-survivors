@@ -24,8 +24,8 @@
 
 **Interfaces:** Add WaveConfig phase/status helpers; Encounter owns `pub spawns: SpawnCounts`. SpawnCounts derives Default/Debug/Clone/Copy and has public usize fields: requested, admitted, rejected_cap, rejected_space, skipped_hitch, skipped_terminal, activated, cancelled. Review refinement: skipped_terminal accounts due requests suppressed by death/survival without creating warnings. Requested includes every due authored enemy; admitted counts created warnings; skipped_hitch counts enemies in older discarded bursts. While playing: requested = admitted + rejected_cap + rejected_space + skipped_hitch + skipped_terminal. Admitted = activated + cancelled + currently pending warnings. Terminal cancellation counts too; reset clears all fields.
 
-- [ ] Change the existing default-duration integration test to require survival at 300 seconds, prove Playing at 180, cancel pending warnings on completion, and reset run state. Run the focused test and observe its failure before implementation.
-- [ ] Generate warning times using integer seconds, with the opening at 3/18/33 and subsequent windows below. Suppress final six seconds of each pressure window. Keep phase metadata authoritative for HUD labels; do not infer lulls by calendar minute.
+- [x] Change the existing default-duration integration test to require survival at 300 seconds, prove Playing at 180, cancel pending warnings on completion, and reset run state. Run the focused test and observe its failure before implementation.
+- [x] Generate warning times using integer seconds, with the opening at 3/18/33 and subsequent windows below. Suppress final six seconds of each pressure window. Keep phase metadata authoritative for HUD labels; do not infer lulls by calendar minute.
 
 ```rust
 let mut bursts = vec![(3., 3), (18., 3), (33., 3)];
@@ -36,9 +36,9 @@ for (start, end, size, interval) in [(45,105,3,12), (105,165,4,8), (165,225,6,6)
 }
 ```
 
-- [ ] Test window boundaries through real warnings, full warning delay, fixed enemy health/flight configuration across stages, no duplicate warnings, and lulls before non-minute boundaries. Cover accounting for admission, cap rejection, no safe position, cancelled warning, hitch, terminal cancellation, and reset.
-- [ ] Update duration-dependent fixtures to use configured duration. Preserve the old scripted-pilot victory test as an explicitly named legacy three-minute empty-arena fixture; do not weaken it or claim it proves the new scenario. Extend general full-run test budgets to 310 active seconds where they use the new default.
-- [ ] Run focused and full tests. Commit gameplay milestone with only task-owned files.
+- [x] Test window boundaries through real warnings, full warning delay, fixed enemy health/flight configuration across stages, no duplicate warnings, and lulls before non-minute boundaries. Cover accounting for admission, cap rejection, no safe position, cancelled warning, hitch, terminal cancellation, and reset.
+- [x] Update duration-dependent fixtures to use configured duration. Preserve the old scripted-pilot victory test as an explicitly named legacy three-minute empty-arena fixture; do not weaken it or claim it proves the new scenario. Extend general full-run test budgets to 310 active seconds where they use the new default.
+- [x] Run focused and full tests. Commit gameplay milestone with only task-owned files.
 
 ## Task 2: Opt-in observations and native validation
 
@@ -46,12 +46,12 @@ for (start, end, size, interval) in [(45,105,3,12), (105,165,4,8), (165,225,6,6)
 
 **Interfaces:** Consume Encounter.spawns and existing WaveConfig/UpgradeRun/Energy state. Preserve `ValidationConfig { mode, seconds, enemies }`. Add Manual mode if needed for human record-only validation: no pilot, no synthetic XP, no automatic choices, no gameplay overrides. Existing automated modes remain explicitly labeled probes. Default encounter validation sample limit becomes 305 seconds; Stress and Choices retain their shorter defaults.
 
-- [ ] Add failing tests for a five-minute validation default and Manual mode preserving movement/module/choice input. Assert Manual does not alter waves, grant XP, refill hull, or drive the drone.
-- [ ] Record progress/final spawn counters and active-stage counts so a saturated cap is visible. Record module state changes, charger entry/exit, choices, and route side crossings without changing gameplay. Reset observations on R; do not count initial state as a deliberate decision.
-- [ ] Prevent paused intervals from entering frame-time samples on resume by retaining whether the previous sample boundary was Playing. Test a simulated long choice pause rather than relying on wall-clock sleeping.
-- [ ] Run a native baseline before wave edits, then the final normal/pilot and stress modes. Capture the actual scene at normal/minimum size and inspect the images. Document synthetic overrides and inability to infer human experience from probes. Do not raise the cap or adjust XP without evidence.
-- [ ] Update README to explain five-minute pacing and manual recording command. Record exact final schedule, actual results, and a repeatable human playtest sheet. Keep the gate pending when human evidence is unavailable.
-- [ ] Run cargo fmt --check, cargo test --locked, cargo clippy --all-targets --locked -- -D warnings. Commit validated observation/documentation milestone.
+- [x] Add failing tests for a five-minute validation default and Manual mode preserving movement/module/choice input. Assert Manual does not alter waves, grant XP, refill hull, or drive the drone.
+- [x] Record progress/final spawn counters and active-stage counts so a saturated cap is visible. Record module state changes, charger entry/exit, choices, and route side crossings without changing gameplay. Reset observations on R; do not count initial state as a deliberate decision.
+- [x] Prevent paused intervals from entering frame-time samples on resume by retaining whether the previous sample boundary was Playing. Test a simulated long choice pause rather than relying on wall-clock sleeping.
+- [x] Run a native baseline before wave edits, then the final normal/pilot and stress modes. Capture the actual scene at normal/minimum size and inspect the images. Document synthetic overrides and inability to infer human experience from probes. Do not raise the cap or adjust XP without evidence.
+- [x] Update README to explain five-minute pacing and manual recording command. Record exact final schedule, actual results, and a repeatable human playtest sheet. Keep the gate pending when human evidence is unavailable.
+- [x] Run cargo fmt --check, cargo test --locked, cargo clippy --all-targets --locked -- -D warnings. Commit validated observation/documentation milestone.
 
 ## Additional validated scope: footer readability
 
@@ -66,8 +66,8 @@ separately and include it in whole-branch review.
 
 ## Task 3: Review and delivery
 
-- [ ] Review the complete branch against the approved spec and fix substantive findings with focused regressions.
-- [ ] Verify final tests, clean diff, native results, and truthful gate status. Commit any review fixes and evidence separately.
+- [x] Review the complete branch against the approved spec and fix substantive findings with focused regressions.
+- [x] Verify final tests, clean diff, native results, and truthful gate status. Commit any review fixes and evidence separately.
 - [ ] Push codex/dro-12-combat-prototype and create a PR against main, with completed implementation and pending human gate evidence distinguished. Preserve the worktree for follow-up.
 
 ## Progress
@@ -78,3 +78,9 @@ separately and include it in whole-branch review.
 - Footer milestone committed 005cf92; separate review clean and complete-scene native captures inspected.
 - Combined formatting, 187tests, and strict all-targets Clippy passed during root verification.
 - Native terrain Armored probe died at 89.307s; this does not establish a winning tactic. Human acceptance remains pending.
+
+- Observation milestone committed b8addec; manual mode preserves player control and records decisions/population.
+- Review fixes 772afc6 and 5d602fe cover terminal spawn accounting and immediate result reporting. Focused re-review found no remaining code issues.
+- Final formatting, 190 tests, and strict all-targets Clippy pass at 5d602fe.
+- Isolated full-scene cap-30 sample: p95 8.689 ms; earlier concurrent-build miss retained in docs/playtests.md.
+- Implementation and evidence are ready for PR handoff; required human playtests remain pending.
