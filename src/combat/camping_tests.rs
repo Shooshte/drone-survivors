@@ -44,24 +44,10 @@ impl Balance {
         }
     }
 
-    fn kill_xp(self) -> u32 {
-        match self {
-            Self::Baseline => 10,
-            Self::Tuned => 7,
-        }
-    }
-
-    fn late_sizes(self) -> [usize; 3] {
-        match self {
-            Self::Baseline => [4, 6, 8],
-            Self::Tuned => [6, 9, 12],
-        }
-    }
-
     fn expected_requests(self) -> usize {
         match self {
-            Self::Baseline => 262,
-            Self::Tuned => 375,
+            Self::Baseline => 375,
+            Self::Tuned => 497,
         }
     }
 }
@@ -154,20 +140,24 @@ fn count_warnings(app: &mut App) -> usize {
 }
 
 fn authored_bursts(balance: Balance) -> Vec<(f64, usize)> {
-    let mut bursts = WaveConfig::default().bursts;
-    let sizes = balance.late_sizes();
-    for (at, count) in &mut bursts {
-        *count = if *at >= 225. {
-            sizes[2]
-        } else if *at >= 165. {
-            sizes[1]
-        } else if *at >= 105. {
-            sizes[0]
-        } else {
-            3
-        };
+    if balance == Balance::Tuned {
+        return WaveConfig::default().bursts;
     }
-    bursts
+    // Freeze the previous 375-enemy schedule independently of production defaults.
+    [
+        (3, 24, 10, 3),
+        (30, 99, 8, 3),
+        (105, 159, 8, 6),
+        (165, 219, 6, 9),
+        (225, 294, 4, 12),
+    ]
+    .into_iter()
+    .flat_map(|(start, end, interval, size)| {
+        (start..end)
+            .step_by(interval)
+            .map(move |at| (at as f64, size))
+    })
+    .collect()
 }
 
 fn total_earned_xp(run: &UpgradeRun) -> u64 {
@@ -242,9 +232,9 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
         balance.expected_requests()
     );
     app.world_mut().resource_mut::<WaveConfig>().bursts = bursts;
-    {
+    if balance == Balance::Baseline {
         let mut xp = app.world_mut().resource_mut::<ExperienceConfig>();
-        xp.kill_xp = balance.kill_xp();
+        xp.kill_xp = 7;
         xp.early_kill_xp = 10;
         xp.reduction_starts_at = 105.;
     }

@@ -14,8 +14,8 @@ pub(crate) struct ExperienceConfig {
 impl Default for ExperienceConfig {
     fn default() -> Self {
         Self {
-            kill_xp: 7,
-            early_kill_xp: 10,
+            kill_xp: 4,
+            early_kill_xp: 4,
             reduction_starts_at: 105.,
         }
     }

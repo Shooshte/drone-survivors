@@ -126,7 +126,7 @@ fn effect_cap_does_not_drop_kills_and_restart_reuses_assets() {
     for _ in 0..3 {
         step(&mut app, 0., &[KeyCode::KeyR]);
         step(&mut app, 3., &[]);
-        assert_eq!(count::<SpawnWarning>(&mut app), 3);
+        assert_eq!(count::<SpawnWarning>(&mut app), 6);
         for entity in app
             .world_mut()
             .query_filtered::<Entity, With<SpawnWarning>>()

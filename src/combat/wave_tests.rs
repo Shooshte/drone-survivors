@@ -17,13 +17,13 @@ fn warning_is_a_reservation_then_spawns_at_its_warned_position() {
     step(&mut app, 2.99, &[]);
     assert_eq!(count::<SpawnWarning>(&mut app), 0);
     step(&mut app, 0.01, &[]);
-    assert_eq!(count::<SpawnWarning>(&mut app), 3);
+    assert_eq!(count::<SpawnWarning>(&mut app), 6);
     assert_eq!(count::<Enemy>(&mut app), 0);
     assert_eq!(
         spawn_counts(&app),
         SpawnCounts {
-            requested: 3,
-            admitted: 3,
+            requested: 6,
+            admitted: 6,
             ..default()
         }
     );
@@ -36,14 +36,14 @@ fn warning_is_a_reservation_then_spawns_at_its_warned_position() {
     step(&mut app, 0.74, &[]);
     assert_eq!(count::<Enemy>(&mut app), 0);
     step(&mut app, 0.01, &[]);
-    assert_eq!(count::<Enemy>(&mut app), 3);
+    assert_eq!(count::<Enemy>(&mut app), 6);
     assert_eq!(count::<SpawnWarning>(&mut app), 0);
     assert_eq!(
         spawn_counts(&app),
         SpawnCounts {
-            requested: 3,
-            admitted: 3,
-            activated: 3,
+            requested: 6,
+            admitted: 6,
+            activated: 6,
             ..default()
         }
     );
@@ -137,8 +137,8 @@ fn occupied_or_too_small_arena_skips_candidates_and_finishes_search() {
     assert_eq!(
         spawn_counts(&app),
         SpawnCounts {
-            requested: 3,
-            rejected_space: 3,
+            requested: 6,
+            rejected_space: 6,
             ..default()
         }
     );
@@ -170,11 +170,11 @@ fn hitch_only_warns_latest_due_burst_and_gives_full_warning_duration() {
 #[test]
 fn default_schedule_generates_authored_windows_and_phase_lulls() {
     let config = WaveConfig::default();
-    assert_eq!(&config.bursts[..3], &[(3., 3), (13., 3), (23., 3)]);
+    assert_eq!(&config.bursts[..3], &[(3., 6), (11., 6), (19., 6)]);
     for (start, end, size, interval, expected) in [
-        (30, 105, 3, 8, 9),
-        (105, 165, 6, 8, 7),
-        (165, 225, 9, 6, 9),
+        (30, 105, 8, 8, 9),
+        (105, 165, 9, 6, 9),
+        (165, 225, 10, 5, 11),
         (225, 300, 12, 4, 18),
     ] {
         let in_window: Vec<_> = config
@@ -192,10 +192,10 @@ fn default_schedule_generates_authored_windows_and_phase_lulls() {
         );
         assert!(in_window.iter().all(|(at, _)| *at < (end - 6) as f64));
     }
-    assert_eq!(config.bursts.len(), 46);
+    assert_eq!(config.bursts.len(), 50);
     assert_eq!(
         config.bursts.iter().map(|(_, count)| count).sum::<usize>(),
-        375
+        497
     );
 
     for (at, label) in [
@@ -216,7 +216,7 @@ fn default_schedule_generates_authored_windows_and_phase_lulls() {
 
 #[test]
 fn each_pressure_boundary_creates_one_real_warning_with_fixed_enemy_stats() {
-    for (at, size) in [(30., 3), (105., 6), (165., 9), (225., 12)] {
+    for (at, size) in [(30., 8), (105., 9), (165., 10), (225., 12)] {
         let (mut app, _) = wave_app();
         let burst_index = app
             .world()
@@ -363,7 +363,7 @@ fn terminal_cancellation_counts_each_warning_once_without_intermediate_flushes()
     for survive in [true, false] {
         let (mut app, _) = wave_app();
         step(&mut app, 3., &[]);
-        assert_eq!(count::<SpawnWarning>(&mut app), 3);
+        assert_eq!(count::<SpawnWarning>(&mut app), 6);
         app.edit_schedule(Update, |schedule| {
             schedule.set_executor(SingleThreadedExecutor::new());
             schedule.set_build_settings(ScheduleBuildSettings {
@@ -387,7 +387,7 @@ fn terminal_cancellation_counts_each_warning_once_without_intermediate_flushes()
             }
         );
         let counts = spawn_counts(&app);
-        assert_eq!(counts.cancelled, 3);
+        assert_eq!(counts.cancelled, 6);
         assert_eq!(counts.admitted, counts.activated + counts.cancelled);
         assert_eq!(count::<SpawnWarning>(&mut app), 0);
         step(&mut app, 0., &[]);
@@ -400,13 +400,13 @@ fn repeated_terminal_cleanup_before_despawn_counts_warnings_once() {
     for phase in [GamePhase::Dead, GamePhase::Survived] {
         let (mut app, _) = wave_app();
         step(&mut app, 3., &[]);
-        assert_eq!(count::<SpawnWarning>(&mut app), 3);
+        assert_eq!(count::<SpawnWarning>(&mut app), 6);
         *app.world_mut().resource_mut::<GamePhase>() = phase;
         // Exercise the two update registrations' shared deferred-despawn window.
         let mut cleanup = Schedule::default();
         cleanup.add_systems((waves::update, waves::update).chain_ignore_deferred());
         cleanup.run(app.world_mut());
-        assert_eq!(spawn_counts(&app).cancelled, 3);
+        assert_eq!(spawn_counts(&app).cancelled, 6);
         assert_eq!(count::<SpawnWarning>(&mut app), 0);
         let accounted = spawn_counts(&app);
         cleanup.run(app.world_mut());

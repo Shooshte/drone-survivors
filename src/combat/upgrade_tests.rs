@@ -73,15 +73,15 @@ fn xp_kills_and_pickup_are_credited_once_and_terminal_beats_choice() {
     app.world_mut().resource_mut::<Encounter>().kills = 1;
     tick(&mut app, 0., &[]);
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 10);
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 4);
     app.world_mut()
         .get_mut::<Transform>(drone)
         .unwrap()
         .translation = Vec3::new(0., 90., -180.);
     tick(&mut app, 0., &[]);
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 40);
-    app.world_mut().resource_mut::<Encounter>().kills = 3;
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 34);
+    app.world_mut().resource_mut::<Encounter>().kills = 5;
     *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
     tick(&mut app, 0., &[]);
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Dead);
@@ -363,9 +363,9 @@ fn actual_rocket_multikills_award_each_victim_once() {
     tick(&mut app, 0., &[KeyCode::Digit4]);
     tick(&mut app, 0.4, &[]);
     assert_eq!(app.world().resource::<Encounter>().kills, 2);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 20);
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 8);
     tick(&mut app, 0.4, &[]);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 20);
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 8);
 }
 #[test]
 fn fatal_contact_on_threshold_frame_suppresses_choice_and_restart_restores_pickup() {
@@ -436,7 +436,7 @@ fn hazard_kills_award_xp_once_and_can_open_upgrade_choices() {
         }),
     });
     app.world_mut().resource_mut::<HazardState>().phase = HazardPhase::Active;
-    app.world_mut().resource_mut::<UpgradeRun>().award(40);
+    app.world_mut().resource_mut::<UpgradeRun>().award(46);
     let target = enemy(&mut app, center, 10);
     tick(&mut app, 0.1, &[]);
     assert!(app.world().get_entity(target).is_err());
@@ -493,22 +493,22 @@ fn upgrade_choice_freezes_hazard_then_resumes_remaining_warning() {
 }
 
 #[test]
-fn kill_xp_reduces_at_dense_phase_once_and_restart_restores_early_reward() {
+fn reduced_kill_xp_is_credited_once_across_phases_and_restart() {
     use crate::upgrades::UpgradeRun;
     let (mut app, _) = upgrade_app();
     app.world_mut().resource_mut::<Encounter>().elapsed = 104.9;
     app.world_mut().resource_mut::<Encounter>().kills = 1;
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<UpgradeRun>().xp, 10);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 4);
     app.world_mut().resource_mut::<Encounter>().elapsed = 105.;
     app.world_mut().resource_mut::<Encounter>().kills = 2;
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<UpgradeRun>().xp, 17);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 8);
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<UpgradeRun>().xp, 17);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 8);
     tick(&mut app, 0., &[KeyCode::KeyR]);
     assert_eq!(app.world().resource::<UpgradeRun>().xp, 0);
     app.world_mut().resource_mut::<Encounter>().kills = 1;
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<UpgradeRun>().xp, 10);
+    assert_eq!(app.world().resource::<UpgradeRun>().xp, 4);
 }
