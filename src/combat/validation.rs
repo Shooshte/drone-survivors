@@ -1,14 +1,26 @@
 //! Explicit development validation only; normal launches install no harness systems.
 use super::*;
 use crate::arena::{Drone, DroneFlight};
-use crate::{
-    energy::{Energy, EnergyConfig},
-    upgrades::{UpgradeKind, UpgradeRun},
-};
+use crate::upgrades::{UpgradeKind, UpgradeRun};
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use std::time::Instant;
 #[path = "validation_capture.rs"]
 mod capture;
+#[path = "validation_observations.rs"]
+mod observations;
+use observations::ManualObservations;
+#[cfg(test)]
+use observations::ObservationEvent;
+#[path = "validation_measurements.rs"]
+mod measurements;
+#[cfg(test)]
+pub(super) use measurements::build_summary;
+use measurements::{Measurements, measure};
+#[cfg(test)]
+use measurements::{spawn_summary, summarize};
+#[cfg(test)]
+#[path = "validation_observation_tests.rs"]
+mod observation_tests;
 #[path = "route_validation.rs"]
 pub(super) mod routes;
 
@@ -31,6 +43,7 @@ const ARMORED_PRIORITIES: [UpgradeKind; 3] = [
 
 #[derive(Resource, Clone, Copy, Debug, PartialEq)]
 pub(crate) enum ValidationMode {
+    Manual,
     Survival,
     Stress,
     Idle,
@@ -72,99 +85,6 @@ pub(super) struct ValidationChoices {
     pub(super) preview_requested: bool,
 }
 
-#[derive(Debug)]
-struct Summary {
-    median: f64,
-    p95: f64,
-    p99: f64,
-    hitches: usize,
-}
-fn summarize(samples: &[f64]) -> Option<Summary> {
-    if samples.is_empty() {
-        return None;
-    }
-    let mut sorted = samples.to_vec();
-    sorted.sort_by(f64::total_cmp);
-    let percentile = |p: f64| sorted[((p * sorted.len() as f64).ceil() as usize).saturating_sub(1)];
-    Some(Summary {
-        median: percentile(0.5),
-        p95: percentile(0.95),
-        p99: percentile(0.99),
-        hitches: samples.iter().filter(|&&ms| ms > 33.3).count(),
-    })
-}
-
-pub(super) fn build_summary(
-    run: Option<&UpgradeRun>,
-    energy: Option<&Energy>,
-    config: Option<&EnergyConfig>,
-) -> String {
-    let names = run
-        .map(|run| {
-            run.selected
-                .iter()
-                .map(|kind| kind.name())
-                .collect::<Vec<_>>()
-                .join("|")
-        })
-        .filter(|names| !names.is_empty())
-        .unwrap_or_else(|| "none".into());
-    let energy = energy.map_or(f64::NAN, |energy| energy.current);
-    let capacity = config.map_or(f64::NAN, |config| config.capacity);
-    format!("acquired=[{names}] energy={energy:.3} capacity={capacity:.3}")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn restarting_clears_the_previous_terminal_exit_deadline() {
-        let mut app = App::new();
-        app.init_resource::<Time>()
-            .init_resource::<ButtonInput<KeyCode>>()
-            .add_message::<AppExit>()
-            .add_plugins((crate::arena::ArenaPlugin, CombatPlugin));
-        install(
-            &mut app,
-            ValidationConfig {
-                mode: ValidationMode::Survival,
-                seconds: 185.,
-                enemies: 150,
-            },
-        );
-        app.update();
-        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
-        app.update();
-        app.world_mut().resource_mut::<Measurements>().terminal =
-            Some(Instant::now() - std::time::Duration::from_secs(3));
-        app.world_mut()
-            .resource_mut::<ButtonInput<KeyCode>>()
-            .press(KeyCode::KeyR);
-        app.update();
-        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
-        let data = app.world().resource::<Measurements>();
-        assert!(!data.done);
-        assert!(data.terminal.is_none());
-    }
-
-    #[test]
-    fn percentiles_include_slow_tail_and_handle_empty_samples() {
-        assert!(summarize(&[]).is_none());
-        let mut samples = vec![10.; 98];
-        samples.extend([40., 50.]);
-        let summary = summarize(&samples).unwrap();
-        assert_eq!(
-            (summary.median, summary.p95, summary.p99, summary.hitches),
-            (10., 10., 40., 2)
-        );
-        let one = summarize(&[20.]).unwrap();
-        assert_eq!(
-            (one.median, one.p95, one.p99, one.hitches),
-            (20., 20., 20., 0)
-        );
-    }
-}
-
 impl ValidationConfig {
     pub(crate) fn parse(args: impl IntoIterator<Item = String>) -> Result<Option<Self>, String> {
         let mut args = args.into_iter();
@@ -173,12 +93,13 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate survival|stress|idle|routes|mobile|armored|choices \
+                "Expected --validate manual|survival|stress|idle|routes|mobile|armored|choices \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
                 "--validate" if mode.is_none() => {
                     mode = Some(match value.as_str() {
+                        "manual" => ValidationMode::Manual,
                         "survival" => ValidationMode::Survival,
                         "stress" => ValidationMode::Stress,
                         "idle" => ValidationMode::Idle,
@@ -188,7 +109,7 @@ impl ValidationConfig {
                         "choices" => ValidationMode::Choices,
                         _ => {
                             return Err(
-                                "Validation mode must be survival, stress, idle, routes, mobile, armored, or choices"
+                                "Validation mode must be manual, survival, stress, idle, routes, mobile, armored, or choices"
                                     .into(),
                             );
                         }
@@ -226,7 +147,7 @@ impl ValidationConfig {
             seconds: seconds.unwrap_or(match mode {
                 ValidationMode::Stress => 30.,
                 ValidationMode::Choices => 60.,
-                _ => 185.,
+                _ => 305.,
             }),
             enemies: enemies.unwrap_or(150),
         }))
@@ -236,9 +157,21 @@ impl ValidationConfig {
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
     capture::install(app);
     println!(
-        "VALIDATION {:?}: keyboard pilot={}, stress overrides={}, warmup=5s, sample limit={}s, stress target={}, synthetic_xp={}",
+        "VALIDATION {:?}: class={}, keyboard_pilot={}, stress_overrides={}, warmup=5s, sample_limit={}s, stress_target={}, synthetic_xp={}",
         config.mode,
-        config.mode != ValidationMode::Idle,
+        if config.mode == ValidationMode::Manual {
+            "human_record"
+        } else {
+            "automated_probe"
+        },
+        matches!(
+            config.mode,
+            ValidationMode::Survival
+                | ValidationMode::Stress
+                | ValidationMode::Mobile
+                | ValidationMode::Armored
+                | ValidationMode::Choices
+        ),
         config.mode == ValidationMode::Stress,
         config.seconds,
         config.enemies,
@@ -258,8 +191,16 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
     }
     app.insert_resource(config)
         .init_resource::<Measurements>()
+        .init_resource::<ManualObservations>()
         .init_resource::<ValidationChoices>()
         .add_systems(Startup, configure)
+        .add_systems(
+            Update,
+            reset_observation_state
+                .in_set(GameplaySet::Reset)
+                .after(lifecycle::restart)
+                .before(pilot_input),
+        )
         .add_systems(
             Update,
             pilot_input
@@ -283,7 +224,29 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
             Update,
             choice_preview_screenshot.in_set(GameplaySet::Presentation),
         )
-        .add_systems(Update, measure.after(GameplaySet::Presentation));
+        .add_systems(
+            Update,
+            observations::record.after(GameplaySet::Presentation),
+        )
+        .add_systems(
+            Update,
+            measure
+                .after(GameplaySet::Presentation)
+                .after(observations::record),
+        );
+}
+
+fn reset_observation_state(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut data: ResMut<Measurements>,
+    mut choices: ResMut<ValidationChoices>,
+    mut observations: ResMut<ManualObservations>,
+) {
+    if keys.just_pressed(KeyCode::KeyR) {
+        *data = Measurements::default();
+        *choices = ValidationChoices::default();
+        *observations = ManualObservations::default();
+    }
 }
 
 fn configure(
@@ -332,7 +295,10 @@ fn validation_choice_input(
         choices.before = None;
     }
 
-    if config.mode == ValidationMode::Choices {
+    if matches!(
+        config.mode,
+        ValidationMode::Choices | ValidationMode::Manual
+    ) {
         return;
     }
     for key in CHOICE_KEYS {
@@ -361,7 +327,7 @@ fn validation_choice_input(
         | ValidationMode::Stress
         | ValidationMode::Idle
         | ValidationMode::Routes => &[],
-        ValidationMode::Choices => unreachable!(),
+        ValidationMode::Choices | ValidationMode::Manual => unreachable!(),
     };
     let key = priorities
         .iter()
@@ -427,8 +393,10 @@ fn pilot_input(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     enemies: Query<(&Transform, &DroneFlight), With<Enemy>>,
 ) {
-    if matches!(config.mode, ValidationMode::Idle | ValidationMode::Routes)
-        || keys.just_pressed(KeyCode::KeyR)
+    if matches!(
+        config.mode,
+        ValidationMode::Manual | ValidationMode::Idle | ValidationMode::Routes
+    ) || keys.just_pressed(KeyCode::KeyR)
     {
         return;
     }
@@ -552,120 +520,54 @@ fn replenish(
     }
 }
 
-#[derive(Resource, Default)]
-struct Measurements {
-    first: Option<Instant>,
-    last: Option<Instant>,
-    terminal: Option<Instant>,
-    samples: Vec<f64>,
-    min_enemies: Option<usize>,
-    max_enemies: usize,
-    max_projectiles: usize,
-    hits: usize,
-    kills: usize,
-    damage: usize,
-    progress: u64,
-    done: bool,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[allow(clippy::too_many_arguments)]
-fn measure(
-    config: Res<ValidationConfig>,
-    mut data: ResMut<Measurements>,
-    phase: Res<GamePhase>,
-    run: Res<Encounter>,
-    health: Res<PlayerHealth>,
-    enemies: Query<&Enemy>,
-    projectiles: Query<(), With<Projectile>>,
-    windows: Query<&Window>,
-    outcomes: Res<CombatOutcomes>,
-    upgrades: Option<Res<UpgradeRun>>,
-    energy: Option<Res<Energy>>,
-    energy_config: Option<Res<EnergyConfig>>,
-    mut exit: MessageWriter<AppExit>,
-) {
-    if data.done {
-        return;
+    #[test]
+    fn restarting_clears_the_previous_terminal_exit_deadline() {
+        let mut app = App::new();
+        app.init_resource::<Time>()
+            .init_resource::<ButtonInput<KeyCode>>()
+            .add_message::<AppExit>()
+            .add_plugins((crate::arena::ArenaPlugin, CombatPlugin));
+        install(
+            &mut app,
+            ValidationConfig {
+                mode: ValidationMode::Survival,
+                seconds: 185.,
+                enemies: 150,
+            },
+        );
+        app.update();
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+        app.update();
+        app.world_mut().resource_mut::<Measurements>().terminal =
+            Some(Instant::now() - std::time::Duration::from_secs(3));
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(KeyCode::KeyR);
+        app.update();
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+        let data = app.world().resource::<Measurements>();
+        assert!(!data.done);
+        assert!(data.terminal.is_none());
     }
-    let now = Instant::now();
-    let start = *data.first.get_or_insert(now);
-    let elapsed = now.duration_since(start).as_secs_f64();
-    let previous = data.last.replace(now);
-    let live = enemies.iter().filter(|e| e.health > 0).count();
-    if let Some(previous) = previous
-        .filter(|t| t.duration_since(start).as_secs_f64() >= 5. && *phase == GamePhase::Playing)
-    {
-        data.samples
-            .push(now.duration_since(previous).as_secs_f64() * 1000.);
-        data.min_enemies = Some(data.min_enemies.map_or(live, |n| n.min(live)));
-        data.max_enemies = data.max_enemies.max(live);
-        data.max_projectiles = data.max_projectiles.max(projectiles.iter().count());
-        for event in &outcomes.0 {
-            match event {
-                CombatOutcome::Hit { killed, .. } => {
-                    data.hits += 1;
-                    data.kills += usize::from(*killed);
-                }
-                CombatOutcome::PlayerDamaged => data.damage += 1,
-                CombatOutcome::RocketExplosion { .. } => {}
-            }
-        }
-    }
-    let progress = (elapsed / 10.) as u64;
-    if progress > data.progress {
-        data.progress = progress;
-        println!(
-            "VALIDATION progress wall={elapsed:.1}s run={:.1}s phase={:?} hull={} kills={} enemies={live}",
-            run.elapsed, *phase, health.current, run.kills
+
+    #[test]
+    fn percentiles_include_slow_tail_and_handle_empty_samples() {
+        assert!(summarize(&[]).is_none());
+        let mut samples = vec![10.; 98];
+        samples.extend([40., 50.]);
+        let summary = summarize(&samples).unwrap();
+        assert_eq!(
+            (summary.median, summary.p95, summary.p99, summary.hitches),
+            (10., 10., 40., 2)
+        );
+        let one = summarize(&[20.]).unwrap();
+        assert_eq!(
+            (one.median, one.p95, one.p99, one.hitches),
+            (20., 20., 20., 0)
         );
     }
-    if matches!(*phase, GamePhase::Dead | GamePhase::Survived) {
-        data.terminal.get_or_insert(now);
-    } else {
-        data.terminal = None;
-    }
-    let terminal_done = data
-        .terminal
-        .is_some_and(|at| now.duration_since(at).as_secs_f64() >= 2.);
-    if elapsed < config.seconds + 5. && !terminal_done {
-        return;
-    }
-    data.done = true;
-    let resolution = windows
-        .iter()
-        .next()
-        .map(|w| (w.physical_width(), w.physical_height()));
-    let build = build_summary(
-        upgrades.as_deref(),
-        energy.as_deref(),
-        energy_config.as_deref(),
-    );
-    if let Some(s) = summarize(&data.samples) {
-        println!(
-            "VALIDATION RESULT mode={:?} sample_seconds={:.3} frames={} frame_ms_median={:.3} p95={:.3} p99={:.3} hitches_gt_33_3={} enemies_min={} enemies_max={} projectiles_max={} hits={} kills={} damage={} phase={:?} hull={} run_seconds={:.3} total_kills={} physical_resolution={resolution:?} {build}",
-            config.mode,
-            data.samples.iter().sum::<f64>() / 1000.,
-            data.samples.len(),
-            s.median,
-            s.p95,
-            s.p99,
-            s.hitches,
-            data.min_enemies.unwrap_or(0),
-            data.max_enemies,
-            data.max_projectiles,
-            data.hits,
-            data.kills,
-            data.damage,
-            *phase,
-            health.current,
-            run.elapsed,
-            run.kills
-        );
-    } else {
-        println!(
-            "VALIDATION RESULT no post-warmup samples; phase={:?} {build}",
-            *phase,
-        );
-    }
-    exit.write(AppExit::Success);
 }
