@@ -1075,3 +1075,21 @@ The implementation is ready for PR review. **The experiential gate remains
 pending**: no human first-win attempt counts, two successful tactics, or natural
 late-stage pressure/readability observations have been supplied. Use the
 [DRO-12 checklist](playtests/dro-12-checklist.md) to collect that evidence.
+
+
+### PR feedback follow-up
+
+Two accounting/presentation issues were confirmed and fixed after the initial
+handoff. Stress and route probes now clear authored phase metadata together with
+their bursts. Their HUD no longer shows opening/pressure/lull labels, and their
+reports use override stage labels with `wave_status=None`. Earlier native stress
+logs can contain a stale authored wave status; that label does not establish
+normal wave activity and does not change the recorded frame timings/population.
+
+Calling terminal wave cleanup twice before deferred despawns reproduced six
+cancellations for three warnings. Warnings now record cancellation synchronously,
+so later cleanup calls neither recount nor requeue them. Regression coverage
+checks both death and survival, deferred cleanup, and later frozen updates.
+
+At `1b776bf`, all **193 tests**, formatting, and strict all-targets Clippy pass.
+These fixes do not supply the outstanding human playtest evidence.
