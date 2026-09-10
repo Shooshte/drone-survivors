@@ -142,9 +142,10 @@ pub(crate) struct Encounter {
     pub spawns: SpawnCounts,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub(super) struct SpawnWarning {
     pub ready_at: f64,
+    pub cancelled: bool,
 }
 
 pub(super) fn advance_clock(time: Res<Time>, config: Res<WaveConfig>, mut run: ResMut<Encounter>) {
@@ -224,7 +225,7 @@ type Occupants<'w, 's> = Query<
         Entity,
         &'static Transform,
         Option<&'static Enemy>,
-        Option<&'static SpawnWarning>,
+        Option<&'static mut SpawnWarning>,
     ),
     Or<(With<Enemy>, With<SpawnWarning>)>,
 >;
@@ -239,14 +240,22 @@ pub(super) fn update(
     player: Single<&Transform, With<Drone>>,
     phase: Res<GamePhase>,
     mut run: ResMut<Encounter>,
-    occupants: Occupants,
+    mut occupants: Occupants,
 ) {
     let mut warnings = Vec::new();
     let mut occupied = Vec::new();
     let half = spawn_half(&combat);
     let mut live = 0;
-    for (id, transform, enemy, warning) in &occupants {
-        if let Some(w) = warning {
+    for (id, transform, enemy, warning) in &mut occupants {
+        if let Some(mut w) = warning {
+            if w.cancelled {
+                continue;
+            }
+            if matches!(*phase, GamePhase::Dead | GamePhase::Survived) {
+                // Despawns are deferred; a second cleanup must see this decision
+                // immediately so it cannot count or queue the same warning twice.
+                w.cancelled = true;
+            }
             warnings.push((id, transform.translation, w.ready_at));
             occupied.push((id, transform.translation, half));
         } else if enemy.is_some_and(|e| e.health > 0) {
@@ -349,6 +358,7 @@ pub(super) fn update(
             .spawn((
                 SpawnWarning {
                     ready_at: run.elapsed + config.warning_seconds,
+                    ..default()
                 },
                 Transform::from_translation(position),
             ))
@@ -393,7 +403,10 @@ mod terrain_tests {
         );
         // A warning that was valid before geometry changed must also be rejected.
         app.world_mut().spawn((
-            SpawnWarning { ready_at: 3. },
+            SpawnWarning {
+                ready_at: 3.,
+                ..default()
+            },
             Transform::from_xyz(280., 90., 0.),
         ));
         app.update();

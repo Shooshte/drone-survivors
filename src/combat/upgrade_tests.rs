@@ -98,7 +98,10 @@ fn long_choice_pause_preserves_gameplay_and_skip_resumes_without_toggle() {
     let warning = app
         .world_mut()
         .spawn((
-            SpawnWarning { ready_at: 10. },
+            SpawnWarning {
+                ready_at: 10.,
+                ..default()
+            },
             Transform::from_xyz(-380., 90., 0.),
         ))
         .id();

@@ -356,3 +356,60 @@ fn terminal_update_accounts_due_requests_without_creating_warnings() {
         assert_eq!(app.world().resource::<Encounter>().spawns, accounted);
     }
 }
+
+#[test]
+fn terminal_cancellation_counts_each_warning_once_without_intermediate_flushes() {
+    use bevy::ecs::schedule::{ScheduleBuildSettings, SingleThreadedExecutor};
+    for survive in [true, false] {
+        let (mut app, _) = wave_app();
+        step(&mut app, 3., &[]);
+        assert_eq!(count::<SpawnWarning>(&mut app), 3);
+        app.edit_schedule(Update, |schedule| {
+            schedule.set_executor(SingleThreadedExecutor::new());
+            schedule.set_build_settings(ScheduleBuildSettings {
+                auto_insert_apply_deferred: false,
+                ..default()
+            });
+        });
+        if survive {
+            app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
+        } else {
+            app.world_mut().resource_mut::<PlayerHealth>().current = 1;
+            enemy(&mut app, START, 100);
+        }
+        step(&mut app, 0., &[]);
+        assert_eq!(
+            *app.world().resource::<GamePhase>(),
+            if survive {
+                GamePhase::Survived
+            } else {
+                GamePhase::Dead
+            }
+        );
+        let counts = spawn_counts(&app);
+        assert_eq!(counts.cancelled, 3);
+        assert_eq!(counts.admitted, counts.activated + counts.cancelled);
+        assert_eq!(count::<SpawnWarning>(&mut app), 0);
+        step(&mut app, 0., &[]);
+        assert_eq!(spawn_counts(&app), counts);
+    }
+}
+
+#[test]
+fn repeated_terminal_cleanup_before_despawn_counts_warnings_once() {
+    for phase in [GamePhase::Dead, GamePhase::Survived] {
+        let (mut app, _) = wave_app();
+        step(&mut app, 3., &[]);
+        assert_eq!(count::<SpawnWarning>(&mut app), 3);
+        *app.world_mut().resource_mut::<GamePhase>() = phase;
+        // Exercise the two update registrations' shared deferred-despawn window.
+        let mut cleanup = Schedule::default();
+        cleanup.add_systems((waves::update, waves::update).chain_ignore_deferred());
+        cleanup.run(app.world_mut());
+        assert_eq!(spawn_counts(&app).cancelled, 3);
+        assert_eq!(count::<SpawnWarning>(&mut app), 0);
+        let accounted = spawn_counts(&app);
+        cleanup.run(app.world_mut());
+        assert_eq!(spawn_counts(&app), accounted);
+    }
+}
