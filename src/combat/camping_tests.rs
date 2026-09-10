@@ -4,7 +4,7 @@ use super::super::waves::SpawnCounts;
 use super::*;
 use crate::{
     arena::DroneFlight,
-    energy::Energy,
+    energy::{ChargerConfig, ChargerReserve, ChargingNode, Energy},
     modules::{ModuleKind, Modules},
     upgrades::{ExperienceConfig, UpgradeKind, UpgradeRun, runtime::UpgradePlugin},
     world::{PlayerPath, WorldGeometry},
@@ -34,20 +34,22 @@ const SHIELD_FIRST: [UpgradeKind; 6] = [
 enum Balance {
     Baseline,
     Tuned,
+    Depleting,
 }
 
 impl Balance {
     fn label(self) -> &'static str {
         match self {
             Self::Baseline => "baseline",
-            Self::Tuned => "tuned",
+            Self::Tuned => "tuned-unlimited",
+            Self::Depleting => "tuned-depleting",
         }
     }
 
     fn expected_requests(self) -> usize {
         match self {
             Self::Baseline => 375,
-            Self::Tuned => 447,
+            Self::Tuned | Self::Depleting => 447,
         }
     }
 }
@@ -56,6 +58,7 @@ impl Balance {
 enum Tactic {
     Camp { x: f32, shield: bool },
     Moving,
+    Relay,
 }
 
 impl Tactic {
@@ -79,13 +82,14 @@ impl Tactic {
             } => "camp-right-overdrive-shield",
             Self::Camp { .. } => "camp",
             Self::Moving => "moving-keyboard-pilot",
+            Self::Relay => "alternating-conservation-pilot",
         }
     }
 
     fn priorities(self) -> &'static [UpgradeKind] {
         match self {
             Self::Camp { shield: true, .. } => &SHIELD_FIRST,
-            Self::Camp { .. } | Self::Moving => &OFFENSE_FIRST,
+            Self::Camp { .. } | Self::Moving | Self::Relay => &OFFENSE_FIRST,
         }
     }
 }
@@ -115,6 +119,10 @@ struct ResultRow {
     upgrade_pending: u32,
     pickup_collected: bool,
     earned_kill_xp: u64,
+    supplied: [f64; 2],
+    powered_seconds: f64,
+    visits: [u32; 2],
+    relay_stops: Vec<(f64, usize)>,
 }
 
 fn tick(app: &mut App, dt: f32, keys: &[KeyCode]) {
@@ -140,7 +148,7 @@ fn count_warnings(app: &mut App) -> usize {
 }
 
 fn authored_bursts(balance: Balance) -> Vec<(f64, usize)> {
-    if balance == Balance::Tuned {
+    if balance != Balance::Baseline {
         return WaveConfig::default().bursts;
     }
     // Freeze the previous 375-enemy schedule independently of production defaults.
@@ -214,6 +222,14 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
             CombatPlugin,
             UpgradePlugin,
         ));
+    // Historical wave/XP diagnostics retain effectively unlimited chargers.
+    // This fixture changes reserve capacity only, never player health or XP.
+    if balance != Balance::Depleting {
+        app.insert_resource(ChargerConfig {
+            capacity: 1_000_000.,
+            ..default()
+        });
+    }
     app.update();
 
     let defaults = WaveConfig::default();
@@ -254,10 +270,15 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
                 .translation = point;
             Some(point)
         }
-        Tactic::Moving => None,
+        Tactic::Moving | Tactic::Relay => None,
     };
 
-    let initial_keys = desired_gameplay_keys(&mut app, drone, tactic);
+    let mut relay = RelayPilot::default();
+    let initial_keys = if tactic == Tactic::Relay {
+        relay.keys(&mut app, drone)
+    } else {
+        desired_gameplay_keys(&mut app, drone, tactic)
+    };
     tick(&mut app, 0., &initial_keys);
     if staged_position.is_some() {
         assert!(
@@ -280,6 +301,10 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
     let mut peak_warnings = count_warnings(&mut app);
     let mut previous_kills = app.world().resource::<Encounter>().kills;
     let mut earned_kill_xp = 0_u64;
+    let mut supplied = [0.; 2];
+    let mut powered_seconds = 0.;
+    let mut visits = [0; 2];
+    let mut occupied_before = [false; 2];
     for _ in 0..FRAME_LIMIT {
         let phase = *app.world().resource::<GamePhase>();
         if matches!(phase, GamePhase::Dead | GamePhase::Survived) {
@@ -311,11 +336,34 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
             }
         } else {
             released_for_choice = false;
-            desired_gameplay_keys(&mut app, drone, tactic)
+            if tactic == Tactic::Relay {
+                relay.keys(&mut app, drone)
+            } else {
+                desired_gameplay_keys(&mut app, drone, tactic)
+            }
         };
 
         let before_selected = app.world().resource::<UpgradeRun>().selected.len();
+        let reserves_before = reserve_snapshot(&mut app);
+        let powered = app
+            .world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive);
         tick(&mut app, DT, &keys);
+        if phase == GamePhase::Playing {
+            let reserves_after = reserve_snapshot(&mut app);
+            for side in 0..2 {
+                supplied[side] += (reserves_before[side].0 - reserves_after[side].0).max(0.);
+                if reserves_after[side].1 && !occupied_before[side] {
+                    visits[side] += 1;
+                }
+                occupied_before[side] = reserves_after[side].1;
+            }
+            // Frame-sampled powered time, with at most one frame error per toggle.
+            if powered {
+                powered_seconds += f64::from(DT);
+            }
+        }
         if let Some(record) = expected_choice
             && app.world().resource::<UpgradeRun>().selected.len() == before_selected + 1
         {
@@ -410,6 +458,10 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
         upgrade_pending: run.pending,
         pickup_collected: pickup.collected,
         earned_kill_xp,
+        supplied,
+        powered_seconds,
+        visits,
+        relay_stops: relay.stops,
     }
 }
 
@@ -457,6 +509,130 @@ fn camping_balance_probe() {
                 row.upgrade_pending,
                 row.pickup_collected,
             );
+        }
+    }
+}
+
+/// Read actual per-node reserve changes; recovery is excluded from delivered totals.
+fn reserve_snapshot(app: &mut App) -> [(f64, bool); 2] {
+    let mut result = [(0., false); 2];
+    for (node, reserve) in app
+        .world_mut()
+        .query::<(&ChargingNode, &ChargerReserve)>()
+        .iter(app.world())
+    {
+        result[usize::from(node.center.x > 0.)] = (reserve.remaining, reserve.occupied);
+    }
+    result
+}
+
+#[derive(Default)]
+struct RelayPilot {
+    waypoint: usize,
+    charging_since: Option<f64>,
+    stops: Vec<(f64, usize)>,
+}
+impl RelayPilot {
+    fn keys(&mut self, app: &mut App, drone: Entity) -> Vec<KeyCode> {
+        // Follow the authored empty-battery detour in both directions. Dwell only
+        // to refill, leaving at 90% battery, reserve exhaustion or eight seconds.
+        let route = [
+            Vec3::new(-280., 150., 0.),
+            Vec3::new(-280., 150., 195.),
+            Vec3::new(210., 150., 195.),
+            Vec3::new(280., 150., 0.),
+            Vec3::new(210., 150., 195.),
+            Vec3::new(-280., 150., 195.),
+        ];
+        let point = position(app, drone);
+        let flight = app.world().get::<DroneFlight>(drone).unwrap();
+        let elapsed = app.world().resource::<Encounter>().elapsed;
+        let energy = app.world().resource::<Energy>();
+        let capacity = app
+            .world()
+            .resource::<crate::energy::EnergyConfig>()
+            .capacity;
+        let at_stop = matches!(self.waypoint, 0 | 3);
+        if point.distance(route[self.waypoint]) < 30. && flight.velocity.length() < 45. {
+            if at_stop {
+                if self.charging_since.is_none() {
+                    self.stops.push((elapsed, usize::from(self.waypoint == 3)));
+                }
+                let since = *self.charging_since.get_or_insert(elapsed);
+                if energy.current >= capacity * 0.9
+                    || energy.charging.is_none()
+                    || elapsed - since >= 8.
+                {
+                    self.waypoint = (self.waypoint + 1) % route.len();
+                    self.charging_since = None;
+                }
+            } else {
+                self.waypoint = (self.waypoint + 1) % route.len();
+            }
+        }
+        let mut keys = super::super::validation::routes::keys(point, flight, route[self.waypoint]);
+        let modules = app.world().resource::<Modules>();
+        // Conserve while charging and below half a battery; use overdrive for
+        // travel once charged. This is a repeatable policy, not a survival claim.
+        let want = !matches!(self.waypoint, 0 | 3) && energy.current > capacity * 0.5;
+        if modules.active(ModuleKind::Overdrive) != want {
+            keys.push(KeyCode::Digit1);
+        }
+        keys
+    }
+}
+
+#[test]
+#[ignore = "explicit 10-run charger-only comparison"]
+fn charger_depletion_probe() {
+    for balance in [Balance::Tuned, Balance::Depleting] {
+        for tactic in [
+            Tactic::Camp {
+                x: -280.,
+                shield: false,
+            },
+            Tactic::Camp {
+                x: 280.,
+                shield: false,
+            },
+            Tactic::Camp {
+                x: -280.,
+                shield: true,
+            },
+            Tactic::Camp {
+                x: 280.,
+                shield: true,
+            },
+            Tactic::Relay,
+        ] {
+            let row = run_case(balance, tactic);
+            println!(
+                "CHARGER PROBE balance={} tactic={} outcome={:?} active={:.3} hull={} kills={} supplied={:?} overdrive_seconds={:.3} visits={:?} stops={:?} choices={:?} energy={:.3} peak={} spawns={:?}",
+                row.balance.label(),
+                row.tactic.label(),
+                row.phase,
+                row.active_seconds,
+                row.hull,
+                row.kills,
+                row.supplied,
+                row.powered_seconds,
+                row.visits,
+                row.relay_stops,
+                row.choices,
+                row.final_energy,
+                row.peak_enemies,
+                row.spawns
+            );
+            if balance == Balance::Depleting && matches!(tactic, Tactic::Camp { .. }) {
+                assert!(row.supplied.iter().sum::<f64>() <= 200. + 1e-5);
+                assert!(row.powered_seconds <= 30. + f64::from(DT) * 2.);
+            }
+            if tactic == Tactic::Relay {
+                assert!(
+                    row.visits.iter().all(|visits| *visits > 0),
+                    "relay must visit both fields"
+                );
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ struct Captures {
     directory: PathBuf,
     minimum: bool,
     seen: [bool; 3],
+    charger_seen: [bool; 4],
 }
 
 pub(super) fn install(app: &mut App) {
@@ -24,9 +25,15 @@ pub(super) fn install(app: &mut App) {
         directory,
         minimum: std::env::var_os("DRONE_CAPTURE_MINIMUM").is_some(),
         seen: [false; 3],
+        charger_seen: [false; 4],
     })
     .add_systems(Startup, resize)
-    .add_systems(Update, capture.after(GameplaySet::Presentation));
+    .add_systems(
+        Update,
+        (capture, capture_chargers)
+            .chain()
+            .after(GameplaySet::Presentation),
+    );
 }
 
 fn resize(captures: Res<Captures>, mut window: Single<&mut Window>) {
@@ -62,4 +69,45 @@ fn capture(
     commands
         .spawn(Screenshot::primary_window())
         .observe(save_to_disk(path));
+}
+
+fn capture_chargers(
+    mut commands: Commands,
+    run: Res<Encounter>,
+    config: Res<crate::energy::ChargerConfig>,
+    nodes: Query<&crate::energy::ChargerReserve>,
+    mut captures: ResMut<Captures>,
+) {
+    if run.elapsed < 1. {
+        return;
+    }
+    for reserve in &nodes {
+        let state = if reserve.occupied && reserve.remaining == 0. {
+            Some((1, "charger-depleted"))
+        } else if !reserve.occupied && reserve.remaining < config.capacity {
+            if reserve.away_seconds < config.recovery_delay {
+                Some((2, "charger-delay"))
+            } else {
+                Some((3, "charger-recovering"))
+            }
+        } else if reserve.occupied && reserve.remaining < config.capacity * 0.5 {
+            Some((0, "charger-in-use"))
+        } else {
+            None
+        };
+        if let Some((index, label)) = state
+            && !captures.charger_seen[index]
+        {
+            captures.charger_seen[index] = true;
+            let size = if captures.minimum {
+                "640x480"
+            } else {
+                "1120x720"
+            };
+            let path = captures.directory.join(format!("{size}-{label}.png"));
+            commands
+                .spawn(Screenshot::primary_window())
+                .observe(save_to_disk(path));
+        }
+    }
 }

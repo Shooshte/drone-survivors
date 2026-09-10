@@ -183,6 +183,7 @@ pub(super) fn measure(
     let stage = match config.mode {
         ValidationMode::Stress => Some("STRESS OVERRIDE"),
         ValidationMode::Routes => Some("ROUTE OVERRIDE"),
+        ValidationMode::Chargers => Some("CHARGER UI FIXTURE: NO WAVES"),
         _ => waves.phase_at(run.elapsed).map(|stage| stage.label),
     };
     if *phase == GamePhase::Playing
