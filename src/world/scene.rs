@@ -2,7 +2,10 @@ use super::{
     WorldGeometry,
     hazard::{HazardPhase, HazardState},
 };
-use crate::game::{GamePhase, GameplaySet};
+use crate::{
+    arena::{ArenaSceneSetup, FooterFont, HazardFooterSlot},
+    game::{GamePhase, GameplaySet},
+};
 use bevy::prelude::*;
 
 pub(crate) struct WorldScenePlugin;
@@ -22,13 +25,14 @@ struct HazardMaterials {
 
 impl Plugin for WorldScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup)
+        app.add_systems(Startup, setup.after(ArenaSceneSetup))
             .add_systems(Update, present.in_set(GameplaySet::Presentation));
     }
 }
 fn setup(
     mut commands: Commands,
     world: Res<WorldGeometry>,
+    footer_slot: Single<Entity, With<HazardFooterSlot>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -211,19 +215,21 @@ fn setup(
             }
         }
     }
-    commands.spawn((
-        HazardHud,
-        Text::default(),
-        TextFont::from_font_size(14.),
-        TextColor(Color::srgb(0.95, 0.8, 0.45)),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: px(108),
-            left: px(24),
-            right: px(24),
-            ..default()
-        },
-    ));
+    let hud = commands
+        .spawn((
+            HazardHud,
+            FooterFont::new(14., 11.),
+            Text::default(),
+            TextFont::from_font_size(14.),
+            TextColor(Color::srgb(0.95, 0.8, 0.45)),
+            TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+            Node {
+                width: percent(100),
+                ..default()
+            },
+        ))
+        .id();
+    commands.entity(*footer_slot).add_child(hud);
 }
 
 type HazardVisuals<'w, 's> = Query<
@@ -300,6 +306,7 @@ mod tests {
                 crate::combat::CombatPlugin,
                 WorldScenePlugin,
             ));
+        app.world_mut().spawn((HazardFooterSlot, Node::default()));
         app.update();
         let count = app
             .world_mut()

@@ -3,6 +3,27 @@ use bevy::{camera::ScalingMode, prelude::*};
 
 pub struct ArenaScenePlugin;
 
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ArenaSceneSetup;
+
+#[derive(Component)]
+pub(crate) struct HazardFooterSlot;
+
+#[derive(Component)]
+pub(crate) struct UpgradeFooterSlot;
+
+#[derive(Component, Clone, Copy)]
+pub(crate) struct FooterFont {
+    regular: f32,
+    compact: f32,
+}
+
+impl FooterFont {
+    pub(crate) const fn new(regular: f32, compact: f32) -> Self {
+        Self { regular, compact }
+    }
+}
+
 #[derive(Component)]
 struct GroundMarker;
 
@@ -11,9 +32,14 @@ struct ControlsHud;
 
 impl Plugin for ArenaScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup_scene, setup_drone_model).after(spawn_drone))
-            .add_systems(Update, track_ground_position.after(move_drone))
-            .add_systems(Update, fit_controls);
+        app.add_systems(
+            Startup,
+            (setup_scene, setup_drone_model)
+                .after(spawn_drone)
+                .in_set(ArenaSceneSetup),
+        )
+        .add_systems(Update, track_ground_position.after(move_drone))
+        .add_systems(Update, fit_footer);
     }
 }
 
@@ -154,41 +180,75 @@ pub(super) fn setup_scene(
             ..default()
         },
     ));
-    commands.spawn((
-        ControlsHud,
-        Text::new("W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit"),
-        TextFont::from_font_size(16.),
-        TextColor(Color::srgb(0.63, 0.74, 0.77)),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: px(20),
-            left: px(24),
-            right: px(24),
-            ..default()
-        },
-    ));
+    commands
+        .spawn((
+            Name::new("Arena footer"),
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: px(20),
+                left: px(24),
+                right: px(24),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Stretch,
+                row_gap: px(4),
+                ..default()
+            },
+        ))
+        .with_children(|footer| {
+            footer.spawn((
+                Name::new("Hazard footer slot"),
+                HazardFooterSlot,
+                Node {
+                    width: percent(100),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+            ));
+            footer.spawn((
+                Name::new("Upgrade footer slot"),
+                UpgradeFooterSlot,
+                Node {
+                    width: percent(100),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+            ));
+            footer.spawn((
+                ControlsHud,
+                FooterFont::new(16., 11.),
+                Text::new("W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit"),
+                TextFont::from_font_size(16.),
+                TextColor(Color::srgb(0.63, 0.74, 0.77)),
+                TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+                Node {
+                    width: percent(100),
+                    ..default()
+                },
+            ));
+        });
 }
 
-fn fit_controls(
+fn fit_footer(
     windows: Query<&Window>,
-    mut controls: Single<(&mut Text, &mut TextFont), With<ControlsHud>>,
+    mut controls: Single<&mut Text, With<ControlsHud>>,
+    mut fonts: Query<(&FooterFont, &mut TextFont)>,
 ) {
     let compact = windows.iter().next().is_some_and(|w| w.width() < 800.);
-    let (text, size) = if compact {
-        (
-            "W/S Pitch | A/D Yaw | Q/E Bank | Arrows also work\nSpace/Shift Thrust | Tilt loses lift; drift remains\n1-4 Modules | Auto fire | R Restart | Esc Quit",
-            13.,
-        )
+    let text = if compact {
+        "W/S Pitch | A/D Yaw | Q/E Bank | Arrows also work\nSpace/Shift Thrust | Tilt loses lift; drift remains\n1-4 Modules | Auto fire | R Restart | Esc Quit"
     } else {
-        (
-            "W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit",
-            16.,
-        )
+        "W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit"
     };
-    if controls.0.0 != text {
-        controls.0.0 = text.into();
+    if controls.0 != text {
+        controls.0 = text.into();
     }
-    controls.1.font_size = bevy::text::FontSize::Px(size);
+    for (sizes, mut font) in &mut fonts {
+        font.font_size = bevy::text::FontSize::Px(if compact {
+            sizes.compact
+        } else {
+            sizes.regular
+        });
+    }
 }
 
 pub(super) const SCOUT_MODEL: &str = "models/scout_drone.glb";
