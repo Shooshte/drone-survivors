@@ -212,3 +212,24 @@ charging and earned choices. If camping still wins, keep the experiential gate
 pending rather than infer success from increased enemy requests. Temporary
 charger depletion is approved as separate follow-up
 [DRO-32](https://linear.app/drone-survivors/issue/DRO-32/temporarily-deplete-charging-zones-to-prevent-unlimited-stationary).
+
+
+## Approved refinement: begin at the former midpoint pressure
+
+The user reports that the game remains unattended until 150 seconds remain and
+asks to begin at that pressure, then steadily increase. At that point the prior
+schedule is six enemies every eight seconds. Use that as the opening rate,
+retaining the first warning at 3 seconds and the 0.75-second activation warning.
+Use the existing phase boundaries/lulls with bursts and intervals of 6/8s,
+8/8s, 9/6s, 10/5s, and 12/4s. Scheduled active arrival rates become
+45/60/90/120/180 enemies per minute. The resulting 50 bursts request 497 enemies.
+This supersedes the forgiving opening and prior wave tuning above.
+
+Continue the approved requirement to roughly preserve upgrade choice timing:
+start by lowering both early and late kill rewards to 4 XP and measure the paired
+real-arena diagnostic against the immediately previous 375-enemy / 10→7 XP
+schedule. Refine only if measured choice timing drifts materially. Pickup XP,
+thresholds, offers, enemy behavior, cap, spawning safety, flight and charging stay
+as before. This changes scheduled pressure; it cannot promise that an unupgraded
+player feels exactly like an upgraded player at the old midpoint. The camping
+exploit remains a separate charger-depletion task.

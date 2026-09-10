@@ -157,3 +157,26 @@ six left-charger choices by roughly 12/11/27/26/16/9 seconds. Retain 10 XP until
 `early_kill_xp`, `reduction_starts_at`, and `kill_xp`; reward uses kill time.
 A regression covers the phase boundary, exact-once credit, and reset. Baseline
 and final diagnostic scenarios must use the same module profiles at each charger.
+
+
+## Midpoint-pressure opening refinement
+
+Execute inline in the existing PR worktree with the user's tuning authorization.
+
+- [ ] Update existing wave regression expectations to 6/8/9/10/12 at intervals
+  8/8/6/5/4, including real first-warning admission/activation, authored totals
+  (50/497), phase boundaries, safe rejection and unchanged enemy stats. Run
+  `cargo test --locked wave_tests` and confirm the old production values fail.
+- [ ] Apply the schedule in `src/combat/waves.rs`. In the XP exact-once/reset
+  regression expect 4 XP for a kill before and after 105 seconds; update
+  `ExperienceConfig` default early/late rewards to 4 after observing failure.
+  Adjust mechanical reward assertions to the new default, keeping their original
+  behavior coverage.
+- [ ] Freeze the immediately previous schedule explicitly in
+  `src/combat/camping_tests.rs`; the tuned arm must use production defaults,
+  including XP. Run `cargo test --locked camping_balance_probe -- --ignored
+  --nocapture`, compare normal earned choices and pressure, and record both wins
+  and losses. Do not alter outcome assertions to force a balance claim.
+- [ ] Run formatting, full locked tests and strict all-targets Clippy. Update
+  README, playtest evidence/checklist, Linear DRO-12 and PR #11. Commit tuning and
+  evidence separately, push, retain draft status and the human acceptance gate.
