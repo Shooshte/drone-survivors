@@ -115,3 +115,37 @@ Scout flight/arena changes and progression redesign move to Linear follow-ups.
 6. Create focused Linear tickets for scout handling, arena/Scout identity, and
    meaningful run progression, referencing existing DRO-22 for catalog expansion.
    Record their links in the handoff. Human acceptance stays pending another run.
+
+
+## Approved camping-pressure and XP follow-up
+
+The user approved larger late bursts, a repeatable real-arena camping check,
+and a separate charger-depletion ticket, adding a requirement to lower kill XP
+so upgrade choice timing remains roughly stable.
+
+- Keep opening/Pressure I unchanged. Set the last three burst sizes to 6/9/12
+  instead of 4/6/8, with existing intervals, lulls, cap 30 and warning/safety rules.
+  The same 46 bursts request 375 enemies instead of 262.
+- Add a small `ExperienceConfig { kill_xp: u32 }` resource in upgrades.rs,
+  defaulting to 7, consumed by the runtime's existing kill-credit path.
+  Pickup XP remains 30; thresholds and upgrade selection remain unchanged.
+  Baseline potential kill XP: 262x10=2620. Proposed: 375x7=2625.
+- First update wave-boundary/count and exact-once kill-credit regressions and
+  observe failures. Then implement the two tuning changes and run focused tests.
+- Add an opt-in deterministic balance probe under combat tests with default
+  WorldGeometry, real charging/modules/damage/upgrades and controlled time.
+  Compare old bursts/10 XP against new bursts/7 XP at both charger centers,
+  using strong normal earned upgrade selections, overdrive-only and shield
+  variants, plus a moving keyboard-pilot comparison. Starting at a charger is
+  fixture setup; no subsequent position locking, HP overrides or synthetic XP.
+  Record outcomes, choice times, spawn outcomes, peak population and energy.
+  Treat this as a diagnostic, not human difficulty or performance proof.
+- Use subagent-driven-development for the independent probe task while root
+  implements tuning and the Linear handoff. Review all code before delivery.
+- Inspect whether reduced XP delays the unchanged opening disproportionately.
+  Document observed timing differences, and keep the experiential gate pending
+  if stationary builds still win; charger depletion is not implemented here.
+- Create the charger-depletion follow-up with finite delivery accounting,
+  recovery, readable status, and pause/reset requirements; link it to DRO-12.
+- Update README, spec/checklist and evidence; run formatting, full tests and
+  strict Clippy, commit, push and update PR11. Preserve all flight/enemy rules.
