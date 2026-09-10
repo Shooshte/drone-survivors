@@ -1,5 +1,8 @@
 use super::feedback::{self, DamageCue, FeedbackConfig};
-use super::{CombatConfig, Encounter, Enemy, PlayerHealth, Projectile, SpawnWarning, WaveConfig};
+use super::{
+    CombatConfig, Encounter, Enemy, PlayerHealth, Projectile, SpawnWarning, WaveConfig,
+    waves::WaveStatus,
+};
 use crate::game::{GamePhase, GameplaySet};
 use bevy::prelude::*;
 
@@ -138,22 +141,18 @@ fn update_hud(
     mut hud: Single<(&mut Text, &mut TextColor), With<CombatHud>>,
 ) {
     let count = enemies.iter().count();
-    let next = waves.bursts.get(run.next_burst).map(|(at, _)| *at);
-    let lull = next.is_none_or(|at| (at / 60.).floor() > (run.elapsed / 60.).floor());
     let status = if *phase == GamePhase::Dead {
-        "DRONE DESTROYED | R to restart"
+        "DRONE DESTROYED | R to restart".to_string()
     } else if *phase == GamePhase::Survived {
-        "SURVIVED | R to replay"
+        "SURVIVED | R to replay".to_string()
     } else if *phase == GamePhase::Choosing {
-        "UPGRADE CHOICE | GAMEPLAY PAUSED"
-    } else if lull {
-        "SPAWNING LULL | Keep moving"
-    } else if run.elapsed < 60. {
-        "OPENING | AUTO FIRE"
-    } else if run.elapsed < 120. {
-        "PRESSURE | AUTO FIRE"
+        "UPGRADE CHOICE | GAMEPLAY PAUSED".to_string()
+    } else if waves.status_at(run.elapsed) == Some(WaveStatus::Lull) {
+        "SPAWNING LULL | Keep moving".to_string()
+    } else if let Some(wave_phase) = waves.phase_at(run.elapsed) {
+        format!("{} | AUTO FIRE", wave_phase.label)
     } else {
-        "FINAL PUSH | AUTO FIRE"
+        "AUTO FIRE".to_string()
     };
     let protection =
         if *phase == GamePhase::Playing && time.elapsed_secs_f64() < health.invulnerable_until {

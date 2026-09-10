@@ -200,7 +200,7 @@ fn compare_maximum_output_and_conservation_in_the_same_authored_encounter() {
         let mut activations = 0;
         let mut powered_seconds = 0.;
         let mut charging_seconds = 0.;
-        for _ in 0..(181 * 60) {
+        for _ in 0..(310 * 60) {
             let elapsed = app.world().resource::<Encounter>().elapsed;
             let threats: Vec<_> = app
                 .world_mut()

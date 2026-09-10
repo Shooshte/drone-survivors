@@ -72,7 +72,8 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
             enemy(&mut app, Vec3::new(-280., 90., 0.), 10000);
             app.world_mut().resource_mut::<PlayerHealth>().current = 1;
         }
-        app.world_mut().resource_mut::<Encounter>().elapsed = 179.9;
+        let duration = app.world().resource::<WaveConfig>().duration;
+        app.world_mut().resource_mut::<Encounter>().elapsed = duration - 0.1;
         {
             let mut e = app.world_mut().resource_mut::<Energy>();
             e.current = 40.;

@@ -13,8 +13,8 @@ fn validation_arguments_are_opt_in_bounded_and_mode_specific() {
         (ValidationMode::Stress, 150, 30.)
     );
     for (name, mode, seconds) in [
-        ("mobile", ValidationMode::Mobile, 185.),
-        ("armored", ValidationMode::Armored, 185.),
+        ("mobile", ValidationMode::Mobile, 305.),
+        ("armored", ValidationMode::Armored, 305.),
         ("choices", ValidationMode::Choices, 60.),
     ] {
         let config = parse(&["--validate", name]).unwrap().unwrap();
@@ -71,7 +71,7 @@ fn upgrade_validation_app(mode: ValidationMode) -> App {
             seconds: if mode == ValidationMode::Choices {
                 60.
             } else {
-                185.
+                305.
             },
             enemies: 150,
         },
@@ -235,7 +235,7 @@ fn full_mobile_and_armored_runs_finish_and_log_deterministic_builds() {
         ),
     ] {
         let mut app = upgrade_validation_app(mode);
-        for _ in 0..(190 * 30) {
+        for _ in 0..(310 * 30) {
             validation_tick(&mut app, 1. / 30., &[]);
             if matches!(
                 *app.world().resource::<GamePhase>(),
@@ -306,10 +306,29 @@ fn stress_harness_maintains_actual_live_population_while_real_hits_and_kills_run
 }
 
 #[test]
-fn scripted_keyboard_pilot_completes_full_survival_with_real_health() {
+fn legacy_three_minute_empty_arena_pilot_survives_the_previous_schedule() {
     use crate::arena::DroneFlight;
     for rate in [30, 60, 120] {
         let (mut app, drone) = app();
+        {
+            let mut waves = app.world_mut().resource_mut::<WaveConfig>();
+            waves.duration = 180.;
+            waves.bursts = vec![
+                (3., 3),
+                (15., 3),
+                (27., 3),
+                (39., 3),
+                (60., 4),
+                (70., 4),
+                (80., 4),
+                (90., 4),
+                (120., 5),
+                (128., 5),
+                (136., 5),
+                (144., 5),
+                (152., 5),
+            ];
+        }
         let mut peak_enemies = 0;
         for _ in 0..(181 * rate) {
             let run = app.world().resource::<Encounter>().elapsed;

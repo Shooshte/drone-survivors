@@ -153,21 +153,45 @@ fn effect_cap_does_not_drop_kills_and_restart_reuses_assets() {
 }
 
 #[test]
-fn hud_shows_lull_with_surviving_enemies_and_survival_without_clear_message() {
+fn hud_uses_authored_non_minute_lulls_and_phase_boundaries() {
     use super::super::scene::CombatHud;
     let (mut app, _) = scene_app();
     enemy(&mut app, START + Vec3::X * 200., 100);
-    app.world_mut().resource_mut::<Encounter>().elapsed = 45.;
+    app.world_mut().resource_mut::<Encounter>().elapsed = 44.;
     step(&mut app, 0., &[]);
-    let text = app
+    let mut text = app
         .world_mut()
         .query_filtered::<&Text, With<CombatHud>>()
         .single(app.world())
         .unwrap();
     assert!(text.0.contains("LULL"), "{}", text.0);
-    app.world_mut().resource_mut::<Encounter>().elapsed = 180.;
+    app.world_mut().resource_mut::<Encounter>().elapsed = 45.;
     step(&mut app, 0., &[]);
-    let text = app
+    text = app
+        .world_mut()
+        .query_filtered::<&Text, With<CombatHud>>()
+        .single(app.world())
+        .unwrap();
+    assert!(text.0.contains("PRESSURE I"), "{}", text.0);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 104.;
+    step(&mut app, 0., &[]);
+    text = app
+        .world_mut()
+        .query_filtered::<&Text, With<CombatHud>>()
+        .single(app.world())
+        .unwrap();
+    assert!(text.0.contains("LULL"), "{}", text.0);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 105.;
+    step(&mut app, 0., &[]);
+    text = app
+        .world_mut()
+        .query_filtered::<&Text, With<CombatHud>>()
+        .single(app.world())
+        .unwrap();
+    assert!(text.0.contains("PRESSURE II"), "{}", text.0);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
+    step(&mut app, 0., &[]);
+    text = app
         .world_mut()
         .query_filtered::<&Text, With<CombatHud>>()
         .single(app.world())
