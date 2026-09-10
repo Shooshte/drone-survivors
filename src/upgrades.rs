@@ -4,6 +4,17 @@ use bevy::prelude::*;
 
 use crate::modules::{Loadout, ModuleKind};
 
+#[derive(Resource)]
+pub(crate) struct ExperienceConfig {
+    pub kill_xp: u32,
+}
+
+impl Default for ExperienceConfig {
+    fn default() -> Self {
+        Self { kill_xp: 7 }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UpgradeKind {
     Interceptor,

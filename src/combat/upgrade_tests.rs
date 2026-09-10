@@ -73,14 +73,14 @@ fn xp_kills_and_pickup_are_credited_once_and_terminal_beats_choice() {
     app.world_mut().resource_mut::<Encounter>().kills = 1;
     tick(&mut app, 0., &[]);
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 10);
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 7);
     app.world_mut()
         .get_mut::<Transform>(drone)
         .unwrap()
         .translation = Vec3::new(0., 90., -180.);
     tick(&mut app, 0., &[]);
     tick(&mut app, 0., &[]);
-    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 40);
+    assert_eq!(app.world().resource::<crate::upgrades::UpgradeRun>().xp, 37);
     app.world_mut().resource_mut::<Encounter>().kills = 3;
     *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
     tick(&mut app, 0., &[]);

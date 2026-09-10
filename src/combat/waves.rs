@@ -57,7 +57,7 @@ impl Default for WaveConfig {
                 end: 165.,
                 lull_start: 159.,
                 first_warning: 105,
-                burst_size: 4,
+                burst_size: 6,
                 interval: 8,
             },
             WavePhase {
@@ -66,7 +66,7 @@ impl Default for WaveConfig {
                 end: 225.,
                 lull_start: 219.,
                 first_warning: 165,
-                burst_size: 6,
+                burst_size: 9,
                 interval: 6,
             },
             WavePhase {
@@ -75,7 +75,7 @@ impl Default for WaveConfig {
                 end: 300.,
                 lull_start: 294.,
                 first_warning: 225,
-                burst_size: 8,
+                burst_size: 12,
                 interval: 4,
             },
         ];

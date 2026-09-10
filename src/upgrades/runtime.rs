@@ -1,5 +1,5 @@
 //! Bridges run-local upgrade rules to existing gameplay and pauses its virtual clock.
-use super::{ChoiceAction, UpgradeModifiers, UpgradeRun};
+use super::{ChoiceAction, ExperienceConfig, UpgradeModifiers, UpgradeRun};
 use crate::{
     arena::{Drone, FlightConfig},
     combat::{CombatConfig, Encounter, PlayerHealth},
@@ -43,7 +43,8 @@ struct ChoiceSession {
 pub(crate) struct UpgradePlugin;
 impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<UpgradeRun>()
+        app.init_resource::<ExperienceConfig>()
+            .init_resource::<UpgradeRun>()
             .init_resource::<ChoiceSession>()
             .init_resource::<ExplorationPickup>()
             .init_resource::<Time<Virtual>>()
@@ -103,6 +104,7 @@ fn begin_frame(
 #[allow(clippy::too_many_arguments)]
 fn earn(
     keys: Res<ButtonInput<KeyCode>>,
+    experience: Res<ExperienceConfig>,
     encounter: Res<Encounter>,
     drone: Single<&Transform, With<Drone>>,
     modules: Res<Modules>,
@@ -117,7 +119,7 @@ fn earn(
     }
     let kills = encounter.kills.saturating_sub(session.credited_kills);
     session.credited_kills = encounter.kills;
-    run.award(kills.saturating_mul(10));
+    run.award(kills.saturating_mul(experience.kill_xp));
     if *phase != GamePhase::Playing {
         return;
     }
