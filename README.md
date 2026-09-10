@@ -310,6 +310,8 @@ DRONE_CAPTURE_DIR=/tmp/drone-captures DRONE_CAPTURE_MINIMUM=1 cargo dev -- --val
 
 Use `--validate chargers --seconds 60` with the same capture environment to save
 in-use, depleted, recovery-delay and recovering charger states automatically.
+Only the chargers validation mode writes charger-state images; other modes
+retain their existing hazard captures.
 The second command uses the minimum 640 × 480 logical window. These environment
 options are ignored during ordinary play. Keep the macOS session unlocked for
 usable window captures; locked-session captures may be black.

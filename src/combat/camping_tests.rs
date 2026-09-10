@@ -94,7 +94,7 @@ impl Tactic {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct ChoiceRecord {
     at: f64,
     level: u32,
@@ -120,6 +120,7 @@ struct ResultRow {
     pickup_collected: bool,
     earned_kill_xp: u64,
     supplied: [f64; 2],
+    final_reserves: [f64; 2],
     powered_seconds: f64,
     visits: [u32; 2],
     relay_stops: Vec<(f64, usize)>,
@@ -406,6 +407,7 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
         spawns.admitted,
         spawns.activated + spawns.cancelled + warning_count
     );
+    let final_reserves = reserve_snapshot(&mut app).map(|(remaining, _)| remaining);
     let encounter = app.world().resource::<Encounter>();
     let run = app.world().resource::<UpgradeRun>();
     let pickup = app
@@ -459,6 +461,7 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
         pickup_collected: pickup.collected,
         earned_kill_xp,
         supplied,
+        final_reserves,
         powered_seconds,
         visits,
         relay_stops: relay.stops,
@@ -585,6 +588,7 @@ impl RelayPilot {
 #[test]
 #[ignore = "explicit 10-run charger-only comparison"]
 fn charger_depletion_probe() {
+    let mut relay_control: Option<ResultRow> = None;
     for balance in [Balance::Tuned, Balance::Depleting] {
         for tactic in [
             Tactic::Camp {
@@ -623,15 +627,93 @@ fn charger_depletion_probe() {
                 row.peak_enemies,
                 row.spawns
             );
-            if balance == Balance::Depleting && matches!(tactic, Tactic::Camp { .. }) {
-                assert!(row.supplied.iter().sum::<f64>() <= 200. + 1e-5);
-                assert!(row.powered_seconds <= 30. + f64::from(DT) * 2.);
+            if let Tactic::Camp { x, shield } = tactic
+                && balance == Balance::Depleting
+            {
+                let side = usize::from(x > 0.);
+                assert_eq!(
+                    row.phase,
+                    GamePhase::Dead,
+                    "finite camp must die: {tactic:?}"
+                );
+                assert!(row.active_seconds < WaveConfig::default().duration);
+                assert_eq!(row.hull, 0);
+                assert_eq!(row.final_energy, 0.);
+                assert_eq!(row.final_reserves[side], 0., "occupied field must deplete");
+                assert!(
+                    (row.supplied[side] - 200.).abs() < 1e-5,
+                    "field must deliver its full reserve"
+                );
+                assert_eq!(
+                    row.supplied[1 - side],
+                    0.,
+                    "camp must not use the other field"
+                );
+                assert_eq!(row.final_reserves[1 - side], 200.);
+                let expected_powered = if shield { 300. / 18. } else { 30. };
+                assert!(
+                    (row.powered_seconds - expected_powered).abs() <= f64::from(DT) * 2.,
+                    "unexpected powered time: {}",
+                    row.powered_seconds
+                );
+            } else {
+                assert_eq!(
+                    row.phase,
+                    GamePhase::Survived,
+                    "control camps and relay must survive: {balance:?} {tactic:?}"
+                );
+                assert!((row.active_seconds - WaveConfig::default().duration).abs() < 1e-5);
+                assert!(row.hull > 0);
             }
             if tactic == Tactic::Relay {
                 assert!(
                     row.visits.iter().all(|visits| *visits > 0),
                     "relay must visit both fields"
                 );
+                if balance == Balance::Tuned {
+                    relay_control = Some(row);
+                } else {
+                    let control = relay_control
+                        .as_ref()
+                        .expect("unlimited relay must run first");
+                    assert_eq!(row.phase, control.phase);
+                    assert_eq!(row.hull, control.hull, "finite reserves changed relay hull");
+                    assert_eq!(
+                        row.kills, control.kills,
+                        "finite reserves changed relay kills"
+                    );
+                    assert_eq!(
+                        row.choices, control.choices,
+                        "finite reserves changed earned choices"
+                    );
+                    assert_eq!(row.visits, control.visits);
+                    assert_eq!(row.relay_stops, control.relay_stops);
+                    assert_eq!(
+                        (row.level, row.xp, row.upgrade_pending, row.pickup_collected),
+                        (
+                            control.level,
+                            control.xp,
+                            control.upgrade_pending,
+                            control.pickup_collected
+                        )
+                    );
+                    for (label, actual, expected) in [
+                        ("active seconds", row.active_seconds, control.active_seconds),
+                        ("battery", row.final_energy, control.final_energy),
+                        (
+                            "powered seconds",
+                            row.powered_seconds,
+                            control.powered_seconds,
+                        ),
+                        ("left supply", row.supplied[0], control.supplied[0]),
+                        ("right supply", row.supplied[1], control.supplied[1]),
+                    ] {
+                        assert!(
+                            (actual - expected).abs() < 1e-5,
+                            "finite reserves changed relay {label}: {actual} != {expected}"
+                        );
+                    }
+                }
             }
         }
     }

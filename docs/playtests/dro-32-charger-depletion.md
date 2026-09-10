@@ -118,7 +118,7 @@ native reset was not exercised in this run.
 
 ## Verification
 
-At final code commit `07ab391`: formatting passes, the locked suite reports
+At initial implementation commit `07ab391`: formatting passes, the locked suite reports
 **209 passed / 0 failed / 2 ignored**, and strict all-targets Clippy passes. Both
 ignored diagnostics were explicitly run successfully (20 scenarios total).
 Core accounting and the whole branch received independent review with no open
@@ -131,3 +131,23 @@ find charging stops useful, or enjoy the relocation pressure. Human checks shoul
 compare stationary power, brief exits, partially recovered returns, and sustained
 alternating visits at both window sizes. Scout handling and arena-size refinements
 remain separate DRO-29/DRO-30 work.
+
+
+## Review follow-up: enforce outcomes and isolate captures
+
+Both review findings were confirmed. The charger diagnostic now requires finite
+camps to consume all 200 reserve, finish with an empty field/battery, receive the
+expected powered time, and die before the encounter ends. Control camps and both
+relay runs must survive. Finite/control relays must agree on hull, kills, earned
+choices and their timing, progression, visits, stops, final battery, powered time,
+and delivered energy (with tolerance for floating-point totals).
+
+Charger screenshot requests are now restricted to `--validate chargers`.
+A regression test reproduced all four charger requests leaking into Manual mode
+before the fix. It now checks every validation mode, verifies other modes retain
+hazard screenshots without charger requests, and verifies repeated frames cannot
+duplicate those captures.
+
+Verification: 210 tests pass, 2 diagnostics remain opt-in; the strengthened
+10-scenario charger diagnostic was explicitly rerun and passes. Formatting and
+strict all-targets Clippy pass. Gameplay tuning and rendering are unchanged.
