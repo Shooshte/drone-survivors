@@ -84,3 +84,34 @@ separately and include it in whole-branch review.
 - Final formatting, 190 tests, and strict all-targets Clippy pass at 5d602fe.
 - Isolated full-scene cap-30 sample: p95 8.689 ms; earlier concurrent-build miss retained in docs/playtests.md.
 - Implementation and evidence are ready for PR handoff; required human playtests remain pending.
+
+
+## Approved minimal manual-playtest follow-up
+
+The user approved the minimal scope: opening pacing and exhausted-upgrade UI.
+Scout flight/arena changes and progression redesign move to Linear follow-ups.
+
+1. In `src/combat/wave_tests.rs`, change the opening warnings to 3/13/23;
+   first pressure window to 30–105 with 3 every8 seconds (9 bursts), opening lull
+   to24, boundary to30, and total to46 bursts/262 requests. Update the real HUD
+   boundary regression in `src/combat/feedback_tests.rs` to29/30. Run
+   `cargo test --locked wave_tests` and confirm failure before tuning.
+2. In `src/combat/waves.rs`, set opening end30/lull24/interval10 and first
+   pressure start30/first_warning30/interval8. Preserve all later phases,
+   300-second duration, cap30, safety, warnings, and enemy/player balance.
+3. In `src/upgrades/tests.rs`, reproduce selecting the final eligible upgrade
+   with no further pending level and require immediate exhaustion. In
+   `src/upgrades/scene.rs`, cover complete-build HUD without XP/level promises.
+   Run focused tests and confirm failures before changing their implementation.
+4. In `UpgradeRun::prepare_offer`, check eligible-pool exhaustion even when
+   pending==0, while preserving stable active offers and RNG. In `hud_copy`,
+   return `BUILD COMPLETE | No more upgrades this run` and the acquired list
+   when exhausted; otherwise preserve level/XP copy. Retain XP accounting,
+   thresholds, six single-purchase upgrades, eligibility, and offer rules.
+5. Run `cargo fmt --check`, `cargo test --locked --quiet`, and
+   `cargo clippy --all-targets --locked -- -D warnings`, using the shared target
+   directory. Review the focused diff, update README/checklist/playtest evidence,
+   commit each implementation milestone, push the existing branch, and update PR11.
+6. Create focused Linear tickets for scout handling, arena/Scout identity, and
+   meaningful run progression, referencing existing DRO-22 for catalog expansion.
+   Record their links in the handoff. Human acceptance stays pending another run.
