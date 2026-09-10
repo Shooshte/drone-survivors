@@ -74,7 +74,7 @@ impl RouteProbe {
     }
 }
 
-pub(super) fn keys(position: Vec3, flight: &DroneFlight, target: Vec3) -> Vec<KeyCode> {
+pub(crate) fn keys(position: Vec3, flight: &DroneFlight, target: Vec3) -> Vec<KeyCode> {
     let delta = target - position;
     let horizontal = delta.with_y(0.);
     let distance = horizontal.length();

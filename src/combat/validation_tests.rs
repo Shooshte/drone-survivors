@@ -440,3 +440,66 @@ fn wave_override_modes_do_not_report_authored_phases_or_lulls() {
         }
     }
 }
+
+#[test]
+fn charger_preview_is_explicit_and_rejects_stress_overrides() {
+    let parse = |args: &[&str]| ValidationConfig::parse(args.iter().map(|s| s.to_string()));
+    assert!(parse(&["--validate", "chargers", "--seconds", "60"]).is_ok());
+    assert!(parse(&["--validate", "chargers", "--enemies", "10"]).is_err());
+}
+
+#[test]
+fn charger_preview_flies_depletes_recovers_and_restarts_without_gameplay_overrides() {
+    use crate::energy::{ChargerReserve, ChargingNode};
+    let mut app = App::new();
+    app.init_resource::<ButtonInput<KeyCode>>()
+        .init_resource::<crate::world::WorldGeometry>()
+        .init_resource::<crate::world::PlayerPath>()
+        .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
+            Duration::ZERO,
+        ))
+        .add_message::<AppExit>()
+        .add_plugins((bevy::time::TimePlugin, ArenaPlugin, CombatPlugin));
+    validation::install(
+        &mut app,
+        ValidationConfig {
+            mode: ValidationMode::Chargers,
+            seconds: 70.,
+            enemies: 150,
+        },
+    );
+    app.update();
+    let mut seen = [false; 4];
+    for _ in 0..65 * 30 {
+        validation_tick(&mut app, 1. / 30., &[]);
+        for (node, reserve) in app
+            .world_mut()
+            .query::<(&ChargingNode, &ChargerReserve)>()
+            .iter(app.world())
+        {
+            if node.center.x < 0. {
+                seen[0] |= reserve.occupied && reserve.remaining == 0.;
+                seen[1] |=
+                    !reserve.occupied && reserve.remaining < 200. && reserve.away_seconds < 8.;
+                seen[2] |= !reserve.occupied
+                    && reserve.remaining > 0.
+                    && reserve.remaining < 200.
+                    && reserve.away_seconds > 8.;
+            } else {
+                seen[3] |= reserve.occupied;
+            }
+        }
+    }
+    assert!(
+        seen.iter().all(|v| *v),
+        "missing depleted/delay/recovery/right-arrival state: {seen:?}"
+    );
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+    assert_eq!(count::<Enemy>(&mut app), 0);
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 100);
+    validation_tick(&mut app, 1. / 30., &[KeyCode::KeyR]);
+    for reserve in app.world_mut().query::<&ChargerReserve>().iter(app.world()) {
+        assert_eq!(reserve.remaining, 200.);
+        assert_eq!(reserve.away_seconds, 0.);
+    }
+}

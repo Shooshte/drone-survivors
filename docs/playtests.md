@@ -1255,3 +1255,33 @@ enemies necessarily make every run easier; it earns fewer early upgrades and
 follows a deterministic pilot. Preserve the user's exact count-only adjustment
 and assess feel with the next human playthrough. Camping/DRO-32 and the human
 experiential gate remain pending.
+
+
+## DRO-32 — Finite charging reserves — 2026-09-10
+
+Approved tuning: each charger stores 200 energy, supplies at most 25/s, and only
+recovers after eight uninterrupted seconds outside its volume, then at 10/s.
+Actual supply includes powered modules at a full battery; no delivery wastes
+reserve. Overlaps share one delivery ceiling. Choices/outcomes freeze reserve
+and recovery state; R resets both fields through the existing lifecycle.
+
+The charger-only comparison keeps waves, enemies, XP, and upgrade rules constant.
+All four unlimited-reserve camps survive 300 seconds. With production reserves,
+each consumes exactly 200 charger energy, stays powered about 17–30 seconds,
+and dies near 240 seconds. The alternating conservation pilot survives with
+100 hull and 430 kills in both configurations, visiting each field 19 times.
+These are scripted outcomes, not claims of human tactical acceptance.
+
+209 locked tests, formatting and strict all-target Clippy pass at `07ab391`.
+Both opt-in ten-scenario diagnostics pass; the historical diagnostic's outcome,
+choice and spawn records still match the baseline exactly. Independent core and
+whole-branch reviews have no remaining blockers. Native captures cover depleted,
+delay and recovery states at normal and minimum window sizes; visual QA caught
+and fixed an unsupported separator glyph. Automated key-R and scene regressions
+cover complete restart and asset reuse; physical-key native restart was not
+exercised in this run.
+
+[Full comparison, captures, reproduction commands and limits](playtests/dro-32-charger-depletion.md).
+Human understanding of reserve cues and the feel of alternating stops remain
+pending review; keep that experiential acceptance distinct from the verified
+accounting and scripted movement results.

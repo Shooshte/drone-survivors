@@ -1,5 +1,5 @@
 use super::*;
-use crate::energy::{Energy, EnergyConfig};
+use crate::energy::{ChargerReserve, ChargingNode, Energy, EnergyConfig};
 use crate::modules::{ModuleKind, Modules};
 
 #[test]
@@ -78,6 +78,21 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
             let mut e = app.world_mut().resource_mut::<Energy>();
             e.current = 40.;
         }
+        let left = {
+            let world = app.world_mut();
+            let mut query = world.query::<(Entity, &ChargingNode)>();
+            query
+                .iter(world)
+                .find(|(_, node)| node.center.x < 0.)
+                .unwrap()
+                .0
+        };
+        {
+            let mut reserve = app.world_mut().get_mut::<ChargerReserve>(left).unwrap();
+            reserve.remaining = 70.;
+            reserve.away_seconds = 2.;
+            reserve.occupied = false;
+        }
         app.world_mut().resource_mut::<Modules>().enabled[0] = true;
         step(&mut app, 0.2, &[KeyCode::Digit1]);
         assert_eq!(
@@ -94,6 +109,10 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
                 .resource::<Modules>()
                 .active(ModuleKind::Overdrive)
         );
+        let reserve = app.world().get::<ChargerReserve>(left).unwrap();
+        assert_eq!(reserve.remaining, 70.);
+        assert_eq!(reserve.away_seconds, 2.);
+        assert!(!reserve.occupied);
         step(
             &mut app,
             1.,
@@ -110,6 +129,10 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
                 .resource::<Modules>()
                 .active(ModuleKind::Overdrive)
         );
+        let reserve = app.world().get::<ChargerReserve>(left).unwrap();
+        assert_eq!(reserve.remaining, 200.);
+        assert_eq!(reserve.away_seconds, 0.);
+        assert!(!reserve.occupied);
         assert_eq!(count::<Projectile>(&mut app), 0);
     }
 }

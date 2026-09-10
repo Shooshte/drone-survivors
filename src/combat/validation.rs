@@ -18,6 +18,8 @@ pub(super) use measurements::build_summary;
 use measurements::{Measurements, measure};
 #[cfg(test)]
 use measurements::{spawn_summary, summarize};
+#[path = "charger_validation.rs"]
+mod chargers;
 #[cfg(test)]
 #[path = "validation_observation_tests.rs"]
 mod observation_tests;
@@ -48,6 +50,7 @@ pub(crate) enum ValidationMode {
     Stress,
     Idle,
     Routes,
+    Chargers,
     Mobile,
     Armored,
     Choices,
@@ -93,7 +96,7 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate manual|survival|stress|idle|routes|mobile|armored|choices \
+                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
@@ -104,12 +107,13 @@ impl ValidationConfig {
                         "stress" => ValidationMode::Stress,
                         "idle" => ValidationMode::Idle,
                         "routes" => ValidationMode::Routes,
+                        "chargers" => ValidationMode::Chargers,
                         "mobile" => ValidationMode::Mobile,
                         "armored" => ValidationMode::Armored,
                         "choices" => ValidationMode::Choices,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, mobile, armored, or choices"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, or choices"
                                     .into(),
                             );
                         }
@@ -146,7 +150,7 @@ impl ValidationConfig {
             mode,
             seconds: seconds.unwrap_or(match mode {
                 ValidationMode::Stress => 30.,
-                ValidationMode::Choices => 60.,
+                ValidationMode::Choices | ValidationMode::Chargers => 60.,
                 _ => 305.,
             }),
             enemies: enemies.unwrap_or(150),
@@ -171,6 +175,7 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
                 | ValidationMode::Mobile
                 | ValidationMode::Armored
                 | ValidationMode::Choices
+                | ValidationMode::Chargers
         ),
         config.mode == ValidationMode::Stress,
         config.seconds,
@@ -187,6 +192,14 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
             routes::input
                 .in_set(GameplaySet::Reset)
                 .after(lifecycle::restart),
+        );
+    }
+    if config.mode == ValidationMode::Chargers {
+        app.init_resource::<chargers::ChargerPreview>().add_systems(
+            Update,
+            chargers::input
+                .in_set(GameplaySet::Reset)
+                .after(validation_choice_input),
         );
     }
     app.insert_resource(config)
@@ -255,7 +268,10 @@ fn configure(
     mut windows: Query<&mut Window>,
     run: Option<ResMut<UpgradeRun>>,
 ) {
-    if config.mode == ValidationMode::Routes {
+    if matches!(
+        config.mode,
+        ValidationMode::Routes | ValidationMode::Chargers
+    ) {
         waves.disable_authored_waves();
     }
     if config.mode == ValidationMode::Stress {
@@ -326,7 +342,8 @@ fn validation_choice_input(
         ValidationMode::Survival
         | ValidationMode::Stress
         | ValidationMode::Idle
-        | ValidationMode::Routes => &[],
+        | ValidationMode::Routes
+        | ValidationMode::Chargers => &[],
         ValidationMode::Choices | ValidationMode::Manual => unreachable!(),
     };
     let key = priorities
@@ -395,7 +412,10 @@ fn pilot_input(
 ) {
     if matches!(
         config.mode,
-        ValidationMode::Manual | ValidationMode::Idle | ValidationMode::Routes
+        ValidationMode::Manual
+            | ValidationMode::Idle
+            | ValidationMode::Routes
+            | ValidationMode::Chargers
     ) || keys.just_pressed(KeyCode::KeyR)
     {
         return;
