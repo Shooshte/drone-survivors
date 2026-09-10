@@ -216,7 +216,7 @@ fn charger_label(center: Vec3) -> &'static str {
 fn charger_status(reserve: &ChargerReserve, config: &ChargerConfig, active: bool) -> String {
     let status = if reserve.occupied {
         if reserve.remaining <= 0. {
-            "DEPLETED — LEAVE TO RECOVER".to_string()
+            "DEPLETED | LEAVE TO RECOVER".to_string()
         } else {
             "IN USE".to_string()
         }
@@ -534,7 +534,7 @@ mod tests {
         step(&mut app, 0., &[]);
         let value = text(&mut app);
         assert!(
-            value.contains("LEFT   0 / 200   DEPLETED — LEAVE TO RECOVER"),
+            value.contains("LEFT   0 / 200   DEPLETED | LEAVE TO RECOVER"),
             "{value}"
         );
         assert!(
