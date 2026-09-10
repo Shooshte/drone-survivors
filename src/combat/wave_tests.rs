@@ -331,3 +331,28 @@ fn restart_during_warning_repeats_positions_and_drops_old_reservations() {
         );
     }
 }
+
+#[test]
+fn terminal_update_accounts_due_requests_without_creating_warnings() {
+    for survive in [true, false] {
+        let (mut app, _) = wave_app();
+        let at = if survive { 299. } else { 0.1 };
+        app.world_mut().resource_mut::<WaveConfig>().bursts = vec![(at, 2)];
+        if survive {
+            app.world_mut().resource_mut::<Encounter>().elapsed = 298.;
+        } else {
+            app.world_mut().resource_mut::<PlayerHealth>().current = 1;
+            enemy(&mut app, START, 100);
+        }
+        step(&mut app, if survive { 2. } else { 0.1 }, &[]);
+        let run = app.world().resource::<Encounter>();
+        assert_eq!(run.spawns.requested, 2);
+        assert_eq!(run.next_burst, 1);
+        assert_eq!(run.spawns.admitted, 0);
+        assert_eq!(run.spawns.skipped_terminal, 2);
+        let accounted = run.spawns;
+        assert_eq!(count::<SpawnWarning>(&mut app), 0);
+        step(&mut app, 1., &[]);
+        assert_eq!(app.world().resource::<Encounter>().spawns, accounted);
+    }
+}

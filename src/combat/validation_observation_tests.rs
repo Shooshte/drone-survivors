@@ -210,10 +210,11 @@ fn spawn_summary_names_every_outcome_counter() {
             rejected_cap: 4,
             rejected_space: 3,
             skipped_hitch: 3,
+            skipped_terminal: 0,
             activated: 26,
             cancelled: 2,
         }),
-        "requested=40 admitted=30 rejected_cap=4 rejected_space=3 skipped_hitch=3 activated=26 cancelled=2 pending=2"
+        "requested=40 admitted=30 rejected_cap=4 rejected_space=3 skipped_hitch=3 skipped_terminal=0 activated=26 cancelled=2 pending=2"
     );
 }
 

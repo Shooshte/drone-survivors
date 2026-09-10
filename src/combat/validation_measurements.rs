@@ -53,12 +53,13 @@ pub(super) fn spawn_summary(spawns: SpawnCounts) -> String {
         .admitted
         .saturating_sub(spawns.activated + spawns.cancelled);
     format!(
-        "requested={} admitted={} rejected_cap={} rejected_space={} skipped_hitch={} activated={} cancelled={} pending={pending}",
+        "requested={} admitted={} rejected_cap={} rejected_space={} skipped_hitch={} skipped_terminal={} activated={} cancelled={} pending={pending}",
         spawns.requested,
         spawns.admitted,
         spawns.rejected_cap,
         spawns.rejected_space,
         spawns.skipped_hitch,
+        spawns.skipped_terminal,
         spawns.activated,
         spawns.cancelled,
     )

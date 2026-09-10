@@ -123,6 +123,7 @@ pub(crate) struct SpawnCounts {
     pub rejected_cap: usize,
     pub rejected_space: usize,
     pub skipped_hitch: usize,
+    pub skipped_terminal: usize,
     pub activated: usize,
     pub cancelled: usize,
 }
@@ -257,6 +258,16 @@ pub(super) fn update(
         return;
     }
     if *phase != GamePhase::Playing {
+        // The outcome wins over spawning, but due requests still need an outcome
+        // in the report (including a hitch crossing the final authored burst).
+        while let Some(&(at, count)) = config.bursts.get(run.next_burst) {
+            if run.elapsed + 1e-7 < at {
+                break;
+            }
+            run.spawns.requested += count;
+            run.spawns.skipped_terminal += count;
+            run.next_burst += 1;
+        }
         run.spawns.cancelled += warnings.len();
         for (id, _, _) in warnings {
             commands.entity(id).despawn();
