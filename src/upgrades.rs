@@ -121,7 +121,7 @@ impl UpgradeRun {
     }
 
     pub(crate) fn prepare_offer(&mut self, loadout: &Loadout) {
-        if self.pending == 0 || !self.offer.is_empty() || self.exhausted {
+        if !self.offer.is_empty() || self.exhausted {
             return;
         }
 
@@ -136,6 +136,11 @@ impl UpgradeRun {
             return;
         }
 
+        // Completion must be visible immediately after the last selection,
+        // without making the player earn another level to discover it.
+        if self.pending == 0 {
+            return;
+        }
         let count = eligible.len().min(3);
         for index in 0..count {
             let sampled = index + self.random_index(eligible.len() - index);

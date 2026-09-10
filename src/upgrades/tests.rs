@@ -172,3 +172,19 @@ fn modifiers_compose_from_baselines_independent_of_selection_order() {
     assert_eq!(forward.rocket_radius, 1.5);
     assert_eq!(forward.rocket_interval, 1.5);
 }
+
+#[test]
+fn final_selection_marks_build_complete_without_another_level() {
+    let mut run = UpgradeRun::default();
+    run.selected = UpgradeKind::ALL[..5].to_vec();
+    run.award(50);
+    run.prepare_offer(&Loadout::default());
+    assert_eq!(run.offer, vec![UpgradeKind::WideAreaRockets]);
+    assert!(run.resolve(Some(0)));
+    assert_eq!(run.pending, 0);
+    run.prepare_offer(&Loadout::default());
+    assert!(run.exhausted);
+    assert!(run.offer.is_empty());
+    run.award(run.threshold());
+    assert_eq!(run.pending, 0);
+}

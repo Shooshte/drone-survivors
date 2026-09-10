@@ -425,17 +425,14 @@ fn hud_copy(run: &UpgradeRun) -> String {
             .collect::<Vec<_>>()
             .join("  |  ")
     };
-    let exhausted = if run.exhausted {
-        "  |  CATALOG EXHAUSTED"
-    } else {
-        ""
-    };
+    if run.exhausted {
+        return format!("BUILD COMPLETE | No more upgrades this run\nRUN UPGRADES  |  {selected}");
+    }
     format!(
-        "LEVEL  {}   |   XP  {} / {}{}\nRUN UPGRADES  |  {selected}",
+        "LEVEL  {}   |   XP  {} / {}\nRUN UPGRADES  |  {selected}",
         run.level,
         run.xp,
         run.threshold(),
-        exhausted
     )
 }
 
@@ -480,6 +477,38 @@ mod tests {
             .iter(app.world())
             .filter(|(_, node)| node.display == Display::Flex)
             .count()
+    }
+
+    #[test]
+    fn completed_build_hud_removes_progress_promises_and_reset_restores_them() {
+        let mut app = scene_app();
+        {
+            let mut run = app.world_mut().resource_mut::<UpgradeRun>();
+            run.selected = UpgradeKind::ALL.to_vec();
+            run.exhausted = true;
+            run.award(500);
+        }
+        app.update();
+        let text = app
+            .world_mut()
+            .query_filtered::<&Text, With<UpgradeHud>>()
+            .single(app.world())
+            .unwrap();
+        assert!(text.0.contains("BUILD COMPLETE"));
+        assert!(!text.0.contains("XP"));
+        assert!(!text.0.contains("LEVEL"));
+        for kind in UpgradeKind::ALL {
+            assert!(text.0.contains(kind.name()));
+        }
+        *app.world_mut().resource_mut::<UpgradeRun>() = UpgradeRun::default();
+        app.update();
+        let text = app
+            .world_mut()
+            .query_filtered::<&Text, With<UpgradeHud>>()
+            .single(app.world())
+            .unwrap();
+        assert!(text.0.contains("XP"));
+        assert!(!text.0.contains("BUILD COMPLETE"));
     }
 
     #[test]
