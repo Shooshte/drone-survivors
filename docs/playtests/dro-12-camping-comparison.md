@@ -1,6 +1,6 @@
 # DRO-12 camping and XP timing diagnostic
 
-Recorded on 2026-09-10 at source commit `552d118`.
+Recorded on 2026-09-10 at source commit `552d118`. This tuning was later superseded by [the midpoint-pressure opening](dro-12-midpoint-comparison.md).
 
 Ignored 30 Hz Bevy simulation, run with `cargo test --locked camping_balance_probe -- --ignored --nocapture`. It uses `WorldGeometry::default()`, the real hazard, `ArenaPlugin`, `CombatPlugin`, `UpgradePlugin`, normal charging/modules, real damage, and earned XP. Each camp is staged once at `(±280, 90, 0)`; there are no later transform/velocity writes, health overrides, invulnerability, forced offers, forced selections, or synthetic XP. Modules and choices use ordinary guarded keyboard edges. The moving control uses `validation::pilot_keys`, a deterministic automated pilot rather than a human strategy.
 
@@ -33,6 +33,8 @@ No run collected the exploration pickup. All admitted camp enemies activated and
 - Candidate moving: `16.100 L2 HeavyRounds; 39.200 L3 RapidShield; 64.333 L4 HeavyArmor; 96.300 L5 Interceptor; 130.967 L6 AgileFrame; 169.533 L7 WideAreaRockets`.
 
 The first four choices match exactly. Candidate camp choice deltas are 0/0/0/0/-2.167/-1.933 seconds on the left and 0/0/0/0/-0.033/-1.367 on the right. The moving candidate's fifth choice is 0.400 seconds earlier and it earns a sixth before dying.
+
+For the shield profiles, choice times match the same-node overdrive-only records above, but AgileFrame is selected fourth and Interceptor fifth. This corrects the originally combined selection-order description; the timings and outcomes are unchanged.
 
 ## Interpretation
 

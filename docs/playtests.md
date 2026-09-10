@@ -1196,3 +1196,31 @@ suite. The ignored camping diagnostic was explicitly run and passed all ten
 scenarios. Formatting and strict all-targets Clippy passed; focused final review
 found no substantive issues. These headless results do not replace the earlier
 native performance evidence or the outstanding human playtest.
+
+
+### Start at the previous midpoint pressure
+
+The user reports that the early game can be left unattended until about 150
+seconds remain, and asks to start at that difficulty then steadily increase.
+At source `f159e56`, the opening now has six enemies every eight seconds, with
+warnings at 3/11/19. Later stages use 8 every 8 seconds, 9 every 6, 10 every 5,
+and 12 every 4. Phase boundaries and six-second lulls remain unchanged. This
+supersedes the earlier forgiving opening and yields **50 bursts / 497 enemies**,
+with scheduled active arrival rates of 45/60/90/120/180 per minute.
+
+Kill rewards are now **4 XP throughout** to offset earlier kills. Pickup rewards,
+thresholds, choices, enemy behavior, cap and spawn safety are unchanged. Paired
+normal-arena probes against the immediately previous 375-enemy / 10→7 XP tuning
+place all six camping choices within ten seconds of their previous times, and
+the moving pilot's five shared choices within eight seconds. The moving pilot
+now dies at 134.000 seconds versus 181.233; this is one automated control, not
+human acceptance evidence. All four tuned camping profiles still survive 300
+seconds and kill every one of the 497 requested enemies, with no rejected or
+skipped spawns. Charger depletion remains DRO-32; the experiential gate stays
+pending.
+
+[Full paired results, choice records and limitations](playtests/dro-12-midpoint-comparison.md).
+All **196 tests**, formatting and strict all-targets Clippy pass. The ignored
+balance probe passed all ten scenarios when explicitly run. Focused code review
+found no substantive issues. The older native performance records retain their
+original source checkpoints.

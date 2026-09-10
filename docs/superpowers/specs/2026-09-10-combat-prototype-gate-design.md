@@ -233,3 +233,9 @@ thresholds, offers, enemy behavior, cap, spawning safety, flight and charging st
 as before. This changes scheduled pressure; it cannot promise that an unupgraded
 player feels exactly like an upgraded player at the old midpoint. The camping
 exploit remains a separate charger-depletion task.
+
+
+Final midpoint comparison retains 4 XP throughout: camping choice deltas stay
+within ten seconds and the moving pilot's five shared choices within eight.
+All camping profiles still win; the moving pilot dies at 134 seconds versus
+181.233 previously. Evidence is in `docs/playtests/dro-12-midpoint-comparison.md`.

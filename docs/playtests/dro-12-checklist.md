@@ -61,10 +61,10 @@ of the enemies, shots, charging, or hazard warnings and cause no catch-up on res
 
 ## Gate decision
 
-- [ ] Opening allows orientation; pressure accelerates after approximately 30 seconds.
+- [ ] Opening begins at the previous midpoint pressure (6 enemies every 8 seconds); pressure rises through each later stage without an unattended early stretch.
 - [ ] Final minute challenges an upgraded build instead of flattening at the cap.
 - [ ] Test stationary overdrive camping at both chargers, including normally earned offensive upgrades; record whether it still wins.
-- [ ] Compare earned-choice times with the previous run after the larger bursts and the 10-to-7 XP/kill reduction at 105 seconds.
+- [ ] Compare earned-choice times with the previous run after the denser opening and 4 XP per kill throughout the run.
 - [ ] Two meaningfully different tactics each survive 300 active seconds.
 - [ ] Players can explain power decisions and upgrade benefits/drawbacks.
 - [ ] After the final eligible upgrade, Build complete replaces level/XP progress immediately; no empty choice appears.
