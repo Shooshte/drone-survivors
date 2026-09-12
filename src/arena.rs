@@ -12,6 +12,8 @@ pub use scene::ArenaScenePlugin;
 pub(crate) use scene::{ArenaSceneSetup, FooterFont, HazardFooterSlot, UpgradeFooterSlot};
 
 #[cfg(test)]
+mod handling_tests;
+#[cfg(test)]
 mod tests;
 
 pub(crate) const DRONE_START: Transform = Transform::from_xyz(0., 90., 0.);

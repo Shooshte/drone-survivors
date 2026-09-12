@@ -251,7 +251,9 @@ fn bank_redirects_visible_thrust_sideways() {
     step(&mut app, &[KeyCode::KeyE], 0.5);
     let transform = app.world().get::<Transform>(drone).unwrap();
     assert!(transform.translation.x > 1.);
-    assert!((transform.rotation * Vec3::Y).x > 0.4);
+    let local_up =
+        Quat::from_rotation_y(-state(&app, drone).heading) * transform.rotation * Vec3::Y;
+    assert!(local_up.x > 0.4);
 }
 
 #[test]
@@ -308,7 +310,12 @@ fn neutral_hover_and_all_bindings_follow_heading() {
             assert!(velocity.dot(expected) > 5., "{key:?}: {velocity:?}");
             if direction.y == 0. {
                 let up = app.world().get::<Transform>(drone).unwrap().rotation * Vec3::Y;
-                near(velocity.with_y(0.).normalize(), up.with_y(0.).normalize());
+                if matches!(key, KeyCode::KeyQ | KeyCode::KeyE) {
+                    // Coordinated bank rotates thrust while world momentum trails it.
+                    assert!(up.dot(expected) > 0.3);
+                } else {
+                    near(velocity.with_y(0.).normalize(), up.with_y(0.).normalize());
+                }
                 assert!(velocity.y < 0.);
             }
         }
@@ -379,7 +386,7 @@ fn aliases_do_not_stack_and_all_opposites_cancel() {
 fn tilt_progresses_to_shared_limit_and_axes_level_independently() {
     for held in [KeyCode::KeyW, KeyCode::KeyE] {
         let (mut app, drone) = test_app();
-        step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.1);
+        step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.05);
         let first = state(&app, drone).tilt.length();
         assert!(first > 0. && first < 30_f32.to_radians());
         step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 1.);
@@ -626,7 +633,7 @@ fn reset_clears_all_flight_state_wins_over_input_and_held_reset_does_not_repeat(
 #[test]
 fn diagonal_tilt_and_leveling_use_configured_total_angular_rates() {
     let (mut app, drone) = test_app();
-    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.1);
+    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.05);
     assert!((state(&app, drone).tilt.length() - 24_f32.to_radians()).abs() < 0.001);
     step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.5);
     step(&mut app, &[], 0.05);
@@ -686,6 +693,9 @@ fn sustained_flight_contacts_all_faces_edges_and_corners_without_velocity_buildu
                     .collect::<Vec<_>>()
                 };
                 let (mut app, drone) = test_app();
+                // Isolate straight thrust into each boundary. Banked turns have
+                // separate trajectory/bounds coverage and do not hold a heading.
+                app.world_mut().resource_mut::<FlightConfig>().bank_yaw_rate = 0.;
                 for seconds in [10., 2.] {
                     step(&mut app, &inputs(false), seconds);
                     let transform = app.world().get::<Transform>(drone).unwrap();

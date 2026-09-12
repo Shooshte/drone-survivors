@@ -139,20 +139,25 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
 
 #[test]
 fn empty_drone_reaches_both_nodes_with_real_flight_under_enemy_pressure() {
-    for key in [KeyCode::KeyQ, KeyCode::KeyE] {
+    for yaw in [KeyCode::KeyA, KeyCode::KeyD] {
         let (mut app, _) = empty_app();
         enemy(&mut app, START + Vec3::Z * 220., 10000);
         app.world_mut().resource_mut::<Energy>().current = 0.;
         let mut reached = false;
-        for _ in 0..240 {
-            step(&mut app, 1. / 120., &[key]);
+        // Point at the charger, then pitch forward: Q/E now intentionally curves.
+        for frame in 0..285 {
+            step(
+                &mut app,
+                1. / 120.,
+                &[if frame < 45 { yaw } else { KeyCode::KeyW }],
+            );
             let energy = app.world().resource::<Energy>();
             if energy.charging.is_some() && energy.current > 0. {
                 reached = true;
                 break;
             }
         }
-        assert!(reached, "failed to reach node with {key:?}");
+        assert!(reached, "failed to reach node with {yaw:?}");
         assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
         assert!(
             !app.world()

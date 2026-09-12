@@ -12,6 +12,8 @@ pub(crate) struct FlightConfig {
     pub(crate) tilt_rate: f32,
     pub(crate) leveling_rate: f32,
     pub(crate) yaw_rate: f32,
+    /// Automatic heading change at full bank; direct yaw takes priority. Zero for AI.
+    pub(crate) bank_yaw_rate: f32,
     pub(crate) gravity: f32,
     pub(crate) neutral_thrust: f32,
     pub(crate) boost_thrust: f32,
@@ -24,12 +26,13 @@ impl Default for FlightConfig {
     fn default() -> Self {
         Self {
             max_horizontal_speed: 420.,
-            horizontal_acceleration_multiplier: 1.,
+            horizontal_acceleration_multiplier: 2.5,
             acceleration_multiplier: 1.,
             max_tilt: 30_f32.to_radians(),
-            tilt_rate: 240_f32.to_radians(),
+            tilt_rate: 480_f32.to_radians(),
             leveling_rate: 300_f32.to_radians(),
             yaw_rate: 240_f32.to_radians(),
+            bank_yaw_rate: 90_f32.to_radians(),
             gravity: 360.,
             neutral_thrust: 1.,
             boost_thrust: 4. / 3.,
@@ -249,7 +252,8 @@ impl DroneFlight {
         } else {
             self.step(transform, input, config, arena, local_half, dt);
             let angular_pad = local_half.length()
-                * (config.yaw_rate + config.tilt_rate.max(config.leveling_rate))
+                * (config.yaw_rate.max(config.bank_yaw_rate)
+                    + config.tilt_rate.max(config.leveling_rate))
                 * dt;
             vec![MotionSegment {
                 start,
@@ -263,8 +267,6 @@ impl DroneFlight {
     }
 
     fn update_attitude(&mut self, input: &FlightInput, config: &FlightConfig, dt: f32) {
-        self.heading = (self.heading + input.yaw.clamp(-1., 1.) * config.yaw_rate * dt)
-            .rem_euclid(std::f32::consts::TAU);
         let target = input.tilt.clamp_length_max(1.) * config.max_tilt;
         let mut delta = Vec2::ZERO;
         let mut total_rate: f32 = 0.;
@@ -284,6 +286,14 @@ impl DroneFlight {
         // change so diagonal input never multiplies the angular response rate.
         self.tilt += delta.clamp_length_max(total_rate * dt);
         self.tilt = self.tilt.clamp_length_max(config.max_tilt);
+        let yaw = if input.yaw != 0. {
+            input.yaw.clamp(-1., 1.) * config.yaw_rate
+        } else if config.max_tilt > 0. {
+            -self.tilt.x / config.max_tilt * config.bank_yaw_rate
+        } else {
+            0.
+        };
+        self.heading = (self.heading + yaw * dt).rem_euclid(std::f32::consts::TAU);
     }
 
     pub(crate) fn rotation(&self) -> Quat {
@@ -399,7 +409,10 @@ mod tests {
                 ..default()
             };
             let acceleration = flight.acceleration(flight.rotation(), &input, &config);
-            assert!((acceleration.z + expected).abs() < 0.001);
+            assert!(
+                (acceleration.z + expected * config.horizontal_acceleration_multiplier).abs()
+                    < 0.001
+            );
             assert!((acceleration.y - (480. * 30_f32.to_radians().cos() - 360.)).abs() < 0.001);
         }
         for tilt in [Vec2::NEG_Y, Vec2::X] {
@@ -409,7 +422,9 @@ mod tests {
                 ..default()
             };
             let acceleration = flight.acceleration(flight.rotation(), &input, &config);
-            let expected = flight.rotation() * Vec3::Y * 480. - Vec3::Y * 360.;
+            let mut expected = flight.rotation() * Vec3::Y * 480. - Vec3::Y * 360.;
+            expected.x *= config.horizontal_acceleration_multiplier;
+            expected.z *= config.horizontal_acceleration_multiplier;
             assert!(acceleration.distance(expected) < 0.001);
         }
     }

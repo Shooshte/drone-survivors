@@ -48,6 +48,8 @@ impl Default for CombatConfig {
             shot_damage: 10,
             enemy_flight: crate::arena::FlightConfig {
                 max_horizontal_speed: 260.,
+                horizontal_acceleration_multiplier: 1.,
+                bank_yaw_rate: 0.,
                 max_tilt: 20_f32.to_radians(),
                 tilt_rate: 100_f32.to_radians(),
                 leveling_rate: 150_f32.to_radians(),

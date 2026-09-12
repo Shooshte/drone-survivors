@@ -13,9 +13,8 @@ follow-up before DRO-30 establishes final arena dimensions.
 - Heading changes rotate thrust and the model, never existing velocity. Keep
   bounded 120 Hz physics steps, swept terrain collision, and horizontal speed cap.
 - Increase scout horizontal rotor acceleration to 2.5 times the previous value;
-  retain the 420 speed cap, gravity, vertical thrust and passive drag. Increase
-  attitude response by 2 times only when commanded tilt opposes existing tilt.
-  Normal tilt, leveling and direct yaw rates stay at 240/300/240 degrees/second.
+  retain the 420 speed cap, gravity, vertical thrust and passive drag. Double tilt response to 480 degrees/second so full opposite tilt takes
+  0.125 seconds. Leveling and direct yaw stay at 300/240 degrees/second.
 - Mobility multiplies the new horizontal thrust and cap. Armor/rounds retain
   their translational penalties; Agile frame retains its angular improvement.
   Bank assistance follows the angular improvement too. Basic handling is free.

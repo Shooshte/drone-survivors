@@ -3,7 +3,7 @@
 > Execute in the existing isolated worktree, using test-driven development and an independent review before delivery.
 
 **Goal:** Deliver approved coordinated Q/E turns and responsive player-only acceleration/braking.
-**Architecture:** Keep the shared rotor integrator; express assistance and counter-tilt response in FlightConfig with explicit legacy enemy values. Apply heading assistance per physics substep without rotating velocity.
+**Architecture:** Keep the shared rotor integrator; express assistance and tilt response in FlightConfig with explicit legacy enemy values. Apply heading assistance per physics substep without rotating velocity.
 **Tech Stack:** Rust, Bevy 0.19.1, existing Cargo setup.
 
 ## Global constraints
