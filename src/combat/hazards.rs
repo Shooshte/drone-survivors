@@ -199,6 +199,7 @@ mod tests {
             &crate::arena::FlightInput {
                 tilt: Vec2::X,
                 yaw: 1.,
+                yaw_override: true,
                 thrust: 1.,
             },
             &crate::arena::FlightConfig {

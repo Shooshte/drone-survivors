@@ -124,6 +124,7 @@ fn zero_duration_wall_contact_cannot_hit_remote_projectile() {
         &crate::arena::FlightInput {
             tilt: Vec2::ZERO,
             yaw: 0.,
+            yaw_override: false,
             thrust: 1.,
         },
         &config,

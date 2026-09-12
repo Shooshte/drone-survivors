@@ -512,3 +512,29 @@ fn reduced_kill_xp_is_credited_once_across_phases_and_restart() {
     tick(&mut app, 0., &[]);
     assert_eq!(app.world().resource::<UpgradeRun>().xp, 4);
 }
+
+#[test]
+fn agile_frame_improves_coordinated_turns_and_restart_restores_them() {
+    use crate::arena::DroneFlight;
+    use crate::upgrades::UpgradeKind;
+    let mut turns = Vec::new();
+    for upgraded in [false, true] {
+        let (mut app, drone) = upgrade_app();
+        if upgraded {
+            pick(&mut app, UpgradeKind::AgileFrame);
+        }
+        tick(&mut app, 0.3, &[KeyCode::KeyE]);
+        let flight = app.world().get::<DroneFlight>(drone).unwrap();
+        let nose = Quat::from_rotation_y(flight.heading) * Vec3::NEG_Z;
+        turns.push(nose.x.asin());
+        tick(&mut app, 0., &[KeyCode::KeyR]);
+        tick(&mut app, 0.3, &[KeyCode::KeyE]);
+        let flight = app.world().get::<DroneFlight>(drone).unwrap();
+        let nose = Quat::from_rotation_y(flight.heading) * Vec3::NEG_Z;
+        assert!(
+            (nose.x.asin() - turns[0]).abs() < 0.001,
+            "restart restores baseline"
+        );
+    }
+    assert!(turns[1] > turns[0] * 1.35, "turn benefit: {turns:?}");
+}

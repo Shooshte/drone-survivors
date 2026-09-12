@@ -202,6 +202,7 @@ fn choose(
         flight.horizontal_acceleration_multiplier *= effective.horizontal_acceleration;
         flight.max_horizontal_speed *= effective.speed;
         flight.yaw_rate *= effective.handling;
+        flight.bank_yaw_rate *= effective.handling;
         flight.tilt_rate *= effective.handling;
         flight.leveling_rate *= effective.handling;
         flight.acceleration_multiplier *= effective.acceleration;
