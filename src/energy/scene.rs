@@ -4,6 +4,8 @@ pub(crate) struct EnergyScenePlugin;
 #[derive(Component)]
 struct EnergyHud;
 #[derive(Component)]
+pub(crate) struct ModuleFooterSlot;
+#[derive(Component)]
 struct EnergyFill;
 #[derive(Component)]
 struct ChargerHud(Entity);
@@ -30,7 +32,8 @@ impl Plugin for EnergyScenePlugin {
             Startup,
             setup_scene
                 .after(super::setup)
-                .after(crate::combat::CombatSceneSetup),
+                .after(crate::combat::CombatSceneSetup)
+                .after(crate::arena::ArenaSceneSetup),
         )
         .add_systems(
             Update,
@@ -43,6 +46,7 @@ fn setup_scene(
     mut commands: Commands,
     nodes: Query<(Entity, &ChargingNode)>,
     hud_root: Single<Entity, With<crate::combat::CombatHudRoot>>,
+    module_slot: Single<Entity, With<ModuleFooterSlot>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -153,21 +157,28 @@ fn setup_scene(
     let panel = commands
         .spawn(Node {
             flex_direction: FlexDirection::Column,
-            row_gap: px(3),
+            width: percent(100),
+            row_gap: px(2),
             ..default()
         })
         .with_children(|parent| {
             parent.spawn((
                 EnergyHud,
                 Text::default(),
-                TextFont::from_font_size(15.),
+                crate::arena::FooterFont::new(14., 12.),
+                TextFont::from_font_size(14.),
+                TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+                Node {
+                    width: percent(100),
+                    ..default()
+                },
                 TextColor(Color::srgb(0.75, 0.96, 0.9)),
             ));
             parent
                 .spawn((
                     Node {
                         width: px(220),
-                        height: px(7),
+                        height: px(3),
                         ..default()
                     },
                     BackgroundColor(Color::srgb(0.09, 0.2, 0.23)),
@@ -183,30 +194,60 @@ fn setup_scene(
                         BackgroundColor(Color::srgb(0.2, 0.9, 0.75)),
                     ));
                 });
-            for (entity, _) in &chargers {
-                parent.spawn((
-                    ChargerHud(*entity),
-                    Text::default(),
-                    TextFont::from_font_size(13.),
-                    TextColor(Color::srgb(0.75, 0.96, 0.9)),
-                ));
-            }
-            parent.spawn((
-                Text::new("MODULES | current / enabled drain"),
-                TextFont::from_font_size(13.),
-                TextColor(Color::srgb(0.6, 0.7, 0.75)),
-            ));
-            for index in 0..4 {
-                parent.spawn((
-                    crate::modules::scene::ModuleHud(index),
-                    Text::default(),
-                    TextFont::from_font_size(15.),
-                    TextColor::default(),
-                ));
-            }
+            parent
+                .spawn(Node {
+                    width: percent(100),
+                    column_gap: px(12),
+                    ..default()
+                })
+                .with_children(|row| {
+                    for (entity, _) in &chargers {
+                        row.spawn((
+                            ChargerHud(*entity),
+                            Text::default(),
+                            crate::arena::FooterFont::new(14., 12.),
+                            TextFont::from_font_size(14.),
+                            TextColor(Color::srgb(0.75, 0.96, 0.9)),
+                            TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+                            Node {
+                                flex_grow: 1.,
+                                flex_basis: px(0),
+                                min_width: px(0),
+                                ..default()
+                            },
+                        ));
+                    }
+                });
         })
         .id();
     commands.entity(*hud_root).add_child(panel);
+    commands.entity(*module_slot).with_children(|slot| {
+        for pair in 0..2 {
+            slot.spawn(Node {
+                width: percent(100),
+                column_gap: px(12),
+                ..default()
+            })
+            .with_children(|row| {
+                for index in pair * 2..pair * 2 + 2 {
+                    row.spawn((
+                        crate::modules::scene::ModuleHud(index),
+                        Text::default(),
+                        crate::arena::FooterFont::new(14., 12.),
+                        TextFont::from_font_size(14.),
+                        TextColor::default(),
+                        TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+                        Node {
+                            flex_grow: 1.,
+                            flex_basis: px(0),
+                            min_width: px(0),
+                            ..default()
+                        },
+                    ));
+                }
+            });
+        }
+    });
 }
 
 fn charger_label(center: Vec3) -> &'static str {
@@ -216,7 +257,7 @@ fn charger_label(center: Vec3) -> &'static str {
 fn charger_status(reserve: &ChargerReserve, config: &ChargerConfig, active: bool) -> String {
     let status = if reserve.occupied {
         if reserve.remaining <= 0. {
-            "DEPLETED | LEAVE TO RECOVER".to_string()
+            "DEPLETED; LEAVE TO RECOVER".to_string()
         } else {
             "IN USE".to_string()
         }
@@ -272,11 +313,11 @@ fn present(
     {
         "CHARGER DEPLETED | LEAVE FIELD TO RECOVER".to_string()
     } else {
-        "Enter a charging field to recharge".to_string()
+        "Enter field to recharge".to_string()
     };
     let actual_drain = if active { drain } else { 0. };
     let value = format!(
-        "ENERGY  {:.0} / {:.0}  |  MODULE DRAIN {actual_drain:.0}/s\n{flow}",
+        "ENERGY {:.0} / {:.0} | MODULE DRAIN {actual_drain:.0}/s | {flow}",
         energy.current.floor(),
         config.capacity
     );
@@ -306,7 +347,7 @@ fn present(
         };
         let label = charger_label(node.center);
         let value = format!(
-            "{label:<5}  {:.0} / {:.0}   {}",
+            "{label} {:.0}/{:.0} {}",
             reserve.remaining.floor(),
             charger_config.capacity,
             charger_status(reserve, &charger_config, active)
@@ -365,6 +406,7 @@ mod tests {
                 crate::combat::CombatScenePlugin,
                 EnergyScenePlugin,
             ));
+        app.world_mut().spawn((ModuleFooterSlot, Node::default()));
         app.update();
         let drone = app
             .world_mut()
@@ -372,6 +414,24 @@ mod tests {
             .single(app.world())
             .unwrap();
         (app, drone)
+    }
+
+    #[test]
+    fn energy_summary_stays_on_one_line_as_power_changes() {
+        let (mut app, drone) = scene_app();
+        for position in [Vec3::new(0., 90., 0.), Vec3::new(-280., 90., 0.)] {
+            at(&mut app, drone, position);
+            app.world_mut().resource_mut::<Energy>().current = 40.;
+            step(&mut app, 0., &crate::modules::SLOT_KEYS);
+            let summary = app
+                .world_mut()
+                .query_filtered::<&Text, With<EnergyHud>>()
+                .single(app.world())
+                .unwrap();
+            assert_eq!(summary.0.lines().count(), 1, "{}", summary.0);
+            assert!(summary.0.contains("40 / 100"));
+            assert!(summary.0.contains("/s"));
+        }
     }
 
     #[test]
@@ -506,8 +566,8 @@ mod tests {
     fn charger_rows_name_both_full_reserves_as_ready() {
         let (mut app, _) = scene_app();
         let value = text(&mut app);
-        assert!(value.contains("LEFT   200 / 200   READY"), "{value}");
-        assert!(value.contains("RIGHT  200 / 200   READY"), "{value}");
+        assert!(value.contains("LEFT 200/200 READY"), "{value}");
+        assert!(value.contains("RIGHT 200/200 READY"), "{value}");
     }
 
     #[test]
@@ -530,16 +590,13 @@ mod tests {
         );
         step(&mut app, 2., &[]);
         let value = text(&mut app);
-        assert!(value.contains("LEFT   150 / 200   IN USE"), "{value}");
-        assert!(value.contains("RIGHT  200 / 200   READY"), "{value}");
+        assert!(value.contains("LEFT 150/200 IN USE"), "{value}");
+        assert!(value.contains("RIGHT 200/200 READY"), "{value}");
 
         at(&mut app, drone, Vec3::new(0., 90., 0.));
         step(&mut app, 2., &[]);
         let value = text(&mut app);
-        assert!(
-            value.contains("LEFT   150 / 200   RECOVER IN 6s"),
-            "{value}"
-        );
+        assert!(value.contains("LEFT 150/200 RECOVER IN 6s"), "{value}");
 
         app.world_mut().entity_mut(left).insert(ChargerReserve {
             remaining: 0.,
@@ -554,14 +611,14 @@ mod tests {
         step(&mut app, 0., &[]);
         let value = text(&mut app);
         assert!(
-            value.contains("LEFT   0 / 200   DEPLETED | LEAVE TO RECOVER"),
+            value.contains("LEFT 0/200 DEPLETED; LEAVE TO RECOVER"),
             "{value}"
         );
         assert!(
             value.contains("CHARGER DEPLETED | LEAVE FIELD TO RECOVER"),
             "{value}"
         );
-        assert!(!value.contains("Enter a charging field to recharge"));
+        assert!(!value.contains("Enter field to recharge"));
 
         at(&mut app, drone, Vec3::new(0., 90., 0.));
         app.world_mut().entity_mut(left).insert(ChargerReserve {
@@ -571,7 +628,7 @@ mod tests {
         });
         step(&mut app, 1., &[]);
         let value = text(&mut app);
-        assert!(value.contains("LEFT   60 / 200   RECOVERING"), "{value}");
+        assert!(value.contains("LEFT 60/200 RECOVERING"), "{value}");
 
         app.world_mut().entity_mut(left).insert(ChargerReserve {
             remaining: 60.,
@@ -582,7 +639,7 @@ mod tests {
         step(&mut app, 3., &[]);
         let value = text(&mut app);
         assert!(
-            value.contains("LEFT   60 / 200   RECOVER IN 4s / PAUSED"),
+            value.contains("LEFT 60/200 RECOVER IN 4s / PAUSED"),
             "{value}"
         );
     }

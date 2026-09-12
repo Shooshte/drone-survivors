@@ -173,32 +173,30 @@ pub(super) fn setup_scene(
             )),
     ));
 
-    commands.spawn((
-        Text::new("DRONE SURVIVORS  /  COMBAT TEST ARENA"),
-        TextFont::from_font_size(20.),
-        TextColor(Color::srgb(0.76, 0.96, 0.93)),
-        Node {
-            position_type: PositionType::Absolute,
-            top: px(20),
-            left: px(24),
-            ..default()
-        },
-    ));
     commands
         .spawn((
             Name::new("Arena footer"),
             Node {
                 position_type: PositionType::Absolute,
-                bottom: px(20),
-                left: px(24),
-                right: px(24),
+                bottom: px(8),
+                left: px(12),
+                right: px(12),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Stretch,
-                row_gap: px(4),
+                row_gap: px(2),
                 ..default()
             },
         ))
         .with_children(|footer| {
+            footer.spawn((
+                Name::new("Module footer slot"),
+                crate::energy::scene::ModuleFooterSlot,
+                Node {
+                    width: percent(100),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+            ));
             footer.spawn((
                 Name::new("Hazard footer slot"),
                 HazardFooterSlot,
@@ -219,9 +217,9 @@ pub(super) fn setup_scene(
             ));
             footer.spawn((
                 ControlsHud,
-                FooterFont::new(16., 11.),
-                Text::new("W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank + turn\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit"),
-                TextFont::from_font_size(16.),
+                FooterFont::new(14., 12.),
+                Text::new("W/S, Up/Down Pitch | A/D, Left/Right Yaw | Q/E Bank+turn | R/Esc reset/quit\nSpace+/Shift- thrust | Tilt costs lift; release levels, drift stays | Auto fire"),
+                TextFont::from_font_size(14.),
                 TextColor(Color::srgb(0.63, 0.74, 0.77)),
                 TextLayout::new(Justify::Left, LineBreak::WordBoundary),
                 Node {
@@ -232,20 +230,8 @@ pub(super) fn setup_scene(
         });
 }
 
-fn fit_footer(
-    windows: Query<&Window>,
-    mut controls: Single<&mut Text, With<ControlsHud>>,
-    mut fonts: Query<(&FooterFont, &mut TextFont)>,
-) {
+fn fit_footer(windows: Query<&Window>, mut fonts: Query<(&FooterFont, &mut TextFont)>) {
     let compact = windows.iter().next().is_some_and(|w| w.width() < 800.);
-    let text = if compact {
-        "W/S Pitch | A/D Yaw | Q/E Bank+turn | Arrows also work\nSpace/Shift Thrust | Tilt loses lift; drift remains\n1-4 Modules | Auto fire | R Restart | Esc Quit"
-    } else {
-        "W/S / Up/Down  Pitch  |  A/D / Left/Right  Yaw  |  Q/E  Bank + turn\nSpace  Boost thrust  |  Shift  Reduce thrust  |  Release tilt to level; drift remains\nTilt loses altitude  |  Auto fire  |  R  Restart encounter  |  Esc  Quit"
-    };
-    if controls.0 != text {
-        controls.0 = text.into();
-    }
     for (sizes, mut font) in &mut fonts {
         font.font_size = bevy::text::FontSize::Px(if compact {
             sizes.compact

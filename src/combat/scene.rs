@@ -72,11 +72,11 @@ fn setup(
             CombatHudRoot,
             Node {
                 position_type: PositionType::Absolute,
-                top: px(52),
-                left: px(24),
-                right: px(24),
+                top: px(8),
+                left: px(12),
+                right: px(12),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(24),
+                row_gap: px(2),
                 ..default()
             },
         ))
@@ -84,7 +84,13 @@ fn setup(
             parent.spawn((
                 CombatHud,
                 Text::default(),
-                TextFont::from_font_size(18.),
+                crate::arena::FooterFont::new(16., 14.),
+                TextFont::from_font_size(16.),
+                TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+                Node {
+                    width: percent(100),
+                    ..default()
+                },
                 TextColor(Color::srgb(0.9, 0.94, 0.92)),
             ));
         });
@@ -166,12 +172,12 @@ fn update_hud(
         String::new()
     };
     let value = format!(
-        "HULL  {} / {}   |   HOSTILES  {}   |   KILLS  {}   |   TIME  {:.0}\n{}{}{}",
+        "HULL {} / {} | TIME {:.0} | HOSTILES {} | KILLS {}\n{}{}{}",
         health.current,
         config.player_health,
+        (waves.duration - run.elapsed).max(0.).ceil(),
         count,
         run.kills,
-        (waves.duration - run.elapsed).max(0.).ceil(),
         status,
         protection,
         incoming
