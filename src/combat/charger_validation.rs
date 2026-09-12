@@ -25,12 +25,9 @@ pub(super) fn input(
     if *phase != GamePhase::Playing {
         return;
     }
-    let route = [
-        Vec3::new(-280., 90., 0.),
-        Vec3::new(-280., 150., 195.),
-        Vec3::new(210., 150., 195.),
-        Vec3::new(280., 90., 0.),
-    ];
+    let mut route = crate::world::layout::detour(150.);
+    route[0].y = 90.;
+    route[3].y = 90.;
     if probe.waypoint == 0 {
         if nodes
             .iter()

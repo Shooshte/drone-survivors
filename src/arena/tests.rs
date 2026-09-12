@@ -597,9 +597,9 @@ fn floor_takeoff_ceiling_departure_and_rotation_at_wall_work() {
         .get_mut::<Transform>(drone)
         .unwrap()
         .translation
-        .x = 445.;
+        .x = Arena::default().half_size.x - DRONE_HALF_EXTENTS.x;
     step(&mut app, &[KeyCode::KeyD], 0.375);
-    assert!(position(&app, drone).x < 430.);
+    assert!(position(&app, drone).x < Arena::default().half_size.x - 50.);
     near(state(&app, drone).velocity, Vec3::ZERO);
     step(&mut app, &[KeyCode::KeyQ], 0.25);
     assert!(state(&app, drone).velocity.x < 0.);

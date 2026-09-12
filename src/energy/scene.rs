@@ -378,7 +378,11 @@ mod tests {
     fn full_battery_in_field_reports_full_instead_of_positive_flow() {
         for overdrive in [false, true] {
             let (mut app, drone) = scene_app();
-            at(&mut app, drone, Vec3::new(-280., 90., 0.));
+            at(
+                &mut app,
+                drone,
+                Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+            );
             step(
                 &mut app,
                 0.1,
@@ -438,7 +442,11 @@ mod tests {
         step(&mut app, 0., &[KeyCode::Digit1]);
         assert!(text(&mut app).contains("EMPTY"));
         assert!(text(&mut app).contains("Need 10"));
-        at(&mut app, drone, Vec3::new(-280., 90., 0.));
+        at(
+            &mut app,
+            drone,
+            Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+        );
         step(&mut app, 1., &[]);
         assert!(text(&mut app).contains("CHARGING +25/s"));
         step(&mut app, 0., &[KeyCode::Digit1]);
@@ -471,7 +479,11 @@ mod tests {
     #[test]
     fn all_slots_show_independent_states_and_signed_net_drain() {
         let (mut app, drone) = scene_app();
-        at(&mut app, drone, Vec3::new(-280., 90., 0.));
+        at(
+            &mut app,
+            drone,
+            Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+        );
         step(&mut app, 1., &crate::modules::SLOT_KEYS);
         let value = text(&mut app);
         for name in ["OVERDRIVE ON", "SHIELD ON", "MOBILITY ON", "ROCKETS ON"] {
@@ -511,7 +523,11 @@ mod tests {
         let left = chargers[0].0;
 
         app.world_mut().resource_mut::<Energy>().current = 0.;
-        at(&mut app, drone, Vec3::new(-280., 90., 0.));
+        at(
+            &mut app,
+            drone,
+            Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+        );
         step(&mut app, 2., &[]);
         let value = text(&mut app);
         assert!(value.contains("LEFT   150 / 200   IN USE"), "{value}");
@@ -530,7 +546,11 @@ mod tests {
             away_seconds: 0.,
             occupied: false,
         });
-        at(&mut app, drone, Vec3::new(-280., 90., 0.));
+        at(
+            &mut app,
+            drone,
+            Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+        );
         step(&mut app, 0., &[]);
         let value = text(&mut app);
         assert!(

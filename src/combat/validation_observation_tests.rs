@@ -231,7 +231,7 @@ fn manual_observations_record_changes_and_restart_clears_the_record() {
     app.world_mut()
         .get_mut::<Transform>(drone)
         .unwrap()
-        .translation = Vec3::new(-280., 90., 0.);
+        .translation = Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.);
     tick(&mut app, 0., &[]);
     app.world_mut()
         .get_mut::<Transform>(drone)
@@ -262,7 +262,7 @@ fn manual_observations_record_changes_and_restart_clears_the_record() {
     );
     assert!(observations.events.iter().any(|event| matches!(
         event,
-        ObservationEvent::RouteCrossing { z, .. } if (*z - 125.).abs() < 0.001
+        ObservationEvent::RouteCrossing { z, .. } if (*z - 150. * (crate::world::layout::CHARGER_X + 120.) / (crate::world::layout::CHARGER_X + 200.)).abs() < 0.001
     )));
 
     tick(&mut app, 0., &[KeyCode::KeyR]);

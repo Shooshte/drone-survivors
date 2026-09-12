@@ -432,7 +432,7 @@ mod terrain_tests {
             WorldGeometry {
                 solids: vec![Solid {
                     center: Vec3::new(0., 150., 0.),
-                    half: Vec3::new(5., 150., 270.),
+                    half: Vec3::new(5., 150., arena.half_size.z),
                 }],
                 hazard: None,
             },

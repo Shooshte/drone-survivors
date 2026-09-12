@@ -187,17 +187,12 @@ fn setup(
         ..default()
     });
     let routes = [
+        (super::layout::detour(1.).to_vec(), safe),
         (
             vec![
-                Vec3::new(-280., 1., 0.),
-                Vec3::new(25., 1., 195.),
-                Vec3::new(215., 1., 195.),
-                Vec3::new(280., 1., 0.),
+                Vec3::new(-super::layout::CHARGER_X, 1., 0.),
+                Vec3::new(super::layout::CHARGER_X, 1., 0.),
             ],
-            safe,
-        ),
-        (
-            vec![Vec3::new(-280., 1., 0.), Vec3::new(280., 1., 0.)],
             shortcut,
         ),
     ];

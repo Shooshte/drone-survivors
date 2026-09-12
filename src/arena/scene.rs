@@ -94,14 +94,16 @@ pub(super) fn setup_scene(
     // Reuse a unit cube for the floor grid and open frame. Frame strips sit
     // outside the playable volume, so its inner surfaces match the clamp.
     let cube = meshes.add(Cuboid::default());
-    for x in -8..=8 {
+    let grid_x = (arena.half_size.x / 60.).floor() as i32;
+    let grid_z = (arena.half_size.z / 60.).floor() as i32;
+    for x in -grid_x..=grid_x {
         commands.spawn((
             Mesh3d(cube.clone()),
             MeshMaterial3d(grid.clone()),
             Transform::from_xyz(x as f32 * 60., 0.05, 0.).with_scale(Vec3::new(1., 0.1, size.z)),
         ));
     }
-    for z in -4..=4 {
+    for z in -grid_z..=grid_z {
         commands.spawn((
             Mesh3d(cube.clone()),
             MeshMaterial3d(grid.clone()),

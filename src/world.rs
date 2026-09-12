@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 mod geometry;
 pub(crate) mod hazard;
+pub(crate) mod layout;
 pub(crate) mod navigation;
 pub(crate) mod scene;
 pub(crate) use geometry::{Solid, WorldGeometry};

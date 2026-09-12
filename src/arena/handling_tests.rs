@@ -303,3 +303,94 @@ fn handling_opposing_yaw_suppresses_bank_assistance_until_released() {
         }
     }
 }
+
+#[test]
+fn arena_room_supports_fast_lanes_and_banked_curves_without_horizontal_contact() {
+    let world = crate::world::WorldGeometry::default();
+    let arena = Arena::default();
+    let open = Arena {
+        half_size: Vec3::new(100_000., arena.half_size.y, 100_000.),
+    };
+    for hz in [30, 60, 120] {
+        for (name, mobility, heavy) in [
+            ("base", 1., 1.),
+            ("mobility", 1.25, 1.),
+            ("heavy", 1., 0.675),
+        ] {
+            for (label, start, controls, seconds) in [
+                (
+                    "left lane",
+                    Vec3::new(-420., 150., 450.),
+                    vec![KeyCode::KeyW, KeyCode::Space],
+                    1.7,
+                ),
+                (
+                    "right lane",
+                    Vec3::new(550., 150., 450.),
+                    vec![KeyCode::KeyW, KeyCode::Space],
+                    1.7,
+                ),
+                (
+                    "left curve",
+                    Vec3::new(-420., 150., 180.),
+                    vec![KeyCode::KeyW, KeyCode::KeyQ, KeyCode::Space],
+                    1.4,
+                ),
+                (
+                    "right curve",
+                    Vec3::new(-420., 150., 180.),
+                    vec![KeyCode::KeyW, KeyCode::KeyE, KeyCode::Space],
+                    1.4,
+                ),
+            ] {
+                let mut config = FlightConfig::default();
+                config.max_horizontal_speed *= mobility;
+                config.horizontal_acceleration_multiplier *= mobility;
+                config.acceleration_multiplier = heavy;
+                let mut keys = ButtonInput::default();
+                for key in controls {
+                    keys.press(key);
+                }
+                let input = FlightInput::read(&keys, &config);
+                let initial_speed = if label.contains("lane") {
+                    config.max_horizontal_speed
+                } else {
+                    300.
+                };
+                let mut actual = Transform::from_translation(start);
+                let mut expected = actual;
+                let mut flight = DroneFlight {
+                    velocity: Vec3::NEG_Z * initial_speed,
+                    ..default()
+                };
+                let mut free = flight;
+                let mut min = start;
+                let mut max = start;
+                for frame in 0..(seconds * hz as f32).round() as usize {
+                    flight.advance(
+                        &mut actual,
+                        &input,
+                        &config,
+                        &arena,
+                        1. / hz as f32,
+                        Some(&world),
+                    );
+                    free.advance(&mut expected, &input, &config, &open, 1. / hz as f32, None);
+                    assert!(
+                        actual.translation.xz().distance(expected.translation.xz()) < 0.05,
+                        "{hz} Hz {name} {label} contact at frame {frame}: actual {:?}, open {:?}",
+                        actual.translation,
+                        expected.translation
+                    );
+                    min = min.min(actual.translation);
+                    max = max.max(actual.translation);
+                }
+                println!(
+                    "ARENA ROOM hz={hz} build={name} route={label} seconds={seconds} span={:?} end_speed={:.1}",
+                    (max - min).xz(),
+                    flight.velocity.xz().length()
+                );
+            }
+        }
+    }
+}

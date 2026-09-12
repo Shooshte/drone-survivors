@@ -84,8 +84,14 @@ fn rocket_explodes_on_terrain_and_splash_does_not_cross_cover() {
 #[test]
 fn enemy_can_reach_player_resting_above_low_cover() {
     for (target, from) in [
-        (Vec3::new(-170., 75.01, -185.), Vec3::new(280., 90., -180.)),
-        (Vec3::new(320., 85.01, 175.), Vec3::new(-280., 90., -180.)),
+        (
+            crate::world::layout::LOW_COVER_LEFT + Vec3::Y * 45.01,
+            Vec3::new(280., 90., -180.),
+        ),
+        (
+            crate::world::layout::LOW_COVER_RIGHT + Vec3::Y * 50.01,
+            Vec3::new(-280., 90., -180.),
+        ),
     ] {
         for rate in [30, 60, 144] {
             let (mut app, drone) = empty_app();

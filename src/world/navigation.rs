@@ -1,4 +1,7 @@
-use super::WorldGeometry;
+use super::{
+    WorldGeometry,
+    layout::{CHARGER_X, DETOUR_LEFT_X, DETOUR_RIGHT_X, DETOUR_Z},
+};
 use bevy::prelude::*;
 
 /// A dozen authored turning points. High cruise altitude clears both low blocks;
@@ -26,8 +29,8 @@ pub(crate) fn next_point(
         return Some(target);
     }
     let mut points = vec![start, target];
-    for x in [-270., 55., 185., 405.] {
-        for z in [-235., 0., 195.] {
+    for x in [-CHARGER_X, DETOUR_LEFT_X, DETOUR_RIGHT_X, CHARGER_X] {
+        for z in [-450., 0., DETOUR_Z] {
             points.push(Vec3::new(x, 150., z));
         }
     }

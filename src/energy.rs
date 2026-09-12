@@ -125,7 +125,10 @@ fn setup(
         current: config.capacity,
         ..default()
     };
-    for x in [-280., 280.] {
+    for x in [
+        -crate::world::layout::CHARGER_X,
+        crate::world::layout::CHARGER_X,
+    ] {
         commands.spawn((
             ChargingNode {
                 center: Vec3::new(x, 0., 0.),
