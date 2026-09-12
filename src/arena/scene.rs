@@ -32,14 +32,15 @@ struct ControlsHud;
 
 impl Plugin for ArenaScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Startup,
-            (setup_scene, setup_drone_model)
-                .after(spawn_drone)
-                .in_set(ArenaSceneSetup),
-        )
-        .add_systems(Update, track_ground_position.after(move_drone))
-        .add_systems(Update, fit_footer);
+        app.add_plugins(super::camera::ArenaCameraPlugin)
+            .add_systems(
+                Startup,
+                (setup_scene, setup_drone_model)
+                    .after(spawn_drone)
+                    .in_set(ArenaSceneSetup),
+            )
+            .add_systems(Update, track_ground_position.after(move_drone))
+            .add_systems(Update, fit_footer);
     }
 }
 
@@ -51,9 +52,10 @@ pub(super) fn setup_scene(
 ) {
     commands.spawn((
         Camera3d::default(),
+        super::camera::ArenaCamera,
         Projection::Orthographic(OrthographicProjection {
             scaling_mode: ScalingMode::AutoMin {
-                min_width: arena.half_size.x * 2. + 160.,
+                min_width: 1120.,
                 min_height: 800.,
             },
             far: 3000.,

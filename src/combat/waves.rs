@@ -143,7 +143,7 @@ pub(crate) struct Encounter {
 }
 
 #[derive(Component, Default)]
-pub(super) struct SpawnWarning {
+pub(crate) struct SpawnWarning {
     pub ready_at: f64,
     pub cancelled: bool,
 }
