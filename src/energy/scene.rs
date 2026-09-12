@@ -419,7 +419,10 @@ mod tests {
     #[test]
     fn energy_summary_stays_on_one_line_as_power_changes() {
         let (mut app, drone) = scene_app();
-        for position in [Vec3::new(0., 90., 0.), Vec3::new(-280., 90., 0.)] {
+        for position in [
+            Vec3::new(0., 90., 0.),
+            Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+        ] {
             at(&mut app, drone, position);
             app.world_mut().resource_mut::<Energy>().current = 40.;
             step(&mut app, 0., &crate::modules::SLOT_KEYS);
