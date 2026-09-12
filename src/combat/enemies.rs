@@ -76,7 +76,12 @@ fn pilot(
     // Keyboard flight keeps the player's explicitly selected thrust unchanged.
     let thrust = (lift / (config.gravity * flight.tilt.length().cos()))
         .clamp(config.reduced_thrust, config.boost_thrust);
-    FlightInput { tilt, yaw, thrust }
+    FlightInput {
+        tilt,
+        yaw,
+        yaw_override: true,
+        thrust,
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

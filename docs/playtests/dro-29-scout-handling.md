@@ -9,7 +9,9 @@ DRO-30 settles arena dimensions. Human handling acceptance remains pending.
 Q/E directs rotor thrust sideways and automatically turns heading in the same
 direction, in proportion to visible bank. Full bank gives 90 degrees/second;
 diagonal pitch/bank shares the existing 30-degree tilt limit. A/D overrides
-assisted yaw while held. Releasing Q/E levels the drone at 300 degrees/second,
+assisted yaw while held, including when opposing yaw keys cancel the net axis.
+A+D, Left+Right and mixed aliases hold heading while banked; releasing all yaw
+keys restores assistance. Releasing Q/E levels the drone at 300 degrees/second,
 fading assistance to zero; heading then stays fixed while velocity coasts.
 Changing heading never rotates or replaces world velocity. Counter-bank therefore
 changes the turning direction before it finishes redirecting existing momentum.
@@ -114,3 +116,16 @@ normal human play without selecting upgrades, granting XP or controlling flight.
 The PR delivers implementation and repeatable evidence. DRO-29's human
 observations and enjoyable-handling gate must be resolved before declaring the
 Linear acceptance criteria fully satisfied.
+
+
+## Review follow-up: opposing yaw controls
+
+Confirmed that opposing direct-yaw keys previously fell through to assistance
+while banked. Flight input now records direct-yaw authority separately from its
+net axis; an explicit zero command suppresses assistance. Enemy AI retains direct
+yaw authority. A regression reproduces the original failure and covers both bank
+directions at 30/60/120 Hz, keyboard/arrows/mixed aliases, held-bank momentum,
+release of one opposing key, and release of all yaw controls.
+
+Follow-up verification: formatting and Clippy with warnings denied pass;
+`cargo test --locked` reports 218 passed and 2 ignored.

@@ -187,6 +187,7 @@ fn handling_fast_build_motion_envelope_contains_the_curved_midpoint() {
         let input = FlightInput {
             tilt: Vec2::Y,
             yaw: 0.,
+            yaw_override: false,
             thrust: p.config.boost_thrust,
         };
         let arena = Arena {
@@ -253,5 +254,52 @@ fn handling_curves_and_counter_inputs_remain_consistent_across_frame_rates() {
                 .angle_between(Quat::from_rotation_y(results[0].1.heading))
                 < 0.01
         );
+    }
+}
+
+#[test]
+fn handling_opposing_yaw_suppresses_bank_assistance_until_released() {
+    for hz in [30, 60, 120] {
+        for bank in [KeyCode::KeyQ, KeyCode::KeyE] {
+            for opposing in [
+                vec![KeyCode::KeyA, KeyCode::KeyD],
+                vec![KeyCode::ArrowLeft, KeyCode::ArrowRight],
+                vec![KeyCode::KeyA, KeyCode::ArrowRight],
+                vec![KeyCode::ArrowLeft, KeyCode::KeyD],
+                vec![
+                    KeyCode::KeyA,
+                    KeyCode::ArrowLeft,
+                    KeyCode::KeyD,
+                    KeyCode::ArrowRight,
+                ],
+            ] {
+                let mut p = Pilot::new();
+                p.flight.velocity = Vec3::NEG_Z * 200.;
+                p.fly(&[bank], 0.3, hz);
+                let heading = p.flight.heading;
+                let position = p.transform.translation;
+                let mut keys = opposing.clone();
+                keys.push(bank);
+                p.fly(&keys, 0.1, hz);
+                assert_eq!(p.flight.heading, heading, "{hz} Hz {bank:?} {opposing:?}");
+                assert!(p.flight.tilt.x.abs() > 0.5, "bank remains held");
+                assert!(
+                    p.transform.translation.distance(position) > 10.,
+                    "momentum remains"
+                );
+                // Releasing one opposing key restores direct yaw immediately.
+                p.tick(&[bank, KeyCode::KeyA], 1. / hz as f32);
+                let left_turn =
+                    Quat::from_rotation_y(p.flight.heading) * Quat::from_rotation_y(-heading);
+                assert!((left_turn * Vec3::NEG_Z).x < 0.);
+                let heading = p.flight.heading;
+                // Releasing all yaw controls restores bank assistance without a latch.
+                p.tick(&[bank], 1. / hz as f32);
+                let turn =
+                    Quat::from_rotation_y(p.flight.heading) * Quat::from_rotation_y(-heading);
+                let sign = if bank == KeyCode::KeyE { 1. } else { -1. };
+                assert!((turn * Vec3::NEG_Z).x * sign > 0.);
+            }
+        }
     }
 }

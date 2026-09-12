@@ -31,7 +31,8 @@ Both reduce upward lift, so expect to lose altitude unless you add thrust.
 Release pitch/bank controls to smoothly level out; momentum remains and drag
 gradually slows the drift. Tilt in the opposite direction to brake. Q/E also turns
 the nose gradually into the visible bank, up to 90 degrees/second. A/D takes direct control of yaw
-while held, including counter-steering against a bank. Releasing Q/E levels the
+while held, including counter-steering against a bank. Opposing yaw keys
+(A+D, Left+Right, or mixed aliases) hold heading even while banked. Releasing Q/E levels the
 drone and fades its assisted turn. Turning
 changes where the nose points and where tilted thrust pushes, while existing
 momentum keeps its world direction.

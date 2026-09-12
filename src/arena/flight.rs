@@ -54,6 +54,8 @@ pub(crate) struct DroneFlight {
 pub(crate) struct FlightInput {
     pub(crate) tilt: Vec2,
     pub(crate) yaw: f32,
+    /// Direct heading control overrides bank assistance even when its axis cancels.
+    pub(crate) yaw_override: bool,
     pub(crate) thrust: f32,
 }
 
@@ -71,10 +73,10 @@ impl FlightInput {
             ),
         )
         .normalize_or_zero();
-        let yaw = axis(
-            &[KeyCode::KeyA, KeyCode::ArrowLeft],
-            &[KeyCode::KeyD, KeyCode::ArrowRight],
-        );
+        let yaw_left = [KeyCode::KeyA, KeyCode::ArrowLeft];
+        let yaw_right = [KeyCode::KeyD, KeyCode::ArrowRight];
+        let yaw = axis(&yaw_left, &yaw_right);
+        let yaw_override = keys.any_pressed(yaw_left.into_iter().chain(yaw_right));
         let thrust = match axis(
             &[KeyCode::Space],
             &[KeyCode::ShiftLeft, KeyCode::ShiftRight],
@@ -83,7 +85,12 @@ impl FlightInput {
             x if x < 0. => config.reduced_thrust,
             _ => config.neutral_thrust,
         };
-        Self { tilt, yaw, thrust }
+        Self {
+            tilt,
+            yaw,
+            yaw_override,
+            thrust,
+        }
     }
 }
 
@@ -291,7 +298,7 @@ impl DroneFlight {
         // change so diagonal input never multiplies the angular response rate.
         self.tilt += delta.clamp_length_max(total_rate * dt);
         self.tilt = self.tilt.clamp_length_max(config.max_tilt);
-        let yaw = if input.yaw != 0. {
+        let yaw = if input.yaw_override {
             input.yaw.clamp(-1., 1.) * config.yaw_rate
         } else if config.max_tilt > 0. {
             -self.tilt.x / config.max_tilt * config.bank_yaw_rate
@@ -399,6 +406,7 @@ mod tests {
         let input = FlightInput {
             tilt: Vec2::Y,
             yaw: 0.,
+            yaw_override: false,
             thrust: config.boost_thrust,
         };
         for (speed, expected) in [
