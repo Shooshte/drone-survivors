@@ -1285,3 +1285,10 @@ exercised in this run.
 Human understanding of reserve cues and the feel of alternating stops remain
 pending review; keep that experiential acceptance distinct from the verified
 accounting and scripted movement results.
+
+
+## DRO-29 — coordinated scout handling (September 12, 2026)
+
+Q/E now banks into a turn; A/D retains direct yaw. Scout thrust and tilt response
+are faster, while enemies retain their prior tuning. See the [measurements,
+native checks and pending human checklist](playtests/dro-29-scout-handling.md).

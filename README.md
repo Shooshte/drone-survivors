@@ -20,7 +20,7 @@ The test arena opens immediately. Fly relative to the drone's heading:
 | --- | --- |
 | **W/S** or **Up/Down** | Pitch forward/backward |
 | **A/D** or **Left/Right** | Turn left/right |
-| **Q/E** | Bank left/right |
+| **Q/E** | Bank into a coordinated left/right turn |
 | **Space** / **either Shift** | Boost/reduce rotor thrust |
 | **1–4** | Toggle the corresponding equipped module |
 | **R** | Restart the encounter at the center, level and stationary |
@@ -29,7 +29,10 @@ The test arena opens immediately. Fly relative to the drone's heading:
 Pitching and banking redirect rotor thrust to accelerate the drone horizontally.
 Both reduce upward lift, so expect to lose altitude unless you add thrust.
 Release pitch/bank controls to smoothly level out; momentum remains and drag
-gradually slows the drift. Tilt in the opposite direction to brake. Turning
+gradually slows the drift. Tilt in the opposite direction to brake. Q/E also turns
+the nose gradually into the visible bank, up to 90 degrees/second. A/D takes direct control of yaw
+while held, including counter-steering against a bank. Releasing Q/E levels the
+drone and fades its assisted turn. Turning
 changes where the nose points and where tilted thrust pushes, while existing
 momentum keeps its world direction.
 
@@ -41,10 +44,16 @@ and all directions share a maximum horizontal speed of 420 world units/second.
 Vertical motion is independent of that speed limit. Flight tuning values are
 grouped in `FlightConfig` in `src/arena/flight.rs`.
 
-The scout reaches full tilt in 0.125 seconds, turns at up to 240 degrees/second,
-and has three times the original horizontal thrust acceleration. Space/Shift
+The scout reaches full tilt in 0.0625 seconds and reverses full tilt in 0.125
+seconds. Direct yaw turns at up to 240 degrees/second. Horizontal rotor thrust
+is 2.5 times the previous scout tuning; passive drag and the speed cap are
+preserved. At 300 units/second, opposite pitch stops the baseline scout in
+about 0.72 seconds over 121 units, or about 1.02 seconds over 164 units with
+Heavy armor plus Heavy rounds. These are unobstructed fixture measurements;
+terrain contact and player timing affect actual stopping. Space/Shift
 retain their original level-flight vertical acceleration; pitching or banking
 still costs altitude.
+See [the handling measurements and playtest checklist](docs/playtests/dro-29-scout-handling.md).
 
 The full rotated drone stays inside the ground, ceiling, and side walls. Contact
 removes velocity into the surface while preserving motion along or away from it.
