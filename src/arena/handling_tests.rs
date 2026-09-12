@@ -172,3 +172,86 @@ fn handling_reversed_bank_changes_heading_promptly_without_snapping_momentum() {
         assert!(p.flight.velocity.z < -100., "momentum retained");
     }
 }
+
+#[test]
+fn handling_fast_build_motion_envelope_contains_the_curved_midpoint() {
+    // Mobility + Interceptor is the fastest real build. Hold a settled pitch
+    // so this checks acceleration curvature independently of the angular pad.
+    for heading in 0..360 {
+        let mut p = Pilot::new();
+        p.config.horizontal_acceleration_multiplier *= 1.25 * 1.3;
+        p.flight.tilt = Vec2::Y * p.config.max_tilt;
+        p.flight.heading = (heading as f32).to_radians();
+        p.transform.rotation = p.flight.rotation();
+        let start = p.transform;
+        let input = FlightInput {
+            tilt: Vec2::Y,
+            yaw: 0.,
+            thrust: p.config.boost_thrust,
+        };
+        let arena = Arena {
+            half_size: Vec3::splat(100_000.),
+        };
+        let world = crate::world::WorldGeometry {
+            solids: vec![],
+            hazard: None,
+        };
+        let dt = 1. / 120.;
+        let mut midpoint = p.flight;
+        let mut middle_transform = start;
+        midpoint.step(
+            &mut middle_transform,
+            &input,
+            &p.config,
+            &arena,
+            DRONE_HALF_EXTENTS,
+            dt / 2.,
+        );
+        let path = p.flight.step_in_world(
+            &mut p.transform,
+            &input,
+            &p.config,
+            &arena,
+            DRONE_HALF_EXTENTS,
+            dt,
+            Some(&world),
+        );
+        let segment = path[0];
+        let chord_midpoint = segment.start.lerp(segment.end, 0.5);
+        let occupied = (middle_transform.translation - chord_midpoint).abs()
+            + world_half_extents(middle_transform.rotation, DRONE_HALF_EXTENTS);
+        assert!(
+            occupied.cmple(segment.half).all(),
+            "curved midpoint {occupied:?} escapes {:?}",
+            segment.half
+        );
+    }
+}
+
+#[test]
+fn handling_curves_and_counter_inputs_remain_consistent_across_frame_rates() {
+    let mut results = Vec::new();
+    for hz in [30, 60, 120, 144] {
+        let mut p = Pilot::new();
+        p.fly(&[KeyCode::KeyW], 0.5, hz);
+        p.fly(&[KeyCode::KeyW, KeyCode::KeyE], 0.5, hz);
+        p.fly(&[KeyCode::KeyS, KeyCode::KeyQ], 0.5, hz);
+        p.fly(&[], 0.5, hz);
+        results.push((p.transform.translation, p.flight));
+    }
+    for (position, flight) in &results {
+        assert!(
+            position.distance(results[0].0) < 1.,
+            "positions: {results:?}"
+        );
+        assert!(
+            flight.velocity.distance(results[0].1.velocity) < 1.,
+            "velocities: {results:?}"
+        );
+        assert!(
+            Quat::from_rotation_y(flight.heading)
+                .angle_between(Quat::from_rotation_y(results[0].1.heading))
+                < 0.01
+        );
+    }
+}

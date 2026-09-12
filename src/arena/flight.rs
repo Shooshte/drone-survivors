@@ -152,8 +152,13 @@ impl DroneFlight {
         let mut start = transform.translation;
         let old_rotation = transform.rotation;
         let before = world_half_extents(old_rotation, local_half);
-        let curve_pad = (config.gravity * (config.boost_thrust + 1.)
+        // Bound curved motion between the segment endpoints, including the
+        // strongest horizontal upgrade/module combination. Unit multipliers
+        // retain the enemy profile's previous envelope.
+        let curve_pad = (config.gravity
+            * (config.boost_thrust * config.horizontal_acceleration_multiplier.max(1.) + 1.)
             + self.velocity.length() * config.vertical_drag.max(config.horizontal_drag))
+            * config.acceleration_multiplier
             * dt
             * dt
             / 8.;
