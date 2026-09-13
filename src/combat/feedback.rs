@@ -95,6 +95,8 @@ pub(super) fn update(
     mut commands: Commands,
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
+    boundary: Option<Res<crate::game::MissionBoundary>>,
+    phase: Res<crate::game::GamePhase>,
     config: Res<FeedbackConfig>,
     assets: Res<FeedbackAssets>,
     base: Res<super::scene::CombatAssets>,
@@ -110,6 +112,15 @@ pub(super) fn update(
     enemies: Query<(), With<Enemy>>,
     warnings: Query<Entity, Added<SpawnWarning>>,
 ) {
+    if let Some(boundary) = boundary {
+        if boundary.reset || boundary.cleanup {
+            cue.0 = 0.;
+            return;
+        }
+        if *phase != crate::game::GamePhase::Playing {
+            return;
+        }
+    }
     let dt = time.delta_secs();
     cue.0 = (cue.0 - dt).max(0.);
     if keys.just_pressed(KeyCode::KeyR) {

@@ -3,7 +3,7 @@ use crate::{
     arena::Drone,
     game::{GamePhase, GameplaySet},
 };
-use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use bevy::prelude::*;
 
 mod flow;
 pub(crate) mod scene;
@@ -128,7 +128,7 @@ impl Plugin for EnergyPlugin {
                 Update,
                 reset
                     .in_set(GameplaySet::Reset)
-                    .run_if(input_just_pressed(KeyCode::KeyR)),
+                    .run_if(crate::game::reset_requested),
             );
     }
 }
@@ -157,6 +157,7 @@ fn setup(
         ));
     }
 }
+#[allow(clippy::too_many_arguments)]
 fn reset(
     config: Res<EnergyConfig>,
     charger_config: Res<ChargerConfig>,
@@ -164,7 +165,13 @@ fn reset(
     config_modules: Res<ModuleConfig>,
     mut modules: ResMut<Modules>,
     mut chargers: Query<&mut ChargerReserve>,
+    mut pending: ResMut<PowerFrame>,
+    boundary: Option<Res<crate::game::MissionBoundary>>,
 ) {
+    if boundary.is_some() {
+        modules.loadout = default();
+    }
+    *pending = default();
     *modules = Modules::new(modules.loadout.clone(), &config_modules);
     *energy = Energy {
         current: config.capacity,

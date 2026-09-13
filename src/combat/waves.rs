@@ -152,8 +152,15 @@ pub(super) fn advance_clock(time: Res<Time>, config: Res<WaveConfig>, mut run: R
     run.elapsed = (run.elapsed + time.delta_secs_f64()).min(config.duration);
 }
 
-pub(super) fn finish(config: Res<WaveConfig>, run: Res<Encounter>, mut phase: ResMut<GamePhase>) {
-    if *phase == GamePhase::Playing && run.elapsed + 1e-7 >= config.duration {
+pub(super) fn finish(
+    config: Res<WaveConfig>,
+    run: Res<Encounter>,
+    health: Res<super::PlayerHealth>,
+    mut phase: ResMut<GamePhase>,
+) {
+    if *phase == GamePhase::Playing && health.current == 0 {
+        *phase = GamePhase::Dead;
+    } else if *phase == GamePhase::Playing && run.elapsed + 1e-7 >= config.duration {
         *phase = GamePhase::Survived;
     }
 }
@@ -281,6 +288,12 @@ pub(super) fn update(
     mut run: ResMut<Encounter>,
     mut occupants: Occupants,
 ) {
+    if matches!(
+        *phase,
+        GamePhase::Hub | GamePhase::Briefing | GamePhase::Choosing
+    ) {
+        return;
+    }
     let mut warnings = Vec::new();
     let mut occupied = Vec::new();
     let half = spawn_half(&combat);
@@ -307,9 +320,6 @@ pub(super) fn update(
         }
     }
     warnings.sort_by_key(|(id, _, _)| id.to_bits());
-    if *phase == GamePhase::Choosing {
-        return;
-    }
     if *phase != GamePhase::Playing {
         // The outcome wins over spawning, but due requests still need an outcome
         // in the report (including a hitch crossing the final authored burst).

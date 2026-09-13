@@ -2,6 +2,7 @@ mod arena;
 mod combat;
 mod energy;
 mod game;
+mod mission;
 mod modules;
 mod upgrades;
 mod world;
@@ -23,7 +24,7 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.025, 0.045, 0.065)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: "Drone Survivors — Test Arena".into(),
+                title: "Drone Survivors".into(),
                 resolution: (1120, 720).into(),
                 resize_constraints: WindowResizeConstraints {
                     min_width: 640.,
@@ -47,6 +48,8 @@ fn main() {
         .add_systems(Update, quit.run_if(input_just_pressed(KeyCode::Escape)));
     if let Some(config) = validation {
         combat::validation::install(&mut app, config);
+    } else {
+        app.add_plugins((mission::MissionPlugin, mission::scene::MissionScenePlugin));
     }
     app.run();
 }

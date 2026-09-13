@@ -626,3 +626,6 @@ mod camping_tests;
 
 #[path = "arena_pressure_tests.rs"]
 mod arena_pressure_tests;
+
+#[path = "../mission/combat_tests.rs"]
+mod mission_lifecycle_tests;
