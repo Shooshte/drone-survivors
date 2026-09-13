@@ -236,7 +236,11 @@ fn armor_and_rounds_reduce_horizontal_vertical_and_passive_braking_acceleration(
                 );
             }
             for axis in 0..3 {
-                if samples[0][axis].abs() > 1e-5 {
+                if axis == 1 && keys.is_empty() {
+                    // Ideal altitude hold arrests vertical drift equally for every build.
+                    assert_eq!(samples[0][axis], -20.);
+                    assert_eq!(samples[1][axis], -20.);
+                } else if samples[0][axis].abs() > 1e-5 {
                     assert!(
                         (samples[1][axis] / samples[0][axis] - multiplier).abs() < 0.003,
                         "{kind:?} {keys:?} {samples:?}"

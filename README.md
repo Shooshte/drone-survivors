@@ -21,13 +21,13 @@ The test arena opens immediately. Fly relative to the drone's heading:
 | **W/S** or **Up/Down** | Pitch forward/backward |
 | **A/D** or **Left/Right** | Turn left/right |
 | **Q/E** | Bank into a coordinated left/right turn |
-| **Space** / **either Shift** | Boost/reduce rotor thrust |
+| **Space** / **either Shift** | Ascend/descend; release to hold height |
 | **1–4** | Toggle the corresponding equipped module |
 | **R** | Restart the encounter at the center, level and stationary |
 | **Escape** | Quit |
 
 Pitching and banking redirect rotor thrust to accelerate the drone horizontally.
-Both reduce upward lift, so expect to lose altitude unless you add thrust.
+Automatic altitude assistance maintains your height while pitching or banking.
 Release pitch/bank controls to smoothly level out; momentum remains and drag
 gradually slows the drift. Tilt in the opposite direction to brake. Q/E also turns
 the nose gradually into the visible bank, up to 90 degrees/second. A/D takes direct control of yaw
@@ -37,9 +37,12 @@ drone and fades its assisted turn. Turning
 changes where the nose points and where tilted thrust pushes, while existing
 momentum keeps its world direction.
 
-Space boosts thrust and Shift reduces it. Releasing both restores the thrust
-needed to hover **when level**; it does not immediately stop a climb or descent,
-or recover lost altitude. Opposing keys cancel on each control axis and duplicate
+Space commands ascent and either Shift commands descent, with the same vertical
+response whether level, pitched, or banked. Release vertical controls to stop
+climbing or descending immediately and hold the height at release. Opposing
+Space/Shift inputs also enable altitude hold. Ground, ceiling, and obstacle
+clearance may adjust that height; the drone then holds the reachable height
+instead of pulling back toward the contact surface. Opposing keys cancel on each control axis and duplicate
 bindings add no extra input. Pitch and bank share a 30-degree total tilt limit,
 and all directions share a maximum horizontal speed of 420 world units/second.
 Vertical motion is independent of that speed limit. Flight tuning values are
@@ -52,8 +55,8 @@ preserved. At 300 units/second, opposite pitch stops the baseline scout in
 about 0.72 seconds over 121 units, or about 1.02 seconds over 164 units with
 Heavy armor plus Heavy rounds. These are unobstructed fixture measurements;
 terrain contact and player timing affect actual stopping. Space/Shift
-retain their original level-flight vertical acceleration; pitching or banking
-still costs altitude.
+retain their original level-flight vertical acceleration and drag, now independent
+of pitch or bank. Horizontal momentum still persists when controls are released.
 See [the handling measurements and playtest checklist](docs/playtests/dro-29-scout-handling.md).
 
 The full rotated drone stays inside the ground, ceiling, and side walls. Contact

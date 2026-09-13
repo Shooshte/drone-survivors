@@ -132,6 +132,7 @@ fn zero_duration_wall_contact_cannot_hit_remote_projectile() {
             yaw: 0.,
             yaw_override: false,
             thrust: 1.,
+            vertical: crate::arena::VerticalControl::RotorThrust,
         },
         &config,
         &crate::arena::Arena::default(),

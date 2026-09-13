@@ -51,12 +51,24 @@ pub(crate) struct DroneFlight {
     pub(crate) tilt: Vec2,
 }
 
+/// Vertical assistance is selected by the control source, never by actor tuning.
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) enum VerticalControl {
+    /// AI retains gravity, tilted rotor lift, and vertical inertia.
+    RotorThrust,
+    /// Ideal player assist holds the collision-resolved height without lag.
+    AltitudeHold,
+    /// Player ascent/descent retains level-flight forces regardless of tilt.
+    TiltCompensated,
+}
+
 pub(crate) struct FlightInput {
     pub(crate) tilt: Vec2,
     pub(crate) yaw: f32,
     /// Direct heading control overrides bank assistance even when its axis cancels.
     pub(crate) yaw_override: bool,
     pub(crate) thrust: f32,
+    pub(crate) vertical: VerticalControl,
 }
 
 impl FlightInput {
@@ -77,10 +89,11 @@ impl FlightInput {
         let yaw_right = [KeyCode::KeyD, KeyCode::ArrowRight];
         let yaw = axis(&yaw_left, &yaw_right);
         let yaw_override = keys.any_pressed(yaw_left.into_iter().chain(yaw_right));
-        let thrust = match axis(
+        let vertical_axis = axis(
             &[KeyCode::Space],
             &[KeyCode::ShiftLeft, KeyCode::ShiftRight],
-        ) {
+        );
+        let thrust = match vertical_axis {
             x if x > 0. => config.boost_thrust,
             x if x < 0. => config.reduced_thrust,
             _ => config.neutral_thrust,
@@ -90,6 +103,11 @@ impl FlightInput {
             yaw,
             yaw_override,
             thrust,
+            vertical: if vertical_axis == 0. {
+                VerticalControl::AltitudeHold
+            } else {
+                VerticalControl::TiltCompensated
+            },
         }
     }
 }
@@ -139,7 +157,7 @@ impl DroneFlight {
         self.update_attitude(input, config, dt);
         transform.rotation = self.rotation();
         let acceleration = self.acceleration(transform.rotation, input, config);
-        self.integrate(transform, acceleration, config, dt);
+        self.integrate(transform, acceleration, input, config, dt);
         self.contain(transform, arena, local_half);
     }
 
@@ -209,7 +227,7 @@ impl DroneFlight {
             transform.translation = start;
             transform.rotation = rotation;
             let acceleration = self.acceleration(transform.rotation, input, config);
-            self.integrate(transform, acceleration, config, dt);
+            self.integrate(transform, acceleration, input, config, dt);
             let desired = transform.translation;
             transform.translation = start;
             let collision_half = before.max(world_half_extents(transform.rotation, local_half))
@@ -318,6 +336,13 @@ impl DroneFlight {
     fn acceleration(&self, rotation: Quat, input: &FlightInput, config: &FlightConfig) -> Vec3 {
         let mut acceleration =
             rotation * Vec3::Y * (config.gravity * input.thrust) - Vec3::Y * config.gravity;
+        // Change only vertical force: compensating the whole thrust vector
+        // would also change horizontal acceleration and braking.
+        acceleration.y = match input.vertical {
+            VerticalControl::RotorThrust => acceleration.y,
+            VerticalControl::AltitudeHold => 0.,
+            VerticalControl::TiltCompensated => config.gravity * (input.thrust - 1.),
+        };
         acceleration.x *= config.horizontal_acceleration_multiplier;
         acceleration.z *= config.horizontal_acceleration_multiplier;
         let horizontal = self.velocity.with_y(0.);
@@ -328,7 +353,7 @@ impl DroneFlight {
             let fraction = ((speed / config.max_horizontal_speed - 0.9) / 0.1).clamp(0., 1.);
             let taper = fraction * fraction * (3. - 2. * fraction);
             // Remove only outward horizontal force; retain steering, braking,
-            // and the vertical lift lost to tilt.
+            // and the selected vertical force.
             acceleration -= radial * outward * taper;
         }
         acceleration
@@ -338,10 +363,18 @@ impl DroneFlight {
         &mut self,
         transform: &mut Transform,
         acceleration: Vec3,
+        input: &FlightInput,
         config: &FlightConfig,
         dt: f32,
     ) {
         for axis in 0..3 {
+            if axis == 1 && input.vertical == VerticalControl::AltitudeHold {
+                // The current transform is the target, including on release and
+                // restart. Collisions may correct it afterward; their reachable
+                // height becomes the next target without stored-state windup.
+                self.velocity.y = 0.;
+                continue;
+            }
             let drag = if axis == 1 {
                 config.vertical_drag
             } else {
@@ -408,6 +441,7 @@ mod tests {
             yaw: 0.,
             yaw_override: false,
             thrust: config.boost_thrust,
+            vertical: crate::arena::VerticalControl::RotorThrust,
         };
         for (speed, expected) in [
             (0., 240.),

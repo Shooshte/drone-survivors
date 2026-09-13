@@ -48,6 +48,7 @@ fn neutral() -> FlightInput {
         yaw: 0.,
         yaw_override: false,
         thrust: 1.,
+        vertical: crate::arena::VerticalControl::RotorThrust,
     }
 }
 #[test]
@@ -95,6 +96,7 @@ fn turning_beside_wall_never_expands_body_into_solid() {
             yaw_override: true,
             tilt: Vec2::X,
             thrust: 1.,
+            vertical: crate::arena::VerticalControl::RotorThrust,
         };
         for _ in 0..(1. / dt) as usize {
             move_actor(&world, &mut transform, &mut flight, &input, dt);
@@ -216,6 +218,7 @@ fn wall_contact_allows_banking_away_from_rest() {
             yaw: 1.,
             yaw_override: true,
             thrust: 1.,
+            vertical: crate::arena::VerticalControl::RotorThrust,
         },
         0.1,
     );
@@ -229,6 +232,7 @@ fn wall_contact_allows_banking_away_from_rest() {
                 yaw: 0.,
                 yaw_override: false,
                 thrust: 1.,
+                vertical: crate::arena::VerticalControl::RotorThrust,
             },
             0.1,
         );
@@ -267,6 +271,7 @@ fn rotation_contact_does_not_create_timed_translation_for_stationary_actors() {
                     yaw: 1.,
                     yaw_override: true,
                     thrust: 1.,
+                    vertical: crate::arena::VerticalControl::RotorThrust,
                 },
                 &config,
                 &Arena::default(),

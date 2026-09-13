@@ -220,7 +220,7 @@ pub(super) fn setup_scene(
             footer.spawn((
                 ControlsHud,
                 FooterFont::new(14., 12.),
-                Text::new("W/S, Up/Down Pitch | A/D, Left/Right Yaw | Q/E Bank+turn | R/Esc reset/quit\nSpace+/Shift- thrust | 1-4 toggle | Tilt costs lift; release levels, drift stays"),
+                Text::new("W/S, Up/Down Pitch | A/D, Left/Right Yaw | Q/E Bank+turn | R/Esc reset/quit\nSpace/Shift ascend/descend | Release holds height | 1-4 toggle | Horizontal drift stays"),
                 TextFont::from_font_size(14.),
                 TextColor(Color::srgb(0.63, 0.74, 0.77)),
                 TextLayout::new(Justify::Left, LineBreak::WordBoundary),
