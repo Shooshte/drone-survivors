@@ -112,27 +112,27 @@ pub(super) fn update(
     enemies: Query<(), With<Enemy>>,
     warnings: Query<Entity, Added<SpawnWarning>>,
 ) {
-    if let Some(boundary) = boundary {
-        if boundary.reset || boundary.cleanup {
-            cue.0 = 0.;
-            return;
-        }
-        if *phase != crate::game::GamePhase::Playing {
-            return;
-        }
-    }
-    let dt = time.delta_secs();
-    cue.0 = (cue.0 - dt).max(0.);
-    if keys.just_pressed(KeyCode::KeyR) {
+    if boundary.as_ref().is_some_and(|b| b.reset || b.cleanup) {
         cue.0 = 0.;
         return;
     }
+    if boundary.is_none() && keys.just_pressed(KeyCode::KeyR) {
+        cue.0 = 0.;
+        return;
+    }
+    // Added ticks expire even while gameplay is paused. A wave can reserve its
+    // warnings on the same frame that progression opens an upgrade choice.
     for id in &warnings {
         commands.entity(id).insert((
             Mesh3d(assets.warning_mesh.clone()),
             MeshMaterial3d(assets.warning.clone()),
         ));
     }
+    if boundary.is_some() && *phase != crate::game::GamePhase::Playing {
+        return;
+    }
+    let dt = time.delta_secs();
+    cue.0 = (cue.0 - dt).max(0.);
     for (id, mut flash, mut material) in &mut flashes {
         flash.0 -= dt;
         if flash.0 <= 0. {
