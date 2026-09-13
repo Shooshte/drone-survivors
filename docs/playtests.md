@@ -1305,3 +1305,83 @@ Native visual QA caught and fixed footer overlap at normal font size.
 [Measurements, captures, comparison limits and pending human checklist](playtests/dro-30-arena.md).
 Sustained-flight enjoyment and whole-map combat sparsity still need human review.
 DRO-31 has a separate unapproved proposal; progression rules are unchanged.
+
+## DRO-33 — Automatic altitude hold — 2026-09-13
+
+### Behavior and deterministic evidence
+
+Keyboard neutral vertical input now holds the actual center height and clears
+vertical velocity on the next movement update. Space ascends and either Shift
+descends with the existing level-flight forces and drag, independent of tilt.
+Space+Shift also holds. Collision clearance remains authoritative: the corrected
+height becomes the hold height. There is no stored target to survive a restart
+or pull the player into a surface. Enemy rotor physics is unchanged.
+
+Baseline `da642ce`: 233 tests passed, three opt-in probes ignored. The first new
+altitude test run failed seven cases on the old lift-loss/coasting behavior.
+After implementation and updates to superseded inertia expectations, 240 tests
+pass, three opt-in probes ignored. The new cases cover:
+
+- Neutral hover at a non-default height, sustained pitch/bank/yaw combinations,
+  opposing yaw, leveling, braking and a 250 ms frame.
+- Repeated ascent/descent/release, both Shift aliases, opposing vertical keys,
+  immediate vertical override and actual ECS restart.
+- 30/60/120/144 Hz with baseline, mobility, Heavy armor + Heavy rounds, and their
+  combination. Collision-free neutral height changes stay below 0.002 units;
+  vertical velocity is exactly zero after release.
+- Identical level and tilted manual vertical trajectories, matching the existing
+  analytical vertical drag response including acceleration modifiers.
+- Ground/ceiling and obstacle top/underside contact, rotation clearance, neutral
+  rest and departure, plus sliding along an obstacle side and banking away.
+- Exact equality of assisted/raw horizontal position, velocity, heading and tilt
+  through acceleration, braking, banking, yaw, ascent/descent and coasting.
+
+Existing enemy pursuit, terrain/hazard paths, upgrade modifiers, death freeze,
+restart, full encounter pilots and route regressions continue to pass.
+Formatting, strict all-target Clippy and the dynamic native build pass.
+Independent read-only code review found no actionable issues.
+
+### Native UI check and manual-flight limitation
+
+Native UI smoke check used the same built development binary in a temporary
+macOS app bundle (Rust library search path and assets symlink only; no gameplay
+changes). The scout hovered visibly, the updated help was readable at 1120×720,
+R restored full hull/energy, 300 seconds and an empty opening, and key 3 toggled
+mobility with its visible 8/s drain. Escape closed the app.
+
+Attempted Space taps and repeated W taps through the native UI tool. Its brief
+press/release events did not provide reliable sustained held-flight input, so
+these attempts **do not verify manual ascent/descent, release feel, combined
+maneuvers or boundary contact**. No human pilot participated. Those behaviors
+have deterministic coverage above; a sustained human flight playtest remains
+pending. The earlier `--validate manual` process was an unattended harness check,
+not evidence of a human flight, and is not counted as such.
+
+Human follow-up: hold W/Q/E through turns, release Space after a climb and Shift
+after descent, change height repeatedly, cancel with Space+Shift, contact the
+floor/ceiling/low cover, bank clear and press R. Check that altitude assistance
+feels immediate and that horizontal drift/braking still feels familiar.
+
+### Native automated route check
+
+Command (normal authored geometry, waves disabled by the existing route fixture;
+no health, energy or position overrides and all modules off):
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/dro33-captures DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate routes --seconds 40
+```
+
+At implementation `f113217`, all four route legs completed with hull 100 and zero
+damage. Shortcut left-to-right: 10.017 s (2.792 waiting, 7.225 flight); reverse:
+11.308 s (4.008 waiting, 7.300 flight). Detour out/back: 9.750/9.708 s without
+waiting. The 40-second post-warm-up sample contained 4,760 frames at 1280×960
+physical resolution (640×480 logical). Median/p95/p99 frame times were
+8.332/8.837/10.469 ms, with one frame over 33.3 ms. This empty route fixture is
+not a combat performance benchmark or a substitute for human flight feel.
+The process exited successfully with the pre-existing winit unknown-window
+shutdown warning only. [Raw route output](playtests/dro-33-native-routes.txt).
+
+The first minimum-window screenshot exposed an extra line wrap in the longer
+help copy. The final copy retains ascent/descent and release-to-hold information
+on one line; the README retains the detailed horizontal-drift explanation.
+Final native capture: [altitude-hold help at 640×480](images/dro-33-altitude-hold.png).

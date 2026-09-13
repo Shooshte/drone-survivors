@@ -1,0 +1,13 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.72s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate routes --seconds 40`
+VALIDATION Routes: class=automated_probe, keyboard_pilot=false, stress_overrides=false, warmup=5s, sample_limit=40s, stress_target=150, synthetic_xp=0
+VALIDATION progress wall=10.0s run=10.0s phase=Playing stage=ROUTE OVERRIDE wave_status=None hull=100 kills=0 enemies_live=0 warnings_pending=0 active_population=0 cap=30 spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0]
+ROUTE leg=0 seconds=10.017 waiting=2.792 flight=7.225
+VALIDATION progress wall=20.0s run=20.0s phase=Playing stage=ROUTE OVERRIDE wave_status=None hull=100 kills=0 enemies_live=0 warnings_pending=0 active_population=0 cap=30 spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0]
+ROUTE leg=1 seconds=11.308 waiting=4.008 flight=7.300
+VALIDATION progress wall=30.0s run=30.0s phase=Playing stage=ROUTE OVERRIDE wave_status=None hull=100 kills=0 enemies_live=0 warnings_pending=0 active_population=0 cap=30 spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0]
+ROUTE leg=2 seconds=9.750 waiting=0.000 flight=9.750
+VALIDATION progress wall=40.0s run=40.0s phase=Playing stage=ROUTE OVERRIDE wave_status=None hull=100 kills=0 enemies_live=0 warnings_pending=0 active_population=0 cap=30 spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0]
+ROUTE leg=3 seconds=9.708 waiting=0.000 flight=9.708
+VALIDATION RESULT mode=Routes sample_seconds=40.000 frames=4760 frame_ms_median=8.332 p95=8.837 p99=10.469 hitches_gt_33_3=1 enemies_min=0 enemies_max=0 warnings_pending=0 active_population=0 cap=30 projectiles_max=0 hits=0 kills=0 damage=0 phase=Playing stage=ROUTE OVERRIDE wave_status=None hull=100 run_seconds=45.008 total_kills=0 physical_resolution=Some((1280, 960)) stages=[ROUTE OVERRIDE:live=0..0 active_peak=0] spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0] observations[module_changes=0 charger_entries=0 charger_exits=0 route_crossings=0] acquired=[none] energy=100.000 capacity=100.000
+2026-09-13T09:29:22.171085Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(45706560128)
