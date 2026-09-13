@@ -88,6 +88,7 @@ struct ChoiceRecord {
     at: f64,
     level: u32,
     selected: UpgradeKind,
+    offered: Vec<UpgradeKind>,
 }
 
 #[derive(Clone, Debug)]
@@ -159,8 +160,7 @@ fn authored_bursts(balance: Balance) -> Vec<(f64, usize)> {
 }
 
 fn total_earned_xp(run: &UpgradeRun) -> u64 {
-    let crossed = u64::from(run.level - 1);
-    25 * crossed * (crossed + 3) / 2 + u64::from(run.xp)
+    u64::from(run.total_xp)
 }
 
 fn desired_gameplay_keys(app: &mut App, drone: Entity, tactic: Tactic) -> Vec<KeyCode> {
@@ -199,6 +199,14 @@ fn choice_key(run: &UpgradeRun, priorities: &[UpgradeKind]) -> KeyCode {
 }
 
 fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
+    run_case_with_priorities(balance, tactic, tactic.priorities())
+}
+
+fn run_case_with_priorities(
+    balance: Balance,
+    tactic: Tactic,
+    priorities: &[UpgradeKind],
+) -> ResultRow {
     let mut app = App::new();
     app.init_resource::<ButtonInput<KeyCode>>()
         .init_resource::<WorldGeometry>()
@@ -311,7 +319,7 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
                 released_for_choice = true;
                 Vec::new()
             } else {
-                let key = choice_key(run, tactic.priorities());
+                let key = choice_key(run, priorities);
                 let index = [KeyCode::Digit1, KeyCode::Digit2, KeyCode::Digit3]
                     .iter()
                     .position(|candidate| *candidate == key)
@@ -320,6 +328,7 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
                     at: app.world().resource::<Encounter>().elapsed,
                     level: run.level,
                     selected: run.offer[index],
+                    offered: run.offer.clone(),
                 });
                 released_for_choice = false;
                 vec![key]
@@ -708,5 +717,72 @@ fn charger_depletion_probe() {
                 }
             }
         }
+    }
+}
+
+#[test]
+#[ignore = "real-arena progression comparison; run explicitly with --nocapture"]
+fn progression_balance_probe() {
+    use UpgradeKind::*;
+    let mobile = [
+        Interceptor,
+        AgileFrame,
+        HeavyRounds,
+        RapidShield,
+        HeavyArmor,
+        WideAreaRockets,
+    ];
+    let armored = [
+        HeavyArmor,
+        HeavyRounds,
+        RapidShield,
+        WideAreaRockets,
+        Interceptor,
+        AgileFrame,
+    ];
+    for (build, priorities) in [("mobile", &mobile[..]), ("armored", &armored[..])] {
+        for tactic in [Tactic::Moving, Tactic::Relay] {
+            let row = run_case_with_priorities(Balance::Depleting, tactic, priorities);
+            assert!(row.choices.len() <= 4);
+            println!(
+                "PROGRESSION build={build} tactic={} outcome={:?} active={:.3} hull={} kills={} choices={:?} energy={:.3} supplied={:?} overdrive_seconds={:.3} visits={:?} stops={:?} peak={} spawns={:?}",
+                tactic.label(),
+                row.phase,
+                row.active_seconds,
+                row.hull,
+                row.kills,
+                row.choices,
+                row.final_energy,
+                row.supplied,
+                row.powered_seconds,
+                row.visits,
+                row.relay_stops,
+                row.peak_enemies,
+                row.spawns
+            );
+        }
+    }
+}
+
+#[test]
+fn progression_authored_envelope() {
+    for pickup in [0, 30] {
+        let mut run = UpgradeRun::default();
+        run.award(pickup);
+        let mut times = Vec::new();
+        let waves = WaveConfig::default();
+        for (warning, count) in waves.bursts {
+            // Ideal upper kill rate: every enemy killed at activation.
+            run.award(count as u32 * 4);
+            run.prepare_offer(&crate::modules::Loadout::default());
+            while !run.offer.is_empty() {
+                times.push(warning + waves.warning_seconds);
+                assert!(run.resolve(Some(0)));
+                run.prepare_offer(&crate::modules::Loadout::default());
+            }
+        }
+        assert_eq!(times.len(), 4);
+        assert!(times[3] > 200.);
+        println!("AUTHORED_ENVELOPE pickup={pickup} choices={times:?}");
     }
 }

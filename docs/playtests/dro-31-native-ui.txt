@@ -1,0 +1,20 @@
+2026-09-13T16:42:39.348151Z  INFO bevy_render::renderer: AdapterInfo { name: "Apple M1 Pro", vendor: 0, device: 0, device_type: IntegratedGpu, device_pci_bus_id: "", driver: "", driver_info: "", backend: Metal, subgroup_min_size: 4, subgroup_max_size: 64, transient_saves_memory: true }
+VALIDATION Choices: class=automated_probe, keyboard_pilot=true, stress_overrides=false, warmup=5s, sample_limit=600s, stress_target=150, synthetic_xp=1000
+2026-09-13T16:42:39.526213Z  INFO bevy_pbr::cluster: GPU clustering is supported on this device.
+2026-09-13T16:42:39.526263Z  INFO bevy_render::batching::gpu_preprocessing: GPU preprocessing is fully supported on this device.
+2026-09-13T16:42:39.576578Z  INFO bevy_winit::system: Creating new window Drone Survivors — Test Arena (68v0)
+VALIDATION screenshot=/tmp/dro10-choices.png
+2026-09-13T16:42:40.719055Z  INFO bevy_render::view::window::screenshot: Screenshot saved to /tmp/dro10-choices.png
+VALIDATION progress wall=10.0s run=0.0s phase=Choosing stage=OPENING wave_status=Some(Active) hull=100 kills=0 enemies_live=0 warnings_pending=0 active_population=0 cap=30 spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0]
+VALIDATION CHOICE run_seconds=0.000 level=5 action=Heavy rounds
+VALIDATION CHOICE run_seconds=0.000 level=5 action=Skip
+VALIDATION CHOICE run_seconds=0.000 level=5 action=Rapid shield
+VALIDATION progress wall=20.0s run=0.0s phase=Choosing stage=OPENING wave_status=Some(Active) hull=100 kills=0 enemies_live=0 warnings_pending=0 active_population=0 cap=30 spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0]
+VALIDATION progress wall=30.0s run=0.0s phase=Choosing stage=OPENING wave_status=Some(Active) hull=100 kills=0 enemies_live=0 warnings_pending=0 active_population=0 cap=30 spawns[requested=0 admitted=0 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=0 cancelled=0 pending=0]
+VALIDATION CHOICE run_seconds=0.000 level=5 action=Heavy armor
+VALIDATION progress wall=40.0s run=5.4s phase=Playing stage=OPENING wave_status=Some(Active) hull=150 kills=0 enemies_live=5 warnings_pending=0 active_population=5 cap=30 spawns[requested=5 admitted=5 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=5 cancelled=0 pending=0]
+VALIDATION progress wall=50.0s run=15.4s phase=Playing stage=OPENING wave_status=Some(Active) hull=140 kills=5 enemies_live=5 warnings_pending=0 active_population=5 cap=30 spawns[requested=10 admitted=10 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=10 cancelled=0 pending=0]
+VALIDATION progress wall=60.0s run=25.4s phase=Playing stage=OPENING wave_status=Some(Lull) hull=130 kills=10 enemies_live=5 warnings_pending=0 active_population=5 cap=30 spawns[requested=15 admitted=15 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=15 cancelled=0 pending=0]
+VALIDATION progress wall=10.0s run=10.0s phase=Playing stage=OPENING wave_status=Some(Active) hull=80 kills=2 enemies_live=3 warnings_pending=0 active_population=3 cap=30 spawns[requested=5 admitted=5 rejected_cap=0 rejected_space=0 skipped_hitch=0 skipped_terminal=0 activated=5 cancelled=0 pending=0]
+VALIDATION screenshot=/tmp/dro10-choices.png
+2026-09-13T16:44:01.852821Z  INFO bevy_render::view::window::screenshot: Screenshot saved to /tmp/dro10-choices.png

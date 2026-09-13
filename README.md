@@ -210,20 +210,28 @@ authored route graph while retaining their normal thrust and momentum.
 Kills award 4 XP throughout the encounter to offset the denser opening.
 One green exploration pickup at the far side
 of the arena grants 30 XP when the drone's center enters its visible 30-unit
-sphere; it can be collected once per run. The HUD shows level, XP to the next
-level, and acquired upgrades. Once no eligible upgrades remain, it immediately
-shows **Build complete** and the acquired upgrades instead of level/XP progress.
-XP accounting continues internally, but no further choices are promised.
-Start at level 1: the first choice costs 50 XP,
-then each level costs 25 more. Excess XP carries over.
+sphere; it can be collected once per run. Each run has **four upgrade
+opportunities**. Picking or skipping permanently spends one, so a completed build
+contains at most four of the six benefits. There are no replacements or respecs.
 
-Leveling pauses the encounter and offers up to three eligible upgrades. Select
-with a fresh **1–3** press or click a card. **Backspace** or **Skip this upgrade**
-declines the offer: the level remains earned, no effect is applied, and the
-choice is spent. Skipped cards can appear later. If several levels are earned
-together, resolve them one at a time; release the selection key/mouse button
-between offers. Empty pools resume automatically. The prototype uses a fixed
-offer seed for repeatable playtests.
+Choices require **50, 200, 500, and 1,000 cumulative XP**, with no time gates.
+Individual costs are 50, 150, 300, and 500 XP; excess XP carries over. Faster kills
+unlock choices earlier. A slower run can finish with fewer than four upgrades.
+The HUD shows remaining opportunities, XP toward the next one, and acquired
+upgrades. If all four have been earned, it shows queued choices instead of
+promising a fifth reward. After the fourth pick/Skip or an empty eligible pool,
+it immediately shows **Build complete** with the acquired upgrades. XP remains
+an internal statistic; no more levels or choices are granted.
+
+An earned opportunity pauses the encounter and offers up to three eligible
+upgrades. Select with a fresh **1–3** press or click a card. **Backspace** or
+**Skip this upgrade** spends the opportunity without an effect; skipped and
+unchosen cards can return during later opportunities. Every modal states the
+remaining budget and the consequence of Skip; the fourth is labeled **Final
+opportunity**. Resolve queued choices one at a time, releasing the selection
+key/mouse button between offers. Empty pools resume automatically. The prototype
+uses a fixed offer seed for repeatable playtests. Numeric XP pacing is provisional;
+see [DRO-31 evidence](docs/playtests/dro-31-progression.md).
 
 | Upgrade | Benefit | Drawback |
 | --- | --- | --- |
@@ -247,7 +255,7 @@ hull or battery capacity clamps the current value. Module power state, shield
 blocks, and remaining cooldown/recharge fractions survive a choice. Already
 launched shots keep their original damage and explosion radius.
 
-![Temporary upgrade choices at 640×480](docs/images/experience-choices.png)
+![Temporary upgrade choices at 640×480](docs/images/dro-31-choices-640x480.png)
 
 The selection screen freezes all gameplay time, including energy, charging,
 protection, spawning and projectiles. Selecting cannot toggle a module or consume
@@ -265,7 +273,9 @@ This opt-in 30 Hz simulation compares the previous and current waves/XP at both
 chargers, with overdrive and overdrive-plus-shield builds, plus a moving keyboard
 pilot. It uses the actual terrain/hazard and normally earned upgrade choices.
 Historical wave/XP profiles use effectively unlimited test-only charger reserves
-with the current arena geometry. Earlier recorded results describe their original
+with the current arena geometry. All live profiles now use the current
+four-opportunity progression; historical recorded results used their original
+progression rules. Earlier recorded results describe their original
 geometry and are retained as historical evidence. Camping fixtures start at a charger; the harness does not hold their position,
 refill health, or grant XP. Output includes outcomes, choice times, energy,
 peak population and spawn accounting. It is not a rendering benchmark or a human
@@ -363,7 +373,7 @@ logs its time and chosen effect; the final report includes acquired upgrades
 and battery capacity. Survival, idle, routes, and stress skip earned choices so those
 existing scenarios continue.
 
-Choices is an explicit UI preview: it starts with 140 synthetic XP at 640×480,
+Choices is an explicit UI preview: it starts with 1,000 synthetic XP (four queued opportunities) at 640×480,
 leaves choice/Skip input to the player, and saves a native screenshot to
 `/tmp/dro10-choices.png` after one real second of selection. It defaults to a
 60-second sampling limit; `--seconds` can shorten it. Synthetic XP and the

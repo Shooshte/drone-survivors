@@ -1385,3 +1385,15 @@ The first minimum-window screenshot exposed an extra line wrap in the longer
 help copy. The final copy retains ascent/descent and release-to-hold information
 on one line; the README retains the detailed horizontal-drift explanation.
 Final native capture: [altitude-hold help at 640×480](images/dro-33-altitude-hold.png).
+
+
+## DRO-31 — four XP-only upgrade opportunities (September 13)
+
+The approved four-opportunity budget is implemented: Pick or Skip permanently
+spends one; XP thresholds are cumulative 50/200/500/1,000 with no time gates.
+Native choice/completion/reset checks pass at 640×480 and 1120×720. The ideal
+authored-wave envelope reaches choice four at 225.75s (215.75s with pickup), and
+the ordinary finite-charger armor relay reached it at 228.5s before dying at
+282.2s. All four tested scripted candidates died. The user subsequently confirmed
+human playtest acceptance ("human playtest confirms"), resolving the pending
+experiential gate. [Full evidence, raw logs, and acceptance record](playtests/dro-31-progression.md).

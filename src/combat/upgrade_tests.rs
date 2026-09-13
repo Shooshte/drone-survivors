@@ -167,7 +167,7 @@ fn applying_combined_choices_updates_hull_damage_and_restart_restores_baseline()
             .acceleration_multiplier,
         0.75
     );
-    offer(&mut app, 75);
+    offer(&mut app, 150);
     app.world_mut().resource_mut::<UpgradeRun>().offer = vec![HeavyRounds];
     tick(&mut app, 0., &[KeyCode::Digit1]);
     tick(&mut app, 0., &[]);
@@ -254,7 +254,7 @@ fn armor_and_rounds_reduce_horizontal_vertical_and_passive_braking_acceleration(
 fn queued_selection_requires_release_and_restart_wins_inside_modal() {
     use crate::upgrades::UpgradeRun;
     let (mut app, _) = upgrade_app();
-    offer(&mut app, 140);
+    offer(&mut app, 215);
     tick(&mut app, 0., &[KeyCode::Backspace]);
     assert_eq!(app.world().resource::<UpgradeRun>().pending, 1);
     tick(&mut app, 0., &[KeyCode::Backspace]);
@@ -278,6 +278,82 @@ fn mouse_skip_uses_same_choice_and_release_rules() {
     tick(&mut app, 0.1, &[]);
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
     assert!(app.world().resource::<UpgradeRun>().selected.is_empty());
+}
+
+#[test]
+fn queued_mouse_choice_requires_release_then_a_fresh_click() {
+    use crate::upgrades::{ChoiceAction, UpgradeRun};
+    let (mut app, _) = upgrade_app();
+    offer(&mut app, 200);
+    let button = app
+        .world_mut()
+        .spawn((ChoiceAction::Skip, Interaction::Pressed))
+        .id();
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .press(MouseButton::Left);
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    // A held button, including a changed interaction on the next card, is ignored.
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::Pressed;
+    tick(&mut app, 20., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .release(MouseButton::Left);
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::Hovered;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .press(MouseButton::Left);
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::Pressed;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 2);
+    assert_eq!(app.world().resource::<UpgradeRun>().pending, 0);
+}
+
+#[test]
+fn four_queued_skips_complete_without_gameplay_or_held_input_leaks_and_reset_budget() {
+    use crate::upgrades::UpgradeRun;
+    let (mut app, drone) = upgrade_app();
+    offer(&mut app, 1_000);
+    let before = position(&app, drone);
+    let elapsed = app.world().resource::<Encounter>().elapsed;
+    for resolved in 1..=4 {
+        tick(
+            &mut app,
+            10.,
+            &[KeyCode::Backspace, KeyCode::Digit4, KeyCode::Space],
+        );
+        assert_eq!(app.world().resource::<UpgradeRun>().resolved, resolved);
+        assert_eq!(position(&app, drone), before);
+        assert_eq!(app.world().resource::<Encounter>().elapsed, elapsed);
+        assert!(!app.world().resource::<crate::modules::Modules>().enabled[3]);
+        if resolved < 4 {
+            tick(&mut app, 10., &[KeyCode::Backspace]);
+            assert_eq!(app.world().resource::<UpgradeRun>().resolved, resolved);
+            tick(&mut app, 0., &[]);
+        }
+    }
+    assert!(app.world().resource::<UpgradeRun>().exhausted);
+    tick(&mut app, 0., &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+    app.world_mut().resource_mut::<UpgradeRun>().award(u32::MAX);
+    tick(&mut app, 0., &[]);
+    assert!(app.world().resource::<UpgradeRun>().offer.is_empty());
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    let run = app.world().resource::<UpgradeRun>();
+    assert_eq!((run.resolved, run.total_xp, run.pending), (0, 0, 0));
+    assert_eq!(run.remaining(), 4);
+    assert!(!run.exhausted);
+    offer(&mut app, 50);
+    let mut fresh = UpgradeRun::default();
+    fresh.award(50);
+    fresh.prepare_offer(&crate::modules::Loadout::default());
+    assert_eq!(app.world().resource::<UpgradeRun>().offer, fresh.offer);
 }
 
 #[test]
