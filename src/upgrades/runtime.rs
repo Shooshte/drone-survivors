@@ -50,7 +50,7 @@ impl Plugin for UpgradePlugin {
             .init_resource::<Time<Virtual>>()
             .init_resource::<ButtonInput<MouseButton>>()
             .add_systems(PostStartup, capture_baseline)
-            .add_systems(Update, begin_frame.before(GameplaySet::Reset))
+            .add_systems(Update, begin_frame.in_set(GameplaySet::Baseline))
             .add_systems(Update, choose.in_set(GameplaySet::ChoiceInput))
             .add_systems(Update, earn.in_set(GameplaySet::Progression));
     }
@@ -74,6 +74,7 @@ fn capture_baseline(
 #[allow(clippy::too_many_arguments)]
 fn begin_frame(
     keys: Res<ButtonInput<KeyCode>>,
+    boundary: Option<Res<crate::game::MissionBoundary>>,
     baseline: Res<Baseline>,
     mut run: ResMut<UpgradeRun>,
     mut session: ResMut<ChoiceSession>,
@@ -85,14 +86,17 @@ fn begin_frame(
     mut energy: ResMut<EnergyConfig>,
     mut modules: ResMut<ModuleConfig>,
 ) {
-    if keys.just_pressed(KeyCode::KeyR) {
+    if boundary
+        .as_ref()
+        .map_or_else(|| keys.just_pressed(KeyCode::KeyR), |b| b.reset)
+    {
         *flight = baseline.flight;
         *combat = baseline.combat.clone();
         *energy = baseline.energy.clone();
         *modules = baseline.modules.clone();
         *run = UpgradeRun::default();
         *session = ChoiceSession::default();
-        pickup.collected = false;
+        *pickup = ExplorationPickup::default();
         clock.unpause();
         // Existing restart systems restore phase, HP, battery and entities afterward.
     } else if session.resume_pending {
@@ -104,6 +108,7 @@ fn begin_frame(
 #[allow(clippy::too_many_arguments)]
 fn earn(
     keys: Res<ButtonInput<KeyCode>>,
+    boundary: Option<Res<crate::game::MissionBoundary>>,
     experience: Res<ExperienceConfig>,
     encounter: Res<Encounter>,
     drone: Single<&Transform, With<Drone>>,
@@ -114,7 +119,13 @@ fn earn(
     mut phase: ResMut<GamePhase>,
     mut clock: ResMut<Time<Virtual>>,
 ) {
-    if keys.just_pressed(KeyCode::KeyR) || *phase == GamePhase::Choosing {
+    if boundary.is_some_and(|b| b.reset)
+        || keys.just_pressed(KeyCode::KeyR)
+        || matches!(
+            *phase,
+            GamePhase::Choosing | GamePhase::Hub | GamePhase::Briefing
+        )
+    {
         return;
     }
     let kills = encounter.kills.saturating_sub(session.credited_kills);

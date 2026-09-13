@@ -1397,3 +1397,19 @@ the ordinary finite-charger armor relay reached it at 228.5s before dying at
 282.2s. All four tested scripted candidates died. The user subsequently confirmed
 human playtest acceptance ("human playtest confirms"), resolving the pending
 experiential gate. [Full evidence, raw logs, and acceptance record](playtests/dro-31-progression.md).
+
+## DRO-13 — One complete mission lifecycle (September 13)
+
+Added normal-startup hub, fixed Scout/module briefing, launch, stable success/failure
+results and repeat play. Campaign history survives hub returns within the session;
+mission state and temporary upgrades reset on launch/restart. Existing direct-combat
+validation modes remain available. Placeholder narrative copy is intentional.
+
+The final implementation passed 262 tests (four opt-in diagnostics ignored),
+formatting and strict all-target Clippy. Both native menu fixtures passed at
+1120×720 and 640×480. Normal mouse/keyboard play verified a naturally earned choice,
+choice restart, natural failure at 0:37/18 kills, one recorded result, and clean
+relaunch with functioning module toggles. Native success screenshots use disclosed
+synthetic fixture outcomes, not a natural survival claim.
+
+[Full lifecycle evidence, captures and limitations](playtests/dro-13-mission-lifecycle.md).

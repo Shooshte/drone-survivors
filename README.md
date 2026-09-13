@@ -14,7 +14,24 @@ editor to use the installed language server.
 cargo dev
 ```
 
-The test arena opens immediately. Fly relative to the drone's heading:
+Normal launch opens the operations hub. Choose **Mission briefing** (Enter),
+then **Launch mission** (Enter) to start the five-minute survival encounter.
+**Backspace** returns from briefing to the hub. The Scout and its four modules
+are fixed before launch; module toggles and temporary upgrades work in combat.
+Hub and briefing story text is provisional.
+
+Success or failure opens results showing the active time and kills. Choose
+**Return to hub** (Enter) to launch again. Completed attempts and prior success
+remain in memory for this application session; quitting clears this history.
+Each launch restores the Scout, battery, chargers, hazard cycle and encounter,
+including all temporary upgrades and pending choices. A restart during combat
+or an upgrade choice starts a fresh attempt without recording a result for the
+interrupted attempt. R does nothing in the hub, briefing or results.
+
+The existing `--validate` modes still enter their combat fixtures directly,
+except the dedicated `missions` menu fixture described below.
+
+Fly relative to the drone's heading:
 
 | Keys | Control |
 | --- | --- |
@@ -113,11 +130,28 @@ affected enemy; a small amber burst marks a kill. Contact deals 10 hull damage,
 followed by 0.75 seconds of shared invulnerability. The HUD flashes red on damage
 and shows cyan **HULL PROTECTED** during that protection window.
 
-At zero hull, gameplay freezes and **R** restarts. Survive until 5:00 to freeze
-the encounter with **SURVIVED** and your kill count; remaining enemies do not need
-to be cleared. R also restarts during combat or lulls, clearing enemies, shots,
+At zero hull, the mission fails. Survive until 5:00 to succeed; remaining enemies
+do not need to be cleared. Both outcomes freeze gameplay and open mission results.
+R restarts during combat or lulls, clearing enemies, shots,
 warnings, effects, kills, timers, and flight momentum. Balance values are
 provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
+
+### Mission lifecycle validation
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/dro13-normal cargo dev -- --validate missions
+DRONE_CAPTURE_DIR=/tmp/dro13-compact DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate missions
+```
+
+This explicit native UI fixture drives hub/briefing navigation, launch, restart
+from an upgrade choice, success, failure, hub returns, and a final fresh launch.
+It injects **50 XP**, advances the timer to **300**, and forces one failure to
+exercise both result screens. It verifies two completed records and retained
+prior success, captures named screens when a directory is supplied, and exits
+after approximately 32 seconds. These overrides are confined to this fixture;
+it is evidence of lifecycle and presentation, not normal-play survival or balance.
+`--seconds` bounds the fixture (default 36); a shorter limit may stop it before
+the complete sequence. Ordinary gameplay installs none of these fixture systems.
 
 ### Energy and charging
 
@@ -154,7 +188,7 @@ Weapon overdrive affects only basic fire.
 At zero energy all modules switch off; basic automatic fire and every normal
 flight control remain available. Charging never reactivates modules automatically.
 Press the corresponding key when enough energy is available. Death/survival
-freezes power; R restores full energy, all modules off, a ready shield, and clears
+freezes power; a new launch or combat restart restores full energy, all modules off, a ready shield, and clears
 rockets, cooldowns and feedback.
 
 Six cyan charging fields form three pairs: NW/NE in the north, LEFT/RIGHT

@@ -123,12 +123,18 @@ impl Plugin for CombatPlugin {
                 invulnerable_until: 0.,
             })
             .add_systems(Startup, lifecycle::setup)
+            .add_systems(
+                Update,
+                lifecycle::cleanup
+                    .in_set(GameplaySet::Cleanup)
+                    .run_if(resource_exists::<crate::game::MissionBoundary>),
+            )
             .add_systems(Update, feedback::clear.in_set(GameplaySet::Reset))
             .add_systems(
                 Update,
                 (lifecycle::restart, hazards::reset)
                     .in_set(GameplaySet::Reset)
-                    .run_if(input_just_pressed(KeyCode::KeyR)),
+                    .run_if(crate::game::reset_requested),
             )
             .add_systems(
                 Update,
@@ -155,7 +161,8 @@ impl Plugin for CombatPlugin {
                 Update,
                 waves::update
                     .in_set(GameplaySet::Combat)
-                    .run_if(not(is_playing)),
+                    .run_if(not(is_playing))
+                    .run_if(not(crate::game::reset_requested)),
             );
     }
 }

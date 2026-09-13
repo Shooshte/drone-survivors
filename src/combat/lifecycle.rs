@@ -109,3 +109,23 @@ pub(super) fn apply_player_damage(
     }
     true
 }
+
+/// Clear transients at the completion boundary before presentation can consume them.
+pub(super) fn cleanup(
+    mut commands: Commands,
+    boundary: Res<crate::game::MissionBoundary>,
+    transient: Query<Entity, CombatEntities>,
+    mut outcomes: ResMut<CombatOutcomes>,
+    mut cue: Option<ResMut<super::feedback::DamageCue>>,
+) {
+    if !boundary.cleanup && !boundary.reset {
+        return;
+    }
+    for entity in &transient {
+        commands.entity(entity).despawn();
+    }
+    outcomes.0.clear();
+    if let Some(cue) = cue.as_mut() {
+        cue.0 = 0.;
+    }
+}

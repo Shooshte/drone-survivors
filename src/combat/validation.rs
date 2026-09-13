@@ -54,6 +54,7 @@ pub(crate) enum ValidationMode {
     Mobile,
     Armored,
     Choices,
+    Missions,
 }
 
 #[derive(Resource, Clone, Copy, Debug)]
@@ -96,7 +97,7 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices \
+                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
@@ -111,9 +112,10 @@ impl ValidationConfig {
                         "mobile" => ValidationMode::Mobile,
                         "armored" => ValidationMode::Armored,
                         "choices" => ValidationMode::Choices,
+                        "missions" => ValidationMode::Missions,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, or choices"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, or missions"
                                     .into(),
                             );
                         }
@@ -150,6 +152,7 @@ impl ValidationConfig {
             mode,
             seconds: seconds.unwrap_or(match mode {
                 ValidationMode::Stress => 30.,
+                ValidationMode::Missions => 36.,
                 ValidationMode::Choices | ValidationMode::Chargers => 60.,
                 _ => 305.,
             }),
@@ -159,6 +162,10 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    if config.mode == ValidationMode::Missions {
+        crate::mission::validation::install(app, config.seconds);
+        return;
+    }
     capture::install(app);
     println!(
         "VALIDATION {:?}: class={}, keyboard_pilot={}, stress_overrides={}, warmup=5s, sample_limit={}s, stress_target={}, synthetic_xp={}",
@@ -344,7 +351,9 @@ fn validation_choice_input(
         | ValidationMode::Idle
         | ValidationMode::Routes
         | ValidationMode::Chargers => &[],
-        ValidationMode::Choices | ValidationMode::Manual => unreachable!(),
+        ValidationMode::Choices | ValidationMode::Manual | ValidationMode::Missions => {
+            unreachable!()
+        }
     };
     let key = priorities
         .iter()

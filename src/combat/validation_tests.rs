@@ -16,6 +16,7 @@ fn validation_arguments_are_opt_in_bounded_and_mode_specific() {
         ("mobile", ValidationMode::Mobile, 305.),
         ("armored", ValidationMode::Armored, 305.),
         ("choices", ValidationMode::Choices, 60.),
+        ("missions", ValidationMode::Missions, 36.),
     ] {
         let config = parse(&["--validate", name]).unwrap().unwrap();
         assert_eq!((config.mode, config.seconds), (mode, seconds));

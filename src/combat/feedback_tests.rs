@@ -236,3 +236,128 @@ fn rocket_visuals_preserve_flight_and_explosions_reuse_assets_on_restart() {
         );
     }
 }
+
+fn mission_scene_app() -> App {
+    let mut app = App::new();
+    app.init_resource::<ButtonInput<KeyCode>>()
+        .init_resource::<Assets<Mesh>>()
+        .init_resource::<Assets<StandardMaterial>>()
+        .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
+            Duration::ZERO,
+        ))
+        .add_plugins((
+            bevy::time::TimePlugin,
+            crate::arena::ArenaPlugin,
+            CombatPlugin,
+            crate::upgrades::runtime::UpgradePlugin,
+            crate::mission::MissionPlugin,
+            CombatScenePlugin,
+        ));
+    app.update();
+    app.world_mut()
+        .resource_mut::<Time<Virtual>>()
+        .set_max_delta(Duration::from_secs(60));
+    crate::mission::tests::launch(&mut app);
+    quiet(&mut app);
+    app
+}
+
+#[test]
+fn warning_created_with_upgrade_choice_keeps_visuals_and_freezes_feedback_until_resume() {
+    use super::super::feedback::{DamageCue, FeedbackAssets, KillEffect};
+    use crate::mission::tests::tick;
+    use crate::upgrades::UpgradeRun;
+    let mut app = mission_scene_app();
+    let effect = app
+        .world_mut()
+        .spawn((KillEffect { remaining: 0.35 }, Transform::default()))
+        .id();
+    app.world_mut().resource_mut::<DamageCue>().0 = 0.2;
+    app.world_mut().resource_mut::<Encounter>().elapsed = 2.9;
+    app.world_mut().resource_mut::<UpgradeRun>().award(50);
+
+    // Authored wave and XP choice happen in the same gameplay update.
+    tick(&mut app, 0.1, &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    let warnings: Vec<_> = app
+        .world_mut()
+        .query_filtered::<Entity, With<SpawnWarning>>()
+        .iter(app.world())
+        .collect();
+    assert_eq!(warnings.len(), 5);
+    let elapsed = app.world().resource::<Encounter>().elapsed;
+    let ready_at = app
+        .world()
+        .get::<SpawnWarning>(warnings[0])
+        .unwrap()
+        .ready_at;
+    assert_eq!(
+        app.world().get::<KillEffect>(effect).unwrap().remaining,
+        0.35
+    );
+    assert_eq!(app.world().resource::<DamageCue>().0, 0.2);
+
+    tick(&mut app, 15., &[]);
+    assert_eq!(app.world().resource::<Encounter>().elapsed, elapsed);
+    assert_eq!(
+        app.world()
+            .get::<SpawnWarning>(warnings[0])
+            .unwrap()
+            .ready_at,
+        ready_at
+    );
+    assert_eq!(
+        app.world().get::<KillEffect>(effect).unwrap().remaining,
+        0.35
+    );
+    assert_eq!(app.world().resource::<DamageCue>().0, 0.2);
+    tick(&mut app, 15., &[KeyCode::Backspace]);
+    tick(&mut app, 0., &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+    for warning in warnings {
+        assert_eq!(
+            app.world().get::<Mesh3d>(warning).map(|mesh| &mesh.0),
+            Some(&app.world().resource::<FeedbackAssets>().warning_mesh),
+            "warning created as the choice opened must remain visible after resuming"
+        );
+        assert_eq!(
+            app.world()
+                .get::<MeshMaterial3d<StandardMaterial>>(warning)
+                .map(|material| &material.0),
+            Some(&app.world().resource::<FeedbackAssets>().warning)
+        );
+    }
+    tick(&mut app, 0.1, &[]);
+    assert!((app.world().get::<KillEffect>(effect).unwrap().remaining - 0.25).abs() < 1e-6);
+    assert!((app.world().resource::<DamageCue>().0 - 0.1).abs() < 1e-6);
+}
+
+#[test]
+fn mission_restart_and_completion_remove_warning_and_feedback_without_replaying_effects() {
+    use super::super::feedback::{DamageCue, KillEffect};
+    use crate::mission::tests::tick;
+    let mut app = mission_scene_app();
+    tick(&mut app, 3., &[]);
+    assert_eq!(count::<SpawnWarning>(&mut app), 5);
+    app.world_mut()
+        .spawn((KillEffect { remaining: 0.35 }, Transform::default()));
+    app.world_mut().resource_mut::<DamageCue>().0 = 0.2;
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert_eq!(count::<SpawnWarning>(&mut app), 0);
+    assert_eq!(count::<KillEffect>(&mut app), 0);
+    assert_eq!(app.world().resource::<DamageCue>().0, 0.);
+
+    // A lethal hit creates a real outcome on the same frame as mission completion.
+    app.world_mut().resource_mut::<Encounter>().elapsed = 299.9;
+    enemy(&mut app, START + Vec3::X * 60., 10);
+    shot(&mut app, START, Vec3::X * 650., 1.);
+    tick(&mut app, 0.1, &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Survived);
+    assert_eq!(app.world().resource::<Encounter>().kills, 1);
+    for _ in 0..3 {
+        tick(&mut app, 10., &[]);
+        assert_eq!(count::<SpawnWarning>(&mut app), 0);
+        assert_eq!(count::<KillEffect>(&mut app), 0);
+        assert_eq!(app.world().resource::<DamageCue>().0, 0.);
+    }
+}

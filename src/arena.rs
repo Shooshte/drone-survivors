@@ -57,16 +57,26 @@ impl Plugin for ArenaPlugin {
             .configure_sets(
                 Update,
                 (
+                    GameplaySet::Transition,
+                    GameplaySet::Baseline,
                     GameplaySet::Reset,
                     GameplaySet::ChoiceInput,
                     GameplaySet::Movement,
                     GameplaySet::Combat,
                     GameplaySet::Progression,
+                    GameplaySet::Completion,
+                    GameplaySet::Cleanup,
                     GameplaySet::Presentation,
                 )
                     .chain(),
             )
             .add_systems(Startup, spawn_drone)
+            .add_systems(
+                Update,
+                reset_drone
+                    .in_set(GameplaySet::Reset)
+                    .run_if(crate::game::reset_requested),
+            )
             .add_systems(
                 Update,
                 move_drone.in_set(GameplaySet::Movement).run_if(is_playing),
@@ -102,10 +112,8 @@ fn move_drone(
     }
     let input = FlightInput::read(&keys, &config);
     for (mut transform, mut flight) in &mut drones {
-        // Reset wins over every held control and restores the model root too.
+        // A legacy direct-combat restart also consumes its entire movement frame.
         if keys.just_pressed(KeyCode::KeyR) {
-            *transform = DRONE_START;
-            *flight = DroneFlight::default();
             continue;
         }
         let segments = flight.advance(
@@ -119,5 +127,18 @@ fn move_drone(
         if let Some(path) = path.as_mut() {
             path.segments = segments;
         }
+    }
+}
+
+fn reset_drone(
+    mut drones: Query<(&mut Transform, &mut DroneFlight), With<Drone>>,
+    mut path: Option<ResMut<crate::world::PlayerPath>>,
+) {
+    for (mut transform, mut flight) in &mut drones {
+        *transform = DRONE_START;
+        *flight = DroneFlight::default();
+    }
+    if let Some(path) = path.as_mut() {
+        path.segments.clear();
     }
 }
