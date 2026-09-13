@@ -662,7 +662,7 @@ mod tests {
             .iter(app.world())
             .map(|(marker, transform)| (marker.0, *transform))
             .collect::<Vec<_>>();
-        assert_eq!(fills.len(), 2);
+        assert_eq!(fills.len(), chargers.len());
         assert!(fills.iter().all(|(_, transform)| transform.scale.x == 52.));
 
         app.world_mut().entity_mut(left).insert(ChargerReserve {
@@ -700,7 +700,7 @@ mod tests {
                 .query::<&WorldReserveOutline>()
                 .iter(app.world())
                 .count(),
-            8
+            chargers.len() * 4
         );
     }
     #[test]
