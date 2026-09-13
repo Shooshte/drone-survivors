@@ -44,6 +44,40 @@ fn xp_only_opportunities_bank_excess_at_each_boundary() {
 }
 
 #[test]
+fn progression_rate_probe() {
+    // Whole kills at 30 Hz, with an optional pickup at active time zero.
+    // These are arithmetic bounds, not pilots or evidence of human viability.
+    for rate_tenths in [3, 6, 12] {
+        for pickup in [0, 30] {
+            let mut run = UpgradeRun::default();
+            run.award(pickup);
+            let mut previous_kills = 0;
+            let mut times = Vec::new();
+            for tick in 0..9_000 {
+                let kills = tick * rate_tenths / 300;
+                run.award((kills - previous_kills) * 4);
+                previous_kills = kills;
+                run.prepare_offer(&Loadout::default());
+                while !run.offer.is_empty() {
+                    times.push(f64::from(tick) / 30.);
+                    assert!(run.resolve(Some(0)));
+                    run.prepare_offer(&Loadout::default());
+                }
+                assert!(run.selected.len() <= 4);
+            }
+            assert!(times.len() >= 2);
+            assert!(times.last().unwrap() >= &140.);
+            println!(
+                "RATE kills_per_second={:.1} pickup={pickup} choices={times:?} complete={} total_xp={}",
+                f64::from(rate_tenths) / 10.,
+                run.exhausted,
+                run.total_xp
+            );
+        }
+    }
+}
+
+#[test]
 fn thresholds_carry_excess_and_queue_every_crossed_level() {
     let mut run = UpgradeRun::default();
     assert_eq!(run.threshold(), 50);

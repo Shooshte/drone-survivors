@@ -429,7 +429,12 @@ fn hud_copy(run: &UpgradeRun) -> String {
         return format!("BUILD COMPLETE | No more upgrades this run\n{selected}");
     }
     let progress = if run.threshold() == 0 {
-        format!("{} choices ready", run.pending)
+        let noun = if run.pending == 1 {
+            "choice"
+        } else {
+            "choices"
+        };
+        format!("{} {noun} ready", run.pending)
     } else {
         format!("XP {} / {}", run.xp, run.threshold())
     };
@@ -482,6 +487,7 @@ mod tests {
             run.prepare_offer(&crate::modules::Loadout::default());
         }
         assert!(queue_copy(&run).contains("FINAL OPPORTUNITY"));
+        assert!(hud_copy(&run).contains("1 choice ready"));
         assert!(run.resolve(None));
         let complete = hud_copy(&run);
         assert!(complete.contains("BUILD COMPLETE"));

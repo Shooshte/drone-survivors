@@ -281,6 +281,41 @@ fn mouse_skip_uses_same_choice_and_release_rules() {
 }
 
 #[test]
+fn queued_mouse_choice_requires_release_then_a_fresh_click() {
+    use crate::upgrades::{ChoiceAction, UpgradeRun};
+    let (mut app, _) = upgrade_app();
+    offer(&mut app, 200);
+    let button = app
+        .world_mut()
+        .spawn((ChoiceAction::Skip, Interaction::Pressed))
+        .id();
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .press(MouseButton::Left);
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    // A held button, including a changed interaction on the next card, is ignored.
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::Pressed;
+    tick(&mut app, 20., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .release(MouseButton::Left);
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::Hovered;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+    app.world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>()
+        .press(MouseButton::Left);
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::Pressed;
+    tick(&mut app, 0., &[]);
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 2);
+    assert_eq!(app.world().resource::<UpgradeRun>().pending, 0);
+}
+
+#[test]
 fn four_queued_skips_complete_without_gameplay_or_held_input_leaks_and_reset_budget() {
     use crate::upgrades::UpgradeRun;
     let (mut app, drone) = upgrade_app();

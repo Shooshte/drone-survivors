@@ -157,7 +157,7 @@ fn legacy_modes_skip_earned_choices_through_the_runtime() {
 }
 
 #[test]
-fn choices_mode_opens_two_user_controlled_choices_at_640_by_480() {
+fn choices_mode_opens_four_user_controlled_choices_at_640_by_480() {
     let mut app = App::new();
     app.world_mut().spawn(Window::default());
     app.init_resource::<ButtonInput<KeyCode>>()
@@ -182,7 +182,7 @@ fn choices_mode_opens_two_user_controlled_choices_at_640_by_480() {
     app.update();
 
     let run = app.world().resource::<UpgradeRun>();
-    assert_eq!((run.level, run.xp, run.pending), (3, 15, 2));
+    assert_eq!((run.level, run.xp, run.pending), (5, 0, 4));
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
     let window = app
         .world_mut()
@@ -193,7 +193,7 @@ fn choices_mode_opens_two_user_controlled_choices_at_640_by_480() {
 
     validation_tick(&mut app, 0., &[]);
     validation_tick(&mut app, 0., &[KeyCode::Backspace]);
-    assert_eq!(app.world().resource::<UpgradeRun>().pending, 1);
+    assert_eq!(app.world().resource::<UpgradeRun>().pending, 3);
     assert!(app.world().resource::<UpgradeRun>().selected.is_empty());
 
     app.world_mut()
