@@ -36,7 +36,8 @@ pub(crate) struct MissionSession {
 pub(crate) struct MissionPlugin;
 impl Plugin for MissionPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Campaign>()
+        app.add_plugins(crate::economy::runtime::EconomyPlugin)
+            .init_resource::<Campaign>()
             .init_resource::<MissionSession>()
             .init_resource::<crate::economy::AttemptResources>()
             .init_resource::<MissionBoundary>()

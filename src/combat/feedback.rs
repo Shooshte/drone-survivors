@@ -4,10 +4,11 @@ use bevy::prelude::*;
 /// Gameplay facts for consumers later in this update (presentation now, XP later).
 /// Cleared before gameplay each frame, including when the encounter is frozen.
 #[derive(Resource, Default)]
-pub(super) struct CombatOutcomes(pub Vec<CombatOutcome>);
+pub(crate) struct CombatOutcomes(pub Vec<CombatOutcome>);
 
-pub(super) enum CombatOutcome {
+pub(crate) enum CombatOutcome {
     Hit {
+        kind: crate::economy::runtime::EnemyKind,
         entity: Entity,
         position: Vec3,
         killed: bool,

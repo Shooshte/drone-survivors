@@ -211,6 +211,7 @@ pub(super) fn advance_projectiles(
                     enemy.health = enemy.health.saturating_sub(damage);
                     let killed = enemy.health == 0;
                     outcomes.0.push(CombatOutcome::Hit {
+                        kind: enemy.kind,
                         entity,
                         position,
                         killed,
@@ -226,6 +227,7 @@ pub(super) fn advance_projectiles(
                     .health
                     .saturating_sub(payload.map_or(config.shot_damage, |p| p.damage));
                 outcomes.0.push(CombatOutcome::Hit {
+                    kind: enemy.kind,
                     entity: target,
                     position: enemy_transform.translation,
                     killed: enemy.health == 0,

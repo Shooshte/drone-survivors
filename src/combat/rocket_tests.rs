@@ -177,6 +177,7 @@ fn splash_uses_enemy_centers_at_the_actual_impact_time() {
         .world_mut()
         .spawn((
             Enemy {
+                kind: crate::economy::runtime::EnemyKind::Chaser,
                 health: 100,
                 previous: START + Vec3::new(33., 30., 0.),
                 path: vec![enemies::FlightSegment {
