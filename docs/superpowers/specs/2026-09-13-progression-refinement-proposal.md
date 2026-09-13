@@ -1,8 +1,11 @@
 # DRO-31 refinement proposal — not approved for implementation
 
-This is parallel refinement requested while implementing DRO-30. It does not
-change progression. The user has not approved four slots, milestone timing,
-exclusions, ranks, or new upgrade content. DRO-22 owns expansion to twelve cards.
+Originally prepared alongside DRO-30; revisited for DRO-31 on September 13 after
+DRO-30 and DRO-33 merged. Implementation is isolated on
+`codex/dro-31-progression`, branched from main at `f5a7bab`. This proposal does not
+change progression. Four opportunities versus four acquired-card slots, Skip
+semantics, and time gates remain awaiting the user's answers. Keep the six
+existing cards and effects in scope; DRO-22 owns expansion to twelve cards.
 
 ## Current behavior
 
@@ -82,3 +85,31 @@ final DRO-30 arena; record chosen and rejected cards, choice times, skips,
 completion and survival. Human observations must show that the trade-off is
 understood and that late decisions matter. Keep pause/reset/held-input/empty-pool
 regressions, and do not label the issue solved from rate arithmetic alone.
+
+## Refined acceptance and implementation boundaries
+
+- Every offer states the remaining opportunity/slot budget and the consequence
+  of Skip before the player acts. Taking a card is irreversible for that run.
+- The HUD distinguishes insufficient XP from a future time gate, if adopted.
+  Earned XP is banked; it never creates an early modal or an extra fifth benefit.
+- Late-earned opportunities remain usable, one stable offer at a time. If
+  multiple gates are already satisfied, held keys or clicks cannot resolve the
+  next offer. Terminal outcomes take precedence even at a gate boundary.
+- Completion is immediate after the final permitted resolution/acquisition or
+  an empty eligible pool. Show the acquired build, with no further promised
+  choices, empty dialogs, filler rewards, or recurring prompts.
+- Keep kill/pickup rewards, upgrade effects and module prerequisites unchanged
+  initially. Tune only progression requirements using recorded evidence. Do not
+  alter waves, chargers, arena, flight, or author new cards/ranks in this issue.
+- Add focused rule and runtime regression coverage for XP banking, applicable
+  gate boundaries, Skip, stable offers, input isolation, pause, terminal
+  precedence, completion, empty pools, and deterministic full restart.
+- Record low/typical/high kill-rate timings with and without the pickup, plus
+  real-arena observations for two contrasting build/tactic candidates. Separate
+  arithmetic and scripted evidence from human playtest observations.
+- Run `cargo fmt --check`, `cargo test --locked`, and
+  `cargo clippy --all-targets --locked -- -D warnings`; inspect native choice and
+  completion presentation at 640 × 480 and the normal window size.
+- Human evidence must establish understandable opportunity costs and two viable
+  tactics. If unavailable, open the requested PR with that acceptance explicitly
+  pending rather than describing the ticket as solved.
