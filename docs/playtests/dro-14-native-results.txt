@@ -1,0 +1,26 @@
+Native mission fixture: large
+MISSION UI FIXTURE: synthetic XP=50, resources=19/3 and 7/3, success timer=300, failure hull/phase override; not gameplay-success evidence
+MISSION UI FIXTURE hub: phase=Hub, results=0, elapsed=0.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE briefing: phase=Briefing, results=0, elapsed=0.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE combat: phase=Playing, results=0, elapsed=0.991, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE choice: phase=Choosing, results=0, elapsed=2.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE success: phase=Survived, results=1, elapsed=300.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 29, components: 4 }
+MISSION UI FIXTURE hub-success: phase=Hub, results=1, elapsed=300.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 29, components: 4 }
+MISSION UI FIXTURE failure: phase=Dead, results=2, elapsed=1.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
+MISSION UI FIXTURE hub-history: phase=Hub, results=2, elapsed=1.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
+MISSION UI FIXTURE relaunch: phase=Playing, results=2, elapsed=0.991, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
+MISSION UI FIXTURE PASS: choice restart, success, failure, final relaunch; history=2, prior success retained
+
+Native mission fixture: small
+MISSION UI FIXTURE: synthetic XP=50, resources=19/3 and 7/3, success timer=300, failure hull/phase override; not gameplay-success evidence
+MISSION UI FIXTURE hub: phase=Hub, results=0, elapsed=0.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE briefing: phase=Briefing, results=0, elapsed=0.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE combat: phase=Playing, results=0, elapsed=0.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE choice: phase=Choosing, results=0, elapsed=2.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 0, components: 0 }
+MISSION UI FIXTURE success: phase=Survived, results=1, elapsed=300.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 29, components: 4 }
+MISSION UI FIXTURE hub-success: phase=Hub, results=1, elapsed=300.000, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 29, components: 4 }
+MISSION UI FIXTURE failure: phase=Dead, results=2, elapsed=1.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
+MISSION UI FIXTURE hub-history: phase=Hub, results=2, elapsed=1.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
+MISSION UI FIXTURE relaunch: phase=Playing, results=2, elapsed=0.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
+MISSION UI FIXTURE PASS: choice restart, success, failure, final relaunch; history=2, prior success retained
+
