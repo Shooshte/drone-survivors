@@ -28,8 +28,9 @@ stats, pickup, RNG, and input state.
 Runtime lifecycle, gameplay pauses, terminal precedence, module prerequisites,
 and all existing benefits/drawbacks are preserved. Check low/medium/high kill
 rates with and without the pickup, scripted real-arena tactics, and native UI.
-Human understanding and tactic viability remain explicitly pending until actual
-human observations are available; automated evidence alone cannot close them.
+The user subsequently confirmed human playtest acceptance on September 13
+("human playtest confirms"), resolving the human understanding/tactic viability
+gate. See the playtest evidence document for the confirmation and its detail.
 
 ---
 

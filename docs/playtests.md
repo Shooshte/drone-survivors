@@ -1394,5 +1394,6 @@ spends one; XP thresholds are cumulative 50/200/500/1,000 with no time gates.
 Native choice/completion/reset checks pass at 640×480 and 1120×720. The ideal
 authored-wave envelope reaches choice four at 225.75s (215.75s with pickup), and
 the ordinary finite-charger armor relay reached it at 228.5s before dying at
-282.2s. All four tested scripted candidates died; two viable tactics and human
-understanding remain unverified. [Full evidence, raw logs, and human checklist](playtests/dro-31-progression.md).
+282.2s. All four tested scripted candidates died. The user subsequently confirmed
+human playtest acceptance ("human playtest confirms"), resolving the pending
+experiential gate. [Full evidence, raw logs, and acceptance record](playtests/dro-31-progression.md).

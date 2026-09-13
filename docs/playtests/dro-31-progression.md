@@ -16,11 +16,12 @@ Four resolutions immediately finish progression even when some/all were skipped;
 pool exhaustion also completes immediately. Internal XP remains a statistic;
 there are no fifth-reward promises or filler prompts.
 
-Implementation and native mechanical/UI checks are complete. **Human acceptance
-is pending:** these observations do not establish that players understand the
-trade-off or that two tactics are viable. The four scripted candidates below all
-died; retain those failures rather than treating late choices as proof of fun or
-balance. XP pacing is a provisional starting point for human playtests.
+Implementation, mechanical/UI checks, and user-reported human acceptance are
+complete. After reviewing the delivered changes, the user confirmed:
+**“human playtest confirms.”** This resolves the pending human acceptance gate.
+No additional per-run timings, build lists, or player counts were supplied; the
+scripted observations below remain unchanged and are not substituted for that
+human confirmation.
 
 ## XP pacing
 
@@ -136,12 +137,10 @@ native sequence with the final executable and visible model. The committed log
 is the successful repeat (no asset errors, all four choices recorded), and the
 screenshot was refreshed from that repeat.
 
-## Required human follow-up
+## Human acceptance — confirmed September 13
 
-Play normal five-minute encounters with at least two contrasting tactics. Record
-all offers, choices/Skip times, acquired and excluded benefits, module use,
-charging/route decisions, death/survival, and examples of a drawback changing an
-action. Ask players to explain what their final choice prevented them from taking
-and whether an unreached XP threshold felt achievable. Establish two viable
-tactics and meaningful late decisions before closing experiential acceptance.
-Do not infer those outcomes from this synthetic UI fixture or failed pilots.
+The user confirmed the human playtest after delivery of PR #16: **“human playtest
+confirms.”** Recorded as acceptance of the pending playtest gate for meaningful
+trade-offs and viable tactics. The confirmation is user-reported; no additional
+telemetry or detailed observations were provided. PR #16 can leave draft and
+proceed through code review. Merge is a separate step.
