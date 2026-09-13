@@ -85,6 +85,7 @@ fn thirty_pursuers_do_not_stall_at_walls_when_target_changes_sides() {
             app.world_mut()
                 .spawn((
                     Enemy {
+                        kind: crate::economy::runtime::EnemyKind::Chaser,
                         health: 1000,
                         previous: point,
                         path: Vec::new(),

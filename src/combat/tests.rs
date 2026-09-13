@@ -53,6 +53,7 @@ fn enemy(app: &mut App, position: Vec3, health: u32) -> Entity {
     app.world_mut()
         .spawn((
             Enemy {
+                kind: crate::economy::runtime::EnemyKind::Chaser,
                 health,
                 previous: position,
                 path: Vec::new(),
@@ -629,3 +630,6 @@ mod arena_pressure_tests;
 
 #[path = "../mission/combat_tests.rs"]
 mod mission_lifecycle_tests;
+
+#[path = "economy_tests.rs"]
+mod economy_tests;

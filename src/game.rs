@@ -19,6 +19,7 @@ pub(crate) enum GameplaySet {
     ChoiceInput,
     Movement,
     Combat,
+    Collection,
     Progression,
     Completion,
     Cleanup,

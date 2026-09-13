@@ -8,7 +8,7 @@ mod scene;
 pub(crate) use scene::{CombatHudRoot, CombatScenePlugin, CombatSceneSetup};
 mod enemies;
 mod feedback;
-use feedback::{CombatOutcome, CombatOutcomes};
+pub(crate) use feedback::{CombatOutcome, CombatOutcomes};
 mod lifecycle;
 mod rockets;
 pub(crate) use rockets::RocketLauncher;
@@ -74,6 +74,7 @@ impl Default for CombatConfig {
 
 #[derive(Component)]
 struct Enemy {
+    kind: crate::economy::runtime::EnemyKind,
     health: u32,
     previous: Vec3,
     /// Bounded physics trajectory for moving-target projectile sweeps.

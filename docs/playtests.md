@@ -1413,3 +1413,17 @@ relaunch with functioning module toggles. Native success screenshots use disclos
 synthetic fixture outcomes, not a natural survival claim.
 
 [Full lifecycle evidence, captures and limitations](playtests/dro-13-mission-lifecycle.md).
+
+## DRO-14 — Resource economy (September 13)
+
+Added chaser salvage drops, three risky component caches, session balances,
+once-only success/failure rewards and resource UI. Replays pay; restart discards
+unbanked collection. The 19/3 example pays 29/4 on success and 4/0 on failure.
+
+All 280 tests, formatting and strict all-target Clippy pass; four existing opt-in
+diagnostics remain ignored. Independent code review approved. Native menu/reward
+fixtures pass at 1120×720 and 640×480, with synthetic collection/outcomes disclosed.
+Ordinary mouse/keyboard play collected 1 salvage, naturally failed at 0:37/18 kills,
+correctly banked 0 after rounding, returned to a single recorded result and replayed.
+
+[Full evidence, screenshots, placeholder locations and limitations](playtests/dro-14-resource-economy.md).

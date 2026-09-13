@@ -1,5 +1,6 @@
 mod arena;
 mod combat;
+mod economy;
 mod energy;
 mod game;
 mod mission;
@@ -49,7 +50,11 @@ fn main() {
     if let Some(config) = validation {
         combat::validation::install(&mut app, config);
     } else {
-        app.add_plugins((mission::MissionPlugin, mission::scene::MissionScenePlugin));
+        app.add_plugins((
+            mission::MissionPlugin,
+            mission::scene::MissionScenePlugin,
+            economy::scene::EconomyScenePlugin,
+        ));
     }
     app.run();
 }

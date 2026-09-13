@@ -18,11 +18,13 @@ pub(crate) struct MissionResult {
     pub succeeded: bool,
     pub elapsed: f64,
     pub kills: u32,
+    pub rewards: crate::economy::RewardReceipt,
 }
 #[derive(Resource, Default)]
 pub(crate) struct Campaign {
     pub history: Vec<MissionResult>,
     pub mission_succeeded: bool,
+    pub wallet: crate::economy::Amounts,
 }
 #[derive(Resource, Default)]
 pub(crate) struct MissionSession {
@@ -34,13 +36,21 @@ pub(crate) struct MissionSession {
 pub(crate) struct MissionPlugin;
 impl Plugin for MissionPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Campaign>()
+        app.add_plugins(crate::economy::runtime::EconomyPlugin)
+            .init_resource::<Campaign>()
             .init_resource::<MissionSession>()
+            .init_resource::<crate::economy::AttemptResources>()
             .init_resource::<MissionBoundary>()
             .init_resource::<Time<Virtual>>()
             .init_resource::<ButtonInput<MouseButton>>()
             .insert_resource(GamePhase::Hub)
             .add_systems(Update, input.in_set(GameplaySet::Transition))
+            .add_systems(
+                Update,
+                reset_resources
+                    .in_set(GameplaySet::Reset)
+                    .run_if(crate::game::reset_requested),
+            )
             .add_systems(Update, finalize.in_set(GameplaySet::Completion));
         app.world_mut().resource_mut::<Time<Virtual>>().pause();
     }
@@ -119,6 +129,7 @@ fn launch(
     *phase = GamePhase::Playing;
     clock.unpause();
 }
+#[allow(clippy::too_many_arguments)]
 fn finalize(
     phase: Res<GamePhase>,
     encounter: Res<Encounter>,
@@ -126,6 +137,7 @@ fn finalize(
     mut campaign: ResMut<Campaign>,
     mut boundary: ResMut<MissionBoundary>,
     mut clock: ResMut<Time<Virtual>>,
+    mut resources: ResMut<crate::economy::AttemptResources>,
 ) {
     if boundary.reset {
         return;
@@ -142,12 +154,20 @@ fn finalize(
         succeeded: *phase == GamePhase::Survived,
         elapsed: encounter.elapsed,
         kills: encounter.kills,
+        rewards: crate::economy::RewardReceipt::settle(
+            std::mem::take(&mut resources.collected),
+            *phase == GamePhase::Survived,
+            &mut campaign.wallet,
+        ),
     };
     campaign.mission_succeeded |= result.succeeded;
     campaign.history.push(result.clone());
     session.result = Some(result);
     session.armed = false;
     boundary.cleanup = true;
+}
+fn reset_resources(mut resources: ResMut<crate::economy::AttemptResources>) {
+    *resources = default();
 }
 #[cfg(test)]
 pub(crate) mod tests;

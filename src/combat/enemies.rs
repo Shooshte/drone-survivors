@@ -17,6 +17,7 @@ pub(super) fn spawn_enemy(
     };
     commands.spawn((
         Enemy {
+            kind: crate::economy::runtime::EnemyKind::Chaser,
             health: config.enemy_health,
             previous: position,
             path: Vec::new(),

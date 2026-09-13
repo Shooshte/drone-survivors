@@ -63,6 +63,7 @@ impl Plugin for ArenaPlugin {
                     GameplaySet::ChoiceInput,
                     GameplaySet::Movement,
                     GameplaySet::Combat,
+                    GameplaySet::Collection,
                     GameplaySet::Progression,
                     GameplaySet::Completion,
                     GameplaySet::Cleanup,

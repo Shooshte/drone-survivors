@@ -129,6 +129,7 @@ pub(super) fn damage(
         enemy.health = enemy.health.saturating_sub(HAZARD_DAMAGE);
         let killed = enemy.health == 0;
         outcomes.0.push(CombatOutcome::Hit {
+            kind: enemy.kind,
             entity,
             position: transform.translation,
             killed,

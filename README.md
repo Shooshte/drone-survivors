@@ -20,7 +20,7 @@ then **Launch mission** (Enter) to start the five-minute survival encounter.
 are fixed before launch; module toggles and temporary upgrades work in combat.
 Hub and briefing story text is provisional.
 
-Success or failure opens results showing the active time and kills. Choose
+Success or failure opens results showing active time, kills, and resource rewards. Choose
 **Return to hub** (Enter) to launch again. Completed attempts and prior success
 remain in memory for this application session; quitting clears this history.
 Each launch restores the Scout, battery, chargers, hazard cycle and encounter,
@@ -136,6 +136,36 @@ R restarts during combat or lulls, clearing enemies, shots,
 warnings, effects, kills, timers, and flight momentum. Balance values are
 provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
 
+### Resources and rewards
+
+New campaigns start with **0 salvage and 0 components**. Each chaser has a
+**25% chance to drop 1 salvage**. Gold salvage rests on the ground (or low cover)
+until collected or the attempt ends. Fly within **100 world units in 3D** with
+clear line of sight to attract it; once attracted it follows at 900 units/second.
+There is no interaction key or despawn timer. Solid cover blocks collection.
+
+Three purple caches each contain **1 component**, collected once per attempt
+within **50 world units in 3D**. Look near the northwest and southeast spawn
+perimeter, and inside the central electrical passage. Descend to reach them;
+the passage cache is exposed to the hazard cycle. These fixed locations are
+reachable testing placeholders for later handcrafted maps, and reset each attempt.
+
+The HUD shows **unbanked** collection; the hub shows your campaign bank.
+Success immediately banks all collection **plus 10 salvage and 1 component**.
+Failure banks **25% of each collected resource, rounded down**, without a bonus.
+For example, 19 salvage and 3 components pay 29/4 on success or 4/0 on failure.
+Previously banked resources are never lost on failure. Replayed successes pay
+normally. **R discards all unbanked collection**; uncollected pickups award nothing.
+Upgrade choices freeze attraction and collection, and terminal outcomes take
+precedence over collection in the same frame.
+
+Every completed attempt has one stable breakdown of collected, lost, bonus,
+banked, and resulting balances. Balances last until the application quits;
+saving is deferred to DRO-18. Entry and basic equipment remain free. Resource
+math uses checked, atomic transactions; an arithmetic-limit failure leaves the
+bank unchanged and is shown in results. Shop/passive purchase screens remain
+DRO-15/DRO-16; the shared spending operation is tested without introducing a shop.
+
 ### Mission lifecycle validation
 
 ```sh
@@ -145,8 +175,10 @@ DRONE_CAPTURE_DIR=/tmp/dro13-compact DRONE_CAPTURE_MINIMUM=1 cargo dev -- --vali
 
 This explicit native UI fixture drives hub/briefing navigation, launch, restart
 from an upgrade choice, success, failure, hub returns, and a final fresh launch.
-It injects **50 XP**, advances the timer to **300**, and forces one failure to
-exercise both result screens. It verifies two completed records and retained
+It injects **50 XP**, **19 salvage/3 components** for success and **7/3** for
+failure, advances the timer to **300**, and forces one failure to exercise both
+result screens. It checks that the bank becomes **29/4**, then **30/4**, and
+that subsequent launches preserve the bank while clearing collection. It verifies two completed records and retained
 prior success, captures named screens when a directory is supplied, and exits
 after approximately 32 seconds. These overrides are confined to this fixture;
 it is evidence of lifecycle and presentation, not normal-play survival or balance.
