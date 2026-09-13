@@ -305,14 +305,14 @@ fn bank_redirects_visible_thrust_sideways() {
 }
 
 #[test]
-fn neutral_pitch_loses_altitude_and_keeps_drifting_after_leveling() {
+fn neutral_pitch_holds_altitude_and_keeps_horizontal_drift_after_leveling() {
     let (mut app, drone) = test_app();
     step(&mut app, &[KeyCode::KeyW], 0.5);
     let tilted = position(&app, drone);
-    assert!(tilted.y < START.y - 0.1);
+    assert_eq!(tilted.y, START.y);
     step(&mut app, &[], 0.5);
     let leveled = position(&app, drone);
-    assert!(leveled.y < tilted.y);
+    assert_eq!(leveled.y, tilted.y);
     assert!(leveled.z < tilted.z);
     near(
         app.world().get::<Transform>(drone).unwrap().rotation * Vec3::Y,
@@ -364,7 +364,7 @@ fn neutral_hover_and_all_bindings_follow_heading() {
                 } else {
                     near(velocity.with_y(0.).normalize(), up.with_y(0.).normalize());
                 }
-                assert!(velocity.y < 0.);
+                assert_eq!(velocity.y, 0.);
             }
         }
     }
@@ -481,20 +481,24 @@ fn yaw_preserves_world_drift_and_counter_tilt_brakes_faster() {
 }
 
 #[test]
-fn boost_arrests_descent_and_thrust_is_not_latched() {
+fn altitude_release_arrests_climb_and_descent_at_the_release_height() {
     let (mut app, drone) = test_app();
-    step(&mut app, &[KeyCode::KeyW], 1.);
-    step(&mut app, &[], 0.5);
-    assert!(state(&app, drone).velocity.y < -5.);
-    step(&mut app, &[KeyCode::Space], 0.5);
-    assert!(state(&app, drone).velocity.y > 0.);
-    let up = state(&app, drone).velocity.y;
-    step(&mut app, &[], 0.1);
-    assert!(state(&app, drone).velocity.y < up && state(&app, drone).velocity.y > 0.);
-    step(&mut app, &[KeyCode::ShiftLeft], 0.1);
-    let reduced = state(&app, drone).velocity.y;
-    step(&mut app, &[], 0.1);
-    assert!((state(&app, drone).velocity.y - reduced * (-0.05_f32).exp()).abs() < 0.001);
+    for key in [
+        KeyCode::Space,
+        KeyCode::ShiftLeft,
+        KeyCode::Space,
+        KeyCode::ShiftRight,
+    ] {
+        step(&mut app, &[key], 0.5);
+        assert!(state(&app, drone).velocity.y.abs() > 5.);
+        let released = position(&app, drone).y;
+        step(&mut app, &[], 0.1);
+        assert_eq!(state(&app, drone).velocity.y, 0.);
+        assert_eq!(position(&app, drone).y, released);
+    }
+    step(&mut app, &[KeyCode::KeyR, KeyCode::Space], 0.1);
+    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.5);
+    assert_eq!(position(&app, drone).y, START.y);
 }
 
 #[test]
@@ -530,7 +534,7 @@ fn comparable_trajectories_at_common_frame_rates_and_long_frame() {
         .velocity = Vec3::new(1., 1., -1.);
     step(&mut app, &[], 10.);
     let v = state(&app, drone).velocity;
-    assert!(v.x > 0. && v.x < 0.1 && v.z < 0. && v.y > 0. && v.y < 0.01);
+    assert!(v.x > 0. && v.x < 0.1 && v.z < 0. && v.y == 0.);
 }
 
 #[test]
@@ -606,7 +610,7 @@ fn every_rotated_boundary_removes_only_velocity_into_contact() {
                         tilt: Vec2::new(0.2, 0.3),
                         velocity,
                     };
-                    step(&mut app, &[], 0.001);
+                    step(&mut app, &[KeyCode::Space], 0.001);
                     let transform = app.world().get::<Transform>(drone).unwrap();
                     let half = drone_world_half_extents(transform.rotation);
                     let arena = app.world().resource::<Arena>();
@@ -697,7 +701,7 @@ fn speed_clamp_is_horizontal_only_and_opposing_tilt_levels_each_axis() {
         .get_mut::<DroneFlight>(drone)
         .unwrap()
         .velocity = Vec3::new(500., 500., 500.);
-    step(&mut app, &[], 0.001);
+    step(&mut app, &[KeyCode::Space], 0.001);
     let velocity = state(&app, drone).velocity;
     assert!(velocity.with_y(0.).length() <= 420.001);
     assert!(velocity.y > 499.);

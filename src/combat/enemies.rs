@@ -73,7 +73,7 @@ fn pilot(
         0.
     };
     // This pilot compensates for its own current banking through rotor input.
-    // Keyboard flight keeps the player's explicitly selected thrust unchanged.
+    // Player altitude assistance is separate; AI keeps physical rotor control.
     let thrust = (lift / (config.gravity * flight.tilt.length().cos()))
         .clamp(config.reduced_thrust, config.boost_thrust);
     FlightInput {
@@ -81,6 +81,7 @@ fn pilot(
         yaw,
         yaw_override: true,
         thrust,
+        vertical: crate::arena::VerticalControl::RotorThrust,
     }
 }
 

@@ -4,7 +4,8 @@ use bevy::prelude::*;
 mod flight;
 
 pub(crate) use flight::{
-    DroneFlight, FlightConfig, FlightInput, drone_world_half_extents, world_half_extents,
+    DroneFlight, FlightConfig, FlightInput, VerticalControl, drone_world_half_extents,
+    world_half_extents,
 };
 
 mod camera;
@@ -12,6 +13,8 @@ mod scene;
 pub use scene::ArenaScenePlugin;
 pub(crate) use scene::{ArenaSceneSetup, FooterFont, HazardFooterSlot, UpgradeFooterSlot};
 
+#[cfg(test)]
+mod altitude_tests;
 #[cfg(test)]
 mod handling_tests;
 #[cfg(test)]

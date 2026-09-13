@@ -189,6 +189,7 @@ fn handling_fast_build_motion_envelope_contains_the_curved_midpoint() {
             yaw: 0.,
             yaw_override: false,
             thrust: p.config.boost_thrust,
+            vertical: crate::arena::VerticalControl::RotorThrust,
         };
         let arena = Arena {
             half_size: Vec3::splat(100_000.),

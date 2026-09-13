@@ -560,7 +560,9 @@ fn death_freezes_existing_velocity_and_tilt_then_restart_clears_them() {
     assert_ne!(before, DroneFlight::default());
     app.world_mut().resource_mut::<PlayerHealth>().current = 1;
     enemy(&mut app, transform.translation, 100);
-    step(&mut app, 0., &[]);
+    // Keep ascent held through the fatal contact; releasing would engage hold
+    // during movement before combat freezes the actor.
+    step(&mut app, 0., &[KeyCode::Space]);
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Dead);
     step(
         &mut app,

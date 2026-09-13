@@ -201,6 +201,7 @@ mod tests {
                 yaw: 1.,
                 yaw_override: true,
                 thrust: 1.,
+                vertical: crate::arena::VerticalControl::RotorThrust,
             },
             &crate::arena::FlightConfig {
                 gravity: 0.,
