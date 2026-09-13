@@ -66,7 +66,7 @@ fn drive(
     campaign: Res<Campaign>,
     session: Res<MissionSession>,
     mut exit: MessageWriter<AppExit>,
-    text_nodes: Query<(&Text, &ComputedNode)>,
+    primary_labels: Query<(&Text, &ComputedNode), With<super::scene::PrimaryLabel>>,
 ) {
     // The fixture owns only its navigation keys; release between every action.
     for key in [KeyCode::Enter, KeyCode::Backspace, KeyCode::KeyR] {
@@ -133,20 +133,19 @@ fn drive(
         _ => None,
     };
     if let Some(label) = label {
-        for (text, node) in &text_nodes {
-            if matches!(
-                *phase,
-                GamePhase::Hub | GamePhase::Briefing | GamePhase::Dead | GamePhase::Survived
-            ) && matches!(
-                text.0.as_str(),
-                "Mission briefing" | "Launch mission" | "Return to hub"
-            ) {
-                assert!(
-                    node.size().x > 100.,
-                    "primary label collapsed: {:?}",
-                    node.size()
-                );
-            }
+        if matches!(
+            *phase,
+            GamePhase::Hub | GamePhase::Briefing | GamePhase::Dead | GamePhase::Survived
+        ) {
+            let (text, node) = primary_labels
+                .single()
+                .expect("exactly one primary action label");
+            assert!(!text.0.is_empty(), "primary action label is empty");
+            assert!(
+                node.size().x > 100.,
+                "primary label collapsed: {:?}",
+                node.size()
+            );
         }
         println!(
             "MISSION UI FIXTURE {label}: phase={:?}, results={}, elapsed={:.3}",

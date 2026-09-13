@@ -1,0 +1,12 @@
+MISSION UI FIXTURE: synthetic XP=50, success timer=300, failure hull/phase override; not gameplay-success evidence
+MISSION UI FIXTURE hub: phase=Hub, results=0, elapsed=0.000
+MISSION UI FIXTURE briefing: phase=Briefing, results=0, elapsed=0.000
+MISSION UI FIXTURE combat: phase=Playing, results=0, elapsed=0.991
+MISSION UI FIXTURE choice: phase=Choosing, results=0, elapsed=1.999
+MISSION UI FIXTURE success: phase=Survived, results=1, elapsed=300.000
+MISSION UI FIXTURE hub-success: phase=Hub, results=1, elapsed=300.000
+MISSION UI FIXTURE failure: phase=Dead, results=2, elapsed=1.992
+MISSION UI FIXTURE hub-history: phase=Hub, results=2, elapsed=1.992
+MISSION UI FIXTURE relaunch: phase=Playing, results=2, elapsed=0.992
+MISSION UI FIXTURE PASS: choice restart, success, failure, final relaunch; history=2, prior success retained
+2026-09-13T19:14:49.584237Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(46107214464)

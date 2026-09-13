@@ -18,6 +18,8 @@ struct MissionOverlay;
 #[derive(Component)]
 struct PrimaryAction;
 #[derive(Component)]
+pub(super) struct PrimaryLabel;
+#[derive(Component)]
 struct BackAction;
 #[derive(Component)]
 enum MenuCopy {
@@ -139,7 +141,7 @@ fn setup(mut commands: Commands) {
 
 fn copy(parent: &mut ChildSpawnerCommands, part: MenuCopy, size: f32, color: Color) {
     let primary_label = matches!(part, MenuCopy::PrimaryLabel);
-    parent.spawn((
+    let mut entity = parent.spawn((
         part,
         Text::default(),
         TextFont::from_font_size(size),
@@ -151,6 +153,9 @@ fn copy(parent: &mut ChildSpawnerCommands, part: MenuCopy, size: f32, color: Col
             ..default()
         },
     ));
+    if primary_label {
+        entity.insert(PrimaryLabel);
+    }
 }
 
 fn button_node(height: f32) -> Node {
