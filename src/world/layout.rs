@@ -2,6 +2,15 @@
 use bevy::prelude::*;
 
 pub(crate) const CHARGER_X: f32 = 560.;
+pub(crate) const CHARGER_Z: f32 = 1080.;
+pub(crate) const CHARGERS: [(&str, Vec3); 6] = [
+    ("LEFT", Vec3::new(-CHARGER_X, 0., 0.)),
+    ("RIGHT", Vec3::new(CHARGER_X, 0., 0.)),
+    ("NW", Vec3::new(-CHARGER_X, 0., -CHARGER_Z)),
+    ("NE", Vec3::new(CHARGER_X, 0., -CHARGER_Z)),
+    ("SW", Vec3::new(-CHARGER_X, 0., CHARGER_Z)),
+    ("SE", Vec3::new(CHARGER_X, 0., CHARGER_Z)),
+];
 pub(crate) const DIVIDER_X: f32 = 120.;
 pub(crate) const DETOUR_Z: f32 = 410.;
 pub(crate) const DETOUR_LEFT_X: f32 = 0.;

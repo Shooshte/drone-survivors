@@ -15,8 +15,8 @@ impl Default for WorldGeometry {
         Self {
             solids: vec![
                 Solid {
-                    center: Vec3::new(DIVIDER_X, 150., -305.),
-                    half: Vec3::new(12., 150., 235.),
+                    center: Vec3::new(DIVIDER_X, 150., -845.),
+                    half: Vec3::new(12., 150., 775.),
                 },
                 Solid {
                     center: Vec3::new(DIVIDER_X, 150., 185.),

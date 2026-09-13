@@ -624,11 +624,13 @@ mod expanded_floor_tests {
         let combat = CombatConfig::default();
         let half = spawn_half(&combat);
         let mut app = App::new();
-        let mut config = WaveConfig::default();
         // Reserve every earlier candidate to force a complete search. The large
         // test cap only makes those reservations possible; production stays 30.
-        config.cap = 200;
-        config.bursts = vec![(0., 1)];
+        let config = WaveConfig {
+            cap: 200,
+            bursts: vec![(0., 1)],
+            ..default()
+        };
         app.insert_resource(config)
             .insert_resource(combat)
             .insert_resource(arena)

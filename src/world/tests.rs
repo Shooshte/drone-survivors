@@ -169,19 +169,19 @@ fn authored_routes_fit_scout_and_keep_spawn_and_chargers_clear() {
         crate::arena::DRONE_START.translation,
         half
     ));
-    for x in [-layout::CHARGER_X, layout::CHARGER_X] {
+    for (_, center) in layout::CHARGERS {
         let cylinder_bounds = Vec3::new(90., 80., 90.);
         assert!(
             world
                 .solids
                 .iter()
-                .all(|s| !s.overlaps(Vec3::new(x, 80., 0.), cylinder_bounds))
+                .all(|s| !s.overlaps(center + Vec3::Y * 80., cylinder_bounds))
         );
         assert!(
             !world
                 .hazard
                 .unwrap()
-                .overlaps(Vec3::new(x, 80., 0.), cylinder_bounds)
+                .overlaps(center + Vec3::Y * 80., cylinder_bounds)
         );
     }
     assert!(world.clear_body(

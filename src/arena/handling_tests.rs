@@ -320,15 +320,15 @@ fn arena_room_supports_fast_lanes_and_banked_curves_without_horizontal_contact()
             for (label, start, controls, seconds) in [
                 (
                     "left lane",
-                    Vec3::new(-420., 150., 450.),
+                    Vec3::new(-420., 150., 1400.),
                     vec![KeyCode::KeyW, KeyCode::Space],
-                    1.7,
+                    5.4,
                 ),
                 (
                     "right lane",
-                    Vec3::new(550., 150., 450.),
+                    Vec3::new(550., 150., 1400.),
                     vec![KeyCode::KeyW, KeyCode::Space],
-                    1.7,
+                    5.4,
                 ),
                 (
                     "left curve",

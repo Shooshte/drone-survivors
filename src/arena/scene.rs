@@ -3,6 +3,8 @@ use bevy::{camera::ScalingMode, prelude::*};
 
 pub struct ArenaScenePlugin;
 
+pub(super) const COMPACT_HUD_WIDTH: f32 = 800.;
+
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct ArenaSceneSetup;
 
@@ -218,7 +220,7 @@ pub(super) fn setup_scene(
             footer.spawn((
                 ControlsHud,
                 FooterFont::new(14., 12.),
-                Text::new("W/S, Up/Down Pitch | A/D, Left/Right Yaw | Q/E Bank+turn | R/Esc reset/quit\nSpace+/Shift- thrust | Tilt costs lift; release levels, drift stays | Auto fire"),
+                Text::new("W/S, Up/Down Pitch | A/D, Left/Right Yaw | Q/E Bank+turn | R/Esc reset/quit\nSpace+/Shift- thrust | 1-4 toggle | Tilt costs lift; release levels, drift stays"),
                 TextFont::from_font_size(14.),
                 TextColor(Color::srgb(0.63, 0.74, 0.77)),
                 TextLayout::new(Justify::Left, LineBreak::WordBoundary),
@@ -231,7 +233,10 @@ pub(super) fn setup_scene(
 }
 
 fn fit_footer(windows: Query<&Window>, mut fonts: Query<(&FooterFont, &mut TextFont)>) {
-    let compact = windows.iter().next().is_some_and(|w| w.width() < 800.);
+    let compact = windows
+        .iter()
+        .next()
+        .is_some_and(|w| w.width() < COMPACT_HUD_WIDTH);
     for (sizes, mut font) in &mut fonts {
         font.font_size = bevy::text::FontSize::Px(if compact {
             sizes.compact

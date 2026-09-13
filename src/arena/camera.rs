@@ -68,9 +68,15 @@ pub(super) struct IndicatorPlacement {
 
 // Center coordinates allow the complete 126x28 label to clear status bands.
 fn indicator_bounds(viewport: Rect) -> Option<Rect> {
+    // Match responsive typography: the normal footer is taller than the compact one.
+    let (top, bottom) = if viewport.width() < super::scene::COMPACT_HUD_WIDTH {
+        (110., 125.)
+    } else {
+        (120., 145.)
+    };
     let bounds = Rect {
-        min: viewport.min + Vec2::new(70., 124.),
-        max: viewport.max - Vec2::new(70., 129.),
+        min: viewport.min + Vec2::new(70., top + 14.),
+        max: viewport.max - Vec2::new(70., bottom + 14.),
     };
     // Leave enough room for one charger group and one warning group on an edge.
     bounds

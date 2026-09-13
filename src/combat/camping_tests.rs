@@ -513,6 +513,9 @@ fn reserve_snapshot(app: &mut App) -> [(f64, bool); 2] {
         .query::<(&ChargingNode, &ChargerReserve)>()
         .iter(app.world())
     {
+        if node.center.z != 0. {
+            continue;
+        }
         result[usize::from(node.center.x > 0.)] = (reserve.remaining, reserve.occupied);
     }
     result

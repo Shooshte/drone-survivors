@@ -593,7 +593,8 @@ fn every_rotated_boundary_removes_only_velocity_into_contact() {
                 for departing in [false, true] {
                     let (mut app, drone) = test_app();
                     let mut p = Vec3::new(0., 150., 0.);
-                    p[axis] = if axis == 1 { 150. } else { 0. } + sign * 1000.;
+                    p[axis] = Arena::default().center()[axis]
+                        + sign * (Arena::default().half_size[axis] + 100.);
                     app.world_mut()
                         .get_mut::<Transform>(drone)
                         .unwrap()
@@ -844,6 +845,11 @@ fn edge_indicators_use_camera_projection_and_reserve_hud_bands_after_resize() {
     );
     for (width, height) in [(1120., 720.), (640., 480.), (1600., 480.), (640., 1000.)] {
         let (camera, global) = projected_camera(width, height, transform);
+        let (top, bottom) = if width < 800. {
+            (110., 125.)
+        } else {
+            (120., 145.)
+        };
         assert!(
             camera::project_indicator(&camera, &global, Vec3::new(300., 150., -200.)).is_none()
         );
@@ -858,7 +864,9 @@ fn edge_indicators_use_camera_projection_and_reserve_hud_bands_after_resize() {
                     .expect("offscreen marker");
             assert_eq!(placement.edge, expected, "{width}x{height}: {placement:?}");
             assert!(placement.position.x >= 70. && placement.position.x <= width - 70.);
-            assert!(placement.position.y >= 124. && placement.position.y <= height - 129.);
+            assert!(
+                placement.position.y >= top + 14. && placement.position.y <= height - bottom - 14.
+            );
         }
         for offset in [
             Vec3::new(4000., 0., -4000.),
@@ -871,8 +879,8 @@ fn edge_indicators_use_camera_projection_and_reserve_hud_bands_after_resize() {
                 camera::project_indicator(&camera, &global, target).expect("diagonal indicator");
             let ndc: Vec3 = camera.world_to_ndc(&global, target).unwrap();
             let ray = Vec2::new(ndc.x * width, -ndc.y * height).normalize();
-            let placed =
-                (placement.position - Vec2::new(width / 2., height / 2. - 2.5)).normalize();
+            let placed = (placement.position - Vec2::new(width / 2., (height + top - bottom) / 2.))
+                .normalize();
             assert!(
                 ray.distance(placed) < 0.001,
                 "indicator preserves projected direction"
@@ -1001,7 +1009,7 @@ fn edge_labels_follow_live_chargers_aggregate_warnings_and_hide_expired_or_choic
             panic!("pixel placement")
         };
         assert!(left >= 0. && left + 126. <= 640.);
-        assert!(top >= 110. && top + 28. <= 480. - 115.);
+        assert!(top >= 110. && top + 28. <= 480. - 125.);
     }
     for (i, (_, a)) in labels.iter().enumerate() {
         for (_, b) in labels.iter().skip(i + 1) {
@@ -1226,6 +1234,26 @@ fn six_named_chargers_and_dense_warning_edges_remain_distinct_without_overlap() 
             chargers
                 .iter()
                 .all(|(text, _)| !text.contains("LEFT") && !text.contains("RIGHT"))
+        );
+    }
+}
+
+#[test]
+fn bottom_indicators_clear_responsive_footer_at_both_font_sizes() {
+    let transform =
+        Transform::from_xyz(0., 950., 1100.).looking_at(Vec3::new(0., 150., 0.), Vec3::Y);
+    for (width, height, footer_height) in [
+        (640., 480., 114.8),
+        (800., 480., 131.6),
+        (1120., 720., 131.6),
+    ] {
+        let (camera, global) = projected_camera(width, height, transform);
+        let marker =
+            camera::project_indicator(&camera, &global, Vec3::new(0., 150., 4000.)).unwrap();
+        assert_eq!(marker.edge, camera::IndicatorEdge::Bottom);
+        assert!(
+            marker.position.y + 14. <= height - footer_height - 8.,
+            "{width}x{height}: full card must clear the responsive footer with an 8px gap"
         );
     }
 }

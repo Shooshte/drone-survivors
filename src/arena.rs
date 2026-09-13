@@ -29,7 +29,7 @@ pub(crate) struct Arena {
 impl Default for Arena {
     fn default() -> Self {
         Self {
-            half_size: Vec3::new(960., 150., 540.),
+            half_size: Vec3::new(960., 150., 1620.),
         }
     }
 }

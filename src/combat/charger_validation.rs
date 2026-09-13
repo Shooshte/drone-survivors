@@ -25,13 +25,21 @@ pub(super) fn input(
     if *phase != GamePhase::Playing {
         return;
     }
-    let mut route = crate::world::layout::detour(150.);
+    let mut route = crate::world::layout::detour(150.).to_vec();
     route[0].y = 90.;
     route[3].y = 90.;
+    use crate::world::layout::{CHARGER_X, CHARGER_Z};
+    route.extend([
+        Vec3::new(CHARGER_X, 150., -CHARGER_Z),
+        Vec3::new(CHARGER_X, 150., CHARGER_Z),
+        Vec3::new(-CHARGER_X, 150., CHARGER_Z),
+        Vec3::new(-CHARGER_X, 150., 0.),
+        Vec3::new(-CHARGER_X, 150., -CHARGER_Z),
+    ]);
     if probe.waypoint == 0 {
         if nodes
             .iter()
-            .any(|(node, state)| node.center.x < 0. && state.remaining == 0.)
+            .any(|(node, state)| node.center.x < 0. && node.center.z == 0. && state.remaining == 0.)
         {
             let since = *probe.depleted_at.get_or_insert(run.elapsed);
             if run.elapsed - since >= 2. {

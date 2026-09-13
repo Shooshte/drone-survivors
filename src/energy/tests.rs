@@ -74,7 +74,7 @@ fn stationary_overdrive_exhausts_left_charger_and_battery() {
     assert!(app.world().resource::<Energy>().charging.is_none());
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .2;
     near(left.remaining, 0.);
@@ -92,12 +92,12 @@ fn charger_debits_only_energy_delivered_and_keeps_reserves_independent() {
     let initial = charger_states(&mut app);
     let left = initial
         .iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     let right = initial
         .iter()
-        .find(|(_, center, _)| center.x > 0.)
+        .find(|(_, center, _)| center.x > 0. && center.z == 0.)
         .unwrap()
         .0;
     at(
@@ -147,7 +147,7 @@ fn overlapping_chargers_share_delivery_and_handoff_when_the_first_empties() {
         .id();
     let mut occupied = charger_states(&mut app)
         .into_iter()
-        .filter(|(_, center, _)| center.x < 0.)
+        .filter(|(_, center, _)| center.x < 0. && center.z == 0.)
         .map(|(entity, _, _)| entity)
         .collect::<Vec<_>>();
     occupied.sort_by_key(|entity| entity.to_bits());
@@ -195,7 +195,7 @@ fn occupied_fields_do_not_recover_and_reentry_restarts_the_delay() {
         .id();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(entity, center, _)| center.x < 0. && *entity != duplicate)
+        .find(|(entity, center, _)| center.x < 0. && center.z == 0. && *entity != duplicate)
         .unwrap()
         .0;
     for entity in [left, duplicate] {
@@ -261,7 +261,7 @@ fn recovery_is_partial_after_the_delay_and_caps_at_capacity() {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     set_reserve(&mut app, left, 50., 6.);
@@ -296,7 +296,7 @@ fn setup_and_restart_use_the_configured_charger_capacity() {
         );
     app.update();
     let chargers = charger_states(&mut app);
-    assert_eq!(chargers.len(), 2);
+    assert_eq!(chargers.len(), crate::world::layout::CHARGERS.len());
     for (entity, _, reserve) in &chargers {
         near(reserve.remaining, 75.);
         set_reserve(&mut app, *entity, 10., 4.);
@@ -314,7 +314,7 @@ fn recovery_case(dt: f64) -> f64 {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     set_reserve(&mut app, left, 0., 0.);
@@ -340,7 +340,7 @@ fn boundary_case(dt: f64) -> (f64, f64, [bool; 4], f64) {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     set_reserve(&mut app, left, 50., 0.);
@@ -441,7 +441,7 @@ fn both_nodes_charge_clamp_and_combine_drain_before_clamping() {
         // clamping, so give its selected field an effectively unlimited fixture.
         let node = charger_states(&mut app)
             .into_iter()
-            .find(|(_, center, _)| center.x == x)
+            .find(|(_, center, _)| center.x == x && center.z == 0.)
             .unwrap()
             .0;
         set_reserve(&mut app, node, 1_000., 0.);
@@ -563,7 +563,7 @@ fn frozen_outcomes_and_repeated_restart_win_over_toggles() {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     for phase in [GamePhase::Choosing, GamePhase::Dead, GamePhase::Survived] {
@@ -613,7 +613,7 @@ fn frozen_outcomes_and_repeated_restart_win_over_toggles() {
             .query::<&ChargingNode>()
             .iter(app.world())
             .count(),
-        2
+        crate::world::layout::CHARGERS.len()
     );
 }
 
@@ -653,4 +653,40 @@ fn all_four_drain_adds_and_exceeds_charging() {
         ],
     );
     near(app.world().resource::<Energy>().current, 89.);
+}
+
+#[test]
+fn six_spread_chargers_deliver_independently_and_all_reset() {
+    let (mut app, drone) = app();
+    let nodes = charger_states(&mut app);
+    assert_eq!(
+        nodes.len(),
+        6,
+        "long arena needs a charger pair in each third"
+    );
+    for z in [-1080., 0., 1080.] {
+        for x in [
+            -crate::world::layout::CHARGER_X,
+            crate::world::layout::CHARGER_X,
+        ] {
+            let node = nodes
+                .iter()
+                .find(|(_, center, _)| *center == Vec3::new(x, 0., z))
+                .unwrap();
+            at(&mut app, drone, Vec3::new(x, 90., z));
+            app.world_mut().resource_mut::<Energy>().current = 0.;
+            step(&mut app, 1., &[]);
+            near(app.world().resource::<Energy>().current, 25.);
+            near(
+                app.world().get::<ChargerReserve>(node.0).unwrap().remaining,
+                175.,
+            );
+            assert_eq!(app.world().resource::<Energy>().charging, Some(node.0));
+        }
+    }
+    step(&mut app, 0., &[KeyCode::KeyR]);
+    for (_, _, reserve) in charger_states(&mut app) {
+        near(reserve.remaining, 200.);
+        assert!(!reserve.occupied);
+    }
 }

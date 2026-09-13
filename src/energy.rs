@@ -145,17 +145,15 @@ fn setup(
         current: config.capacity,
         ..default()
     };
-    for x in [
-        -crate::world::layout::CHARGER_X,
-        crate::world::layout::CHARGER_X,
-    ] {
+    for (label, center) in crate::world::layout::CHARGERS {
         commands.spawn((
             ChargingNode {
-                center: Vec3::new(x, 0., 0.),
+                center,
                 radius: 90.,
                 height: 160.,
             },
             ChargerReserve::full(&charger_config),
+            ChargingNodeLabel(label),
         ));
     }
 }

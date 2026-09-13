@@ -705,32 +705,6 @@ mod tests {
     }
     #[test]
     fn six_named_chargers_use_two_rows_of_three_with_compact_live_statuses() {
-        fn add_outer_chargers(mut commands: Commands, nodes: Query<(Entity, &ChargingNode)>) {
-            for (entity, node) in &nodes {
-                commands
-                    .entity(entity)
-                    .insert(ChargingNodeLabel(if node.center.x < 0. {
-                        "LEFT"
-                    } else {
-                        "RIGHT"
-                    }));
-            }
-            for (label, x, z) in [
-                ("NW", -560., -1080.),
-                ("NE", 560., -1080.),
-                ("SW", -560., 1080.),
-                ("SE", 560., 1080.),
-            ] {
-                commands.spawn((
-                    ChargingNode {
-                        center: Vec3::new(x, 0., z),
-                        radius: 90.,
-                        height: 160.,
-                    },
-                    ChargingNodeLabel(label),
-                ));
-            }
-        }
         let mut app = App::new();
         app.init_resource::<Time>()
             .init_resource::<ButtonInput<KeyCode>>()
@@ -741,13 +715,7 @@ mod tests {
                 crate::combat::CombatPlugin,
                 crate::combat::CombatScenePlugin,
                 EnergyScenePlugin,
-            ))
-            .add_systems(
-                Startup,
-                add_outer_chargers
-                    .after(crate::energy::setup)
-                    .before(setup_scene),
-            );
+            ));
         app.world_mut().spawn((ModuleFooterSlot, Node::default()));
         app.update();
         let rows: Vec<_> = app

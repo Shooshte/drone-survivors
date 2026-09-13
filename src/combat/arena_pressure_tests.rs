@@ -36,7 +36,7 @@ fn arena_pressure_probe() {
                 .world_mut()
                 .query::<&ChargingNode>()
                 .iter(app.world())
-                .find(|node| (node.center.x < 0.) == (tactic == "left-camp"))
+                .find(|node| node.center.z == 0. && (node.center.x < 0.) == (tactic == "left-camp"))
                 .unwrap()
                 .center;
             app.world_mut()
@@ -48,6 +48,7 @@ fn arena_pressure_probe() {
             .world_mut()
             .query::<&ChargingNode>()
             .iter(app.world())
+            .filter(|n| n.center.z == 0.)
             .map(|n| n.center.with_y(150.))
             .collect();
         chargers.sort_by(|a, b| a.x.total_cmp(&b.x));
