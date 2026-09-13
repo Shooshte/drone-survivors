@@ -1,6 +1,7 @@
 //! Whole-number campaign accounting, independent of pickup and menu systems.
 use bevy::prelude::*;
 pub(crate) mod runtime;
+pub(crate) mod scene;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Amounts {

@@ -260,3 +260,35 @@ fn authored_caches_are_reachable_and_reset_without_accumulation() {
         0
     );
 }
+
+#[test]
+fn seeded_loot_sequence_repeats_after_restart_and_duplicate_facts_do_not_shift_it() {
+    let mut app = fixture();
+    let mut sequences = Vec::new();
+    for duplicate in [false, true] {
+        app.world_mut().run_system_once(reset).unwrap();
+        let mut sequence = Vec::new();
+        for index in 0..32 {
+            let id = app.world_mut().spawn_empty().id();
+            let outcome = || CombatOutcome::Hit {
+                entity: id,
+                position: Vec3::new(index as f32 * 10., 90., 200.),
+                killed: true,
+                kind: EnemyKind::Chaser,
+            };
+            app.world_mut().resource_mut::<CombatOutcomes>().0 = vec![outcome()];
+            if duplicate {
+                app.world_mut()
+                    .resource_mut::<CombatOutcomes>()
+                    .0
+                    .push(outcome());
+            }
+            let before = count(&mut app);
+            app.world_mut().run_system_once(spawn_drops).unwrap();
+            sequence.push(count(&mut app) - before);
+        }
+        assert!(sequence.contains(&0) && sequence.contains(&1));
+        sequences.push(sequence);
+    }
+    assert_eq!(sequences[0], sequences[1]);
+}

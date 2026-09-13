@@ -33,18 +33,22 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
             }
         });
     println!(
-        "MISSION UI FIXTURE: synthetic XP=50, success timer=300, failure hull/phase override; not gameplay-success evidence"
+        "MISSION UI FIXTURE: synthetic XP=50, resources=19/3 and 7/3, success timer=300, failure hull/phase override; not gameplay-success evidence"
     );
-    app.add_plugins((MissionPlugin, MissionScenePlugin))
-        .insert_resource(MissionPreview {
-            start: Instant::now(),
-            step: 0,
-            seconds,
-            captures,
-            minimum: std::env::var_os("DRONE_CAPTURE_MINIMUM").is_some(),
-        })
-        .add_systems(Startup, resize)
-        .add_systems(PreUpdate, drive.after(InputSystems));
+    app.add_plugins((
+        MissionPlugin,
+        MissionScenePlugin,
+        crate::economy::scene::EconomyScenePlugin,
+    ))
+    .insert_resource(MissionPreview {
+        start: Instant::now(),
+        step: 0,
+        seconds,
+        captures,
+        minimum: std::env::var_os("DRONE_CAPTURE_MINIMUM").is_some(),
+    })
+    .add_systems(Startup, resize)
+    .add_systems(PreUpdate, drive.after(InputSystems));
 }
 
 fn resize(mut preview: ResMut<MissionPreview>, mut window: Single<&mut Window>) {
@@ -65,6 +69,7 @@ fn drive(
     mut upgrades: ResMut<UpgradeRun>,
     campaign: Res<Campaign>,
     session: Res<MissionSession>,
+    mut resources: ResMut<crate::economy::AttemptResources>,
     mut exit: MessageWriter<AppExit>,
     primary_labels: Query<(&Text, &ComputedNode), With<super::scene::PrimaryLabel>>,
 ) {
@@ -102,7 +107,38 @@ fn drive(
         4 => keys.press(KeyCode::Backspace),
         10 => upgrades.award(50),
         12 => keys.press(KeyCode::KeyR),
+        13 => {
+            assert_eq!(
+                resources.collected,
+                crate::economy::Amounts::default(),
+                "restart discards unbanked resources"
+            );
+            resources.collected = crate::economy::Amounts {
+                salvage: 19,
+                components: 3,
+            };
+        }
         14 => encounter.elapsed = 300.,
+        15 => assert_eq!(
+            campaign.wallet,
+            crate::economy::Amounts {
+                salvage: 29,
+                components: 4
+            }
+        ),
+        21 => {
+            resources.collected = crate::economy::Amounts {
+                salvage: 7,
+                components: 3,
+            }
+        }
+        23 => assert_eq!(
+            campaign.wallet,
+            crate::economy::Amounts {
+                salvage: 30,
+                components: 4
+            }
+        ),
         22 => {
             health.current = 0;
             *phase = GamePhase::Dead;
@@ -113,6 +149,14 @@ fn drive(
             assert!(campaign.history[0].succeeded);
             assert!(!campaign.history[1].succeeded);
             assert!(session.result.is_none());
+            assert_eq!(resources.collected, crate::economy::Amounts::default());
+            assert_eq!(
+                campaign.wallet,
+                crate::economy::Amounts {
+                    salvage: 30,
+                    components: 4
+                }
+            );
             println!(
                 "MISSION UI FIXTURE PASS: choice restart, success, failure, final relaunch; history=2, prior success retained"
             );
@@ -148,10 +192,12 @@ fn drive(
             );
         }
         println!(
-            "MISSION UI FIXTURE {label}: phase={:?}, results={}, elapsed={:.3}",
+            "MISSION UI FIXTURE {label}: phase={:?}, results={}, elapsed={:.3}, unbanked={:?}, bank={:?}",
             *phase,
             campaign.history.len(),
-            encounter.elapsed
+            encounter.elapsed,
+            resources.collected,
+            campaign.wallet
         );
         if let Some(directory) = &preview.captures {
             let size = if preview.minimum {

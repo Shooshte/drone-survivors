@@ -52,7 +52,7 @@ fn setup(mut commands: Commands) {
                 top: px(0),
                 width: percent(100),
                 height: percent(100),
-                padding: UiRect::all(px(16)),
+                padding: UiRect::all(px(12)),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
                 ..default()
@@ -66,10 +66,10 @@ fn setup(mut commands: Commands) {
                     Node {
                         width: percent(100),
                         max_width: px(680),
-                        padding: UiRect::all(px(20)),
+                        padding: UiRect::all(px(16)),
                         border: UiRect::left(px(3)),
                         flex_direction: FlexDirection::Column,
-                        row_gap: px(12),
+                        row_gap: px(8),
                         ..default()
                     },
                     BackgroundColor(PANEL),
@@ -211,25 +211,34 @@ fn present(
             (MenuCopy::Heading, _) => if won { "Mission survived" } else { "Drone lost" }.into(),
             (MenuCopy::Description, GamePhase::Hub) => "The Scout is ready. Review the mission, then launch into the arena.".into(),
             (MenuCopy::Description, GamePhase::Briefing) => "Survive for 5:00. Keep your hull above zero as enemy waves grow. Upgrade choices pause the clock.".into(),
-            (MenuCopy::Description, _) => if won {
-                "You held out until the mission ended. Return to the hub whenever you are ready."
+            (MenuCopy::Description, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
+                "Reward transaction failed; your previous balances are unchanged."
+            } else if won {
+                "Survival complete. Your rewards have been banked."
             } else {
-                "Your hull reached zero. Return to the hub to prepare another attempt."
+                "Hull depleted. A quarter of collected resources is kept."
             }.into(),
             (MenuCopy::Body, GamePhase::Hub) => {
                 let count = campaign.history.len();
                 let noun = if count == 1 { "attempt" } else { "attempts" };
                 let status = if campaign.mission_succeeded { "Survival achieved" } else { "Survival not yet achieved" };
-                format!("SURVIVAL / 5:00\n{count} completed {noun} this session\n{status}")
+                format!("SURVIVAL / 5:00\n{count} completed {noun} this session / {status}\nBANK  Salvage {}  |  Components {}", campaign.wallet.salvage, campaign.wallet.components)
             },
             (MenuCopy::Body, GamePhase::Briefing) => "FIXED LOADOUT / SCOUT\n1  Weapon overdrive  |  2  Shield\n3  Mobility          |  4  Rocket launcher".into(),
             (MenuCopy::Body, _) => result.map(|r| {
                 let seconds = r.elapsed.floor() as u64;
-                format!("ATTEMPT {}\nActive time  {}:{:02}     |     Kills  {}", r.attempt, seconds / 60, seconds % 60, r.kills)
+                format!("ATTEMPT {}  |  Active time {}:{:02}  |  Kills {}\n\nSALVAGE  {} collected -{} lost +{} bonus\nBanked +{}  |  Balance {}\nCOMPONENTS  {} collected -{} lost +{} bonus\nBanked +{}  |  Balance {}",
+                    r.attempt, seconds / 60, seconds % 60, r.kills,
+                    r.rewards.collected.salvage, r.rewards.lost.salvage, r.rewards.bonus.salvage, r.rewards.credited.salvage, r.rewards.balance.salvage,
+                    r.rewards.collected.components, r.rewards.lost.components, r.rewards.bonus.components, r.rewards.credited.components, r.rewards.balance.components)
             }).unwrap_or_default(),
-            (MenuCopy::Note, GamePhase::Hub) => "Mission replay is free. Campaign history lasts until you quit.".into(),
-            (MenuCopy::Note, GamePhase::Briefing) => "Modules start off. Toggle with 1-4 in combat.\nUse charging fields to refill energy; R restarts the attempt.".into(),
-            (MenuCopy::Note, _) => "Your next launch restores the Scout. Temporary upgrades reset.".into(),
+            (MenuCopy::Note, GamePhase::Hub) => "Launch and equipment are free. Replays earn rewards.\nBalances and history last until you quit.".into(),
+            (MenuCopy::Note, GamePhase::Briefing) => "Fly nearby: gold salvage 100 units / purple caches 50 units.\nSuccess: loot +10 salvage, +1 component. Failure: keep 25%.\n1-4 toggle modules; R discards loot and restarts.".into(),
+            (MenuCopy::Note, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
+                "Balance limit reached: reward could not be banked.\nThe result retains the collection and bonus amounts."
+            } else {
+                "Banked once. Uncollected pickups award nothing.\nYour next launch restores the Scout and resets temporary upgrades."
+            }.into(),
             (MenuCopy::PrimaryLabel, GamePhase::Hub) => "Mission briefing".into(),
             (MenuCopy::PrimaryLabel, GamePhase::Briefing) => "Launch mission".into(),
             (MenuCopy::PrimaryLabel, _) => "Return to hub".into(),
@@ -353,5 +362,52 @@ mod tests {
         app.update();
         assert!(body(&mut app).contains("1 completed attempt"));
         assert!(body(&mut app).contains("Survival achieved"));
+    }
+    #[test]
+    fn economy_menus_show_bank_and_stable_reward_breakdown() {
+        let mut app = app();
+        let mut wallet = crate::economy::Amounts {
+            salvage: 30,
+            components: 6,
+        };
+        let rewards = crate::economy::RewardReceipt::settle(
+            crate::economy::Amounts {
+                salvage: 19,
+                components: 3,
+            },
+            false,
+            &mut wallet,
+        );
+        app.world_mut().resource_mut::<Campaign>().wallet = wallet;
+        app.world_mut().resource_mut::<MissionSession>().result =
+            Some(super::super::MissionResult {
+                attempt: 1,
+                succeeded: false,
+                elapsed: 37.,
+                kills: 18,
+                rewards,
+            });
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+        app.update();
+        let all_text = |app: &mut App| {
+            app.world_mut()
+                .query::<&Text>()
+                .iter(app.world())
+                .map(|t| t.0.clone())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let result = all_text(&mut app);
+        assert!(result.contains("19 collected"));
+        assert!(result.contains("15 lost"));
+        assert!(result.contains("Banked +4"));
+        assert!(result.contains("Balance 34"));
+        app.world_mut().resource_mut::<Campaign>().wallet = crate::economy::Amounts::default();
+        app.update();
+        assert_eq!(all_text(&mut app), result);
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Hub;
+        app.update();
+        assert!(all_text(&mut app).contains("Salvage 0"));
+        assert!(all_text(&mut app).contains("Components 0"));
     }
 }
