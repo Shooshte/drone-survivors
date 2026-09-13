@@ -1,5 +1,6 @@
 mod arena;
 mod combat;
+mod economy;
 mod energy;
 mod game;
 mod mission;

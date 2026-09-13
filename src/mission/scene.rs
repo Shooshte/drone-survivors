@@ -320,6 +320,7 @@ mod tests {
     fn results_use_completed_snapshot_and_hub_preserves_campaign_success() {
         let mut app = app();
         let result = super::super::MissionResult {
+            rewards: default(),
             attempt: 7,
             succeeded: true,
             elapsed: 300.,

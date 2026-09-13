@@ -195,3 +195,6 @@ fn zero_hull_is_terminal_before_pending_choice() {
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Dead);
     assert!(app.world().resource::<UpgradeRun>().offer.is_empty());
 }
+
+#[path = "economy_tests.rs"]
+mod economy_tests;
