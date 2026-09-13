@@ -4,21 +4,33 @@ The user selected DRO-30 first with DRO-31 refinement in parallel, then approved
 “Larger arena + following camera”: start at 1920×1080, retain the current zoom,
 add off-screen charger/warning indicators, and compact the HUD.
 
+## Later user refinement
+
+The user then requested “extend the arena vertically x3 and add more chargers
+and spawn points” and clarified this means **tripling floor north–south length
+to 3240**, not raising the ceiling. This supersedes the first layout dimensions
+below. The final floor is 1920×3240, with ceiling 300. Six chargers occupy three
+pairs at z = -1080, 0, +1080 and x = ±560, named NW/NE, LEFT/RIGHT, SW/SE.
+More perimeter samples follow the longer side; enemy stats, wave counts, warning
+time and population cap remain unchanged. Group charger names by projected edge
+and use two rows of three compact reserve statuses so navigation stays readable.
+
 ## Layout and flight
 
-Double floor dimensions to 1920×1080; retain the 300-unit ceiling and scout start.
-This offers roughly 2.6 seconds across the short axis at 420 units/s before body
-clearance, compared with 1.3 seconds today. Keep the established DRO-29 flight
-model and every enemy/weapon stat. Move chargers to x = ±560. Keep charger size,
+Expand floor dimensions to 1920×3240; retain the 300-unit ceiling and scout start.
+This offers roughly 4.6 seconds across the short axis and 7.7 seconds along the
+long axis at 420 units/s before body clearance, compared with 1.3 seconds across
+the original short axis. Keep the established DRO-29 flight
+model and every enemy/weapon stat. Place six chargers at x = ±560 and z = -1080, 0, +1080. Keep charger size,
 reserves and recovery unchanged. Retain a full-height divider at x = 120, a
 140-unit central electrical opening, and a wider safe detour around its south end.
 Extend the north divider to the new boundary and the south divider to z = 300;
-the detour runs around z = 410. Move low cover toward the outer corners so the
+the detour runs around z = 410. Move low cover away from the central shortcut so the
 interior offers sustained travel and room for banked curves.
 
 Authored layout coordinates must drive route dots, enemy navigation corners,
 charger setup and validation pilots consistently. Preserve real swept body
-collision, safe warning activation and empty-battery access to both chargers.
+collision, safe warning activation and empty-battery access between central chargers and to the outer pairs.
 Keep warning timing, perimeter spawn rules and wave schedule initially; measure
 pressure before considering a separate tuning change. No damage reduction is
 justified yet. Progression rules belong to DRO-31 and are unchanged here.
@@ -32,11 +44,11 @@ camera. Follow promptly without heading rotation or speed-dependent zoom, freeze
 through choices/outcomes, and snap back with restart. The camera need not show
 the full arena; preserving scout and warning size is the purpose of following.
 
-Screen-edge indicators identify off-screen LEFT/RIGHT chargers and incoming
+Screen-edge indicators identify all six off-screen named chargers and incoming
 warnings, using text/shape as well as color. Derive positions from the actual
 camera projection, handle resize and off-screen depth, and hide them during
 upgrade overlays. Avoid indicator overlap with the top/bottom HUD; aggregate
-warnings by direction if needed for legibility. Do not label ordinary enemies
+chargers and warnings by direction for legibility. Do not label ordinary enemies
 as incoming warnings. Keep the ground marker and vertical guide.
 
 ## HUD

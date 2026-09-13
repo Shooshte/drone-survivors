@@ -1292,3 +1292,16 @@ accounting and scripted movement results.
 Q/E now banks into a turn; A/D retains direct yaw. Scout thrust and tilt response
 are faster, while enemies retain their prior tuning. See the [measurements,
 native checks and pending human checklist](playtests/dro-29-scout-handling.md).
+
+
+## DRO-30 — larger arena and following camera (September 13, 2026)
+
+The approved floor is 1920×3240 with a 300-unit ceiling, six named chargers and
+120 perimeter spawn positions. Fixed-scale following, grouped navigation and a
+compact HUD preserve readable threats. Flight, routes, reserve accounting, spawn
+safety and presentation checks pass; 233 locked tests pass with 3 opt-in probes.
+Native visual QA caught and fixed footer overlap at normal font size.
+
+[Measurements, captures, comparison limits and pending human checklist](playtests/dro-30-arena.md).
+Sustained-flight enjoyment and whole-map combat sparsity still need human review.
+DRO-31 has a separate unapproved proposal; progression rules are unchanged.
