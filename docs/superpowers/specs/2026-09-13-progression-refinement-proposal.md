@@ -1,3 +1,40 @@
+# DRO-31 — approved progression rules
+
+The user confirmed on September 13: **Skip spends an opportunity; progression
+uses only XP.** This supersedes the earlier time-gated proposal retained below.
+
+Four total irreversible opportunities per run. Pick or Skip spends exactly one;
+Skip grants nothing and leaves its cards eligible for later opportunities. A run
+can acquire at most four of the existing six upgrades. No ranks, exclusions,
+replacement, or catalog expansion; DRO-22 owns additional cards.
+
+Starting cumulative thresholds are 50 / 200 / 500 / 1,000 XP (individual costs
+50 / 150 / 300 / 500). Preserve 4 XP per kill and the one-use 30-XP pickup. These
+numbers are provisional tuning to validate against actual runs. XP alone unlocks
+choices immediately, with stable offers and individually guarded queued input.
+Faster kills can finish earlier; no guarantee of a final-minute opportunity.
+Slower runs may finish with fewer upgrades, with the next useful choice still
+available to earn. A four-choice budget prevents acquiring every benefit at any
+kill rate.
+
+The HUD states remaining opportunities and progress to the next earned choice;
+if all four are earned but queued, show choices ready instead of a fifth target.
+The modal states opportunity number, remaining budget, and that choosing or
+skipping spends it permanently. Completion occurs immediately after resolution
+four or pool exhaustion. Retain the acquired list, stop levels/promised rewards,
+and keep XP only as an internal statistic. Full restart restores the budget,
+stats, pickup, RNG, and input state.
+
+Runtime lifecycle, gameplay pauses, terminal precedence, module prerequisites,
+and all existing benefits/drawbacks are preserved. Check low/medium/high kill
+rates with and without the pickup, scripted real-arena tactics, and native UI.
+Human understanding and tactic viability remain explicitly pending until actual
+human observations are available; automated evidence alone cannot close them.
+
+---
+
+## Historical proposal (superseded)
+
 # DRO-31 refinement proposal — not approved for implementation
 
 Originally prepared alongside DRO-30; revisited for DRO-31 on September 13 after
