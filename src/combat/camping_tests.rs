@@ -159,8 +159,7 @@ fn authored_bursts(balance: Balance) -> Vec<(f64, usize)> {
 }
 
 fn total_earned_xp(run: &UpgradeRun) -> u64 {
-    let crossed = u64::from(run.level - 1);
-    25 * crossed * (crossed + 3) / 2 + u64::from(run.xp)
+    u64::from(run.total_xp)
 }
 
 fn desired_gameplay_keys(app: &mut App, drone: Entity, tactic: Tactic) -> Vec<KeyCode> {

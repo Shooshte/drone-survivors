@@ -181,7 +181,7 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
         config.seconds,
         config.enemies,
         if config.mode == ValidationMode::Choices {
-            140
+            215
         } else {
             0
         }
@@ -284,7 +284,7 @@ fn configure(
             window.resolution.set(640., 480.);
         }
         if let Some(mut run) = run {
-            run.award(140);
+            run.award(215);
         }
     }
 }

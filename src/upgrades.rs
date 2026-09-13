@@ -94,11 +94,18 @@ impl UpgradeKind {
     }
 }
 
+// Individual costs; cumulative requirements are 50 / 200 / 500 / 1,000 XP.
+// XP alone unlocks opportunities; active time never gates progression.
+const OPPORTUNITY_COSTS: [u32; 4] = [50, 150, 300, 500];
+pub(crate) const OPPORTUNITY_LIMIT: u32 = OPPORTUNITY_COSTS.len() as u32;
+
 #[derive(Resource, Debug)]
 pub(crate) struct UpgradeRun {
     pub level: u32,
     pub xp: u32,
     pub pending: u32,
+    pub resolved: u32,
+    pub total_xp: u32,
     pub selected: Vec<UpgradeKind>,
     pub offer: Vec<UpgradeKind>,
     pub exhausted: bool,
@@ -111,6 +118,8 @@ impl Default for UpgradeRun {
             level: 1,
             xp: 0,
             pending: 0,
+            resolved: 0,
+            total_xp: 0,
             selected: Vec::new(),
             offer: Vec::new(),
             exhausted: false,
@@ -121,30 +130,35 @@ impl Default for UpgradeRun {
 
 impl UpgradeRun {
     pub(crate) fn threshold(&self) -> u32 {
-        self.level.saturating_mul(25).saturating_add(25)
+        OPPORTUNITY_COSTS
+            .get(self.level.saturating_sub(1) as usize)
+            .copied()
+            .unwrap_or(0)
+    }
+
+    pub(crate) fn remaining(&self) -> u32 {
+        if self.exhausted {
+            0
+        } else {
+            OPPORTUNITY_LIMIT.saturating_sub(self.resolved)
+        }
     }
 
     pub(crate) fn award(&mut self, amount: u32) {
-        let available = u128::from(self.xp) + u128::from(amount);
-        let level_room = u32::MAX - self.level;
-        let mut low = 0_u32;
-        let mut high = level_room;
-        while low < high {
-            let middle = low + (high - low).div_ceil(2);
-            if thresholds_cost(self.level, middle) <= available {
-                low = middle;
-            } else {
-                high = middle - 1;
+        self.total_xp = self.total_xp.saturating_add(amount);
+        let mut available = u64::from(self.xp) + u64::from(amount);
+        // At most four iterations, even for a maximal award. After completion
+        // retain XP as a statistic without earning levels or promising rewards.
+        while !self.exhausted && self.level <= OPPORTUNITY_LIMIT {
+            let cost = u64::from(self.threshold());
+            if available < cost {
+                break;
             }
+            available -= cost;
+            self.level += 1;
+            self.pending += 1;
         }
-
-        let earned = low;
-        let remaining = available - thresholds_cost(self.level, earned);
-        self.level = self.level.saturating_add(earned);
-        self.xp = remaining.min(u128::from(u32::MAX)) as u32;
-        if !self.exhausted {
-            self.pending = self.pending.saturating_add(earned);
-        }
+        self.xp = available.min(u64::from(u32::MAX)) as u32;
     }
 
     pub(crate) fn prepare_offer(&mut self, loadout: &Loadout) {
@@ -177,7 +191,7 @@ impl UpgradeRun {
     }
 
     pub(crate) fn resolve(&mut self, index: Option<usize>) -> bool {
-        if self.offer.is_empty() {
+        if self.offer.is_empty() || self.exhausted || self.pending == 0 {
             return false;
         }
         let selected = match index {
@@ -190,8 +204,13 @@ impl UpgradeRun {
         if let Some(kind) = selected {
             self.selected.push(kind);
         }
-        self.pending = self.pending.saturating_sub(1);
+        self.pending -= 1;
+        self.resolved += 1;
         self.offer.clear();
+        if self.resolved == OPPORTUNITY_LIMIT {
+            self.pending = 0;
+            self.exhausted = true;
+        }
         true
     }
 
@@ -202,16 +221,6 @@ impl UpgradeRun {
         self.rng ^= self.rng >> 27;
         ((self.rng.wrapping_mul(0x2545_f491_4f6c_dd1d)) % upper as u64) as usize
     }
-}
-
-fn thresholds_cost(level: u32, count: u32) -> u128 {
-    let level = u128::from(level);
-    let count = u128::from(count);
-    let saturation_level = (u128::from(u32::MAX) - 25).div_ceil(25);
-    let unsaturated = count.min(saturation_level.saturating_sub(level));
-    let first = 25 * level + 25;
-    let arithmetic = unsaturated * first + 25 * unsaturated * unsaturated.saturating_sub(1) / 2;
-    arithmetic + (count - unsaturated) * u128::from(u32::MAX)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

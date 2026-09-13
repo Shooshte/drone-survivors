@@ -8,6 +8,42 @@ fn choice_ready() -> UpgradeRun {
 }
 
 #[test]
+fn four_opportunities_include_skips_and_complete_immediately() {
+    let mut run = UpgradeRun::default();
+    run.award(u32::MAX);
+    assert_eq!(run.pending, 4);
+    for opportunity in 0..4 {
+        run.prepare_offer(&Loadout::default());
+        assert!(!run.offer.is_empty());
+        assert!(run.resolve((opportunity % 2 == 0).then_some(0)));
+        assert_eq!(run.exhausted, opportunity == 3);
+    }
+    assert_eq!(run.selected.len(), 2);
+    let completed_level = run.level;
+    run.award(u32::MAX);
+    run.prepare_offer(&Loadout::default());
+    assert!(run.offer.is_empty());
+    assert_eq!(run.pending, 0);
+    assert_eq!(run.level, completed_level);
+}
+
+#[test]
+fn xp_only_opportunities_bank_excess_at_each_boundary() {
+    let mut run = UpgradeRun::default();
+    for cost in [50, 150, 300, 500] {
+        run.award(cost - 1);
+        run.prepare_offer(&Loadout::default());
+        assert!(run.offer.is_empty());
+        run.award(1);
+        run.prepare_offer(&Loadout::default());
+        assert!(!run.offer.is_empty());
+        assert!(run.resolve(Some(0)));
+    }
+    assert_eq!(run.selected.len(), 4);
+    assert!(run.exhausted);
+}
+
+#[test]
 fn thresholds_carry_excess_and_queue_every_crossed_level() {
     let mut run = UpgradeRun::default();
     assert_eq!(run.threshold(), 50);
@@ -16,16 +52,16 @@ fn thresholds_carry_excess_and_queue_every_crossed_level() {
     assert_eq!((run.level, run.xp, run.pending), (1, 49, 0));
     run.award(1);
     assert_eq!((run.level, run.xp, run.pending), (2, 0, 1));
-    assert_eq!(run.threshold(), 75);
+    assert_eq!(run.threshold(), 150);
 
-    run.award(140);
+    run.award(215);
     assert_eq!((run.level, run.xp, run.pending), (3, 65, 2));
 }
 
 #[test]
 fn one_large_award_crosses_multiple_thresholds() {
     let mut run = UpgradeRun::default();
-    run.award(140);
+    run.award(215);
     assert_eq!((run.level, run.xp, run.pending), (3, 15, 2));
 }
 
@@ -34,10 +70,11 @@ fn maximum_awards_use_bounded_arithmetic_and_keep_valid_remainders() {
     let mut run = UpgradeRun::default();
     run.award(u32::MAX);
 
-    assert_eq!(run.level, 18_535);
-    assert_eq!(run.pending, 18_534);
-    assert_eq!(run.xp, 407_820);
-    assert!(run.xp < run.threshold());
+    assert_eq!(run.level, 5);
+    assert_eq!(run.pending, 4);
+    assert_eq!(run.xp, u32::MAX - 1_000);
+    assert_eq!(run.total_xp, u32::MAX);
+    assert_eq!(run.threshold(), 0);
 }
 
 #[test]
@@ -79,7 +116,7 @@ fn prerequisites_depend_on_equipment_not_module_position_or_power() {
 #[test]
 fn selecting_or_skipping_consumes_exactly_one_pending_choice() {
     let mut selected = UpgradeRun::default();
-    selected.award(140);
+    selected.award(215);
     selected.prepare_offer(&Loadout::default());
     let picked = selected.offer[1];
     assert!(selected.resolve(Some(1)));
@@ -113,7 +150,7 @@ fn invalid_selection_preserves_the_current_offer_and_pending_choice() {
 }
 
 #[test]
-fn depleted_pools_clear_queued_dialogs_but_future_xp_still_levels() {
+fn depleted_pools_clear_queued_dialogs_and_stop_level_promises() {
     let mut run = UpgradeRun::default();
     run.award(275);
     run.selected = UpgradeKind::ALL.to_vec();
@@ -124,9 +161,9 @@ fn depleted_pools_clear_queued_dialogs_but_future_xp_still_levels() {
     assert!(run.offer.is_empty());
     let before_level = run.level;
     let before_xp = run.xp;
-    run.award(run.threshold());
-    assert_eq!(run.level, before_level + 1);
-    assert_eq!(run.xp, before_xp);
+    run.award(100);
+    assert_eq!(run.level, before_level);
+    assert_eq!(run.xp, before_xp + 100);
     assert_eq!(run.pending, 0);
 }
 
@@ -134,8 +171,8 @@ fn depleted_pools_clear_queued_dialogs_but_future_xp_still_levels() {
 fn fixed_seed_sampling_repeats_the_same_offer_sequence() {
     let mut left = UpgradeRun::default();
     let mut right = UpgradeRun::default();
-    left.award(140);
-    right.award(140);
+    left.award(215);
+    right.award(215);
 
     for _ in 0..2 {
         left.prepare_offer(&Loadout::default());

@@ -1,4 +1,4 @@
-use super::{ChoiceAction, UpgradeKind, UpgradeRun};
+use super::{ChoiceAction, OPPORTUNITY_LIMIT, UpgradeKind, UpgradeRun};
 use crate::{
     arena::{ArenaSceneSetup, FooterFont, UpgradeFooterSlot},
     combat::CombatSceneSetup,
@@ -428,19 +428,27 @@ fn hud_copy(run: &UpgradeRun) -> String {
     if run.exhausted {
         return format!("BUILD COMPLETE | No more upgrades this run\n{selected}");
     }
+    let progress = if run.threshold() == 0 {
+        format!("{} choices ready", run.pending)
+    } else {
+        format!("XP {} / {}", run.xp, run.threshold())
+    };
+    let noun = if run.remaining() == 1 {
+        "opportunity"
+    } else {
+        "opportunities"
+    };
     format!(
-        "LEVEL {} | XP {} / {} | BUILD\n{selected}",
-        run.level,
-        run.xp,
-        run.threshold(),
+        "BUILD | {} {noun} left | {progress}\n{selected}",
+        run.remaining()
     )
 }
 
 fn queue_copy(run: &UpgradeRun) -> String {
-    let choice_noun = if run.pending == 1 {
-        "choice"
+    let heading = if run.remaining() == 1 {
+        "FINAL OPPORTUNITY".to_string()
     } else {
-        "choices"
+        format!("OPPORTUNITY {} / {OPPORTUNITY_LIMIT}", run.resolved + 1)
     };
     let offer_noun = if run.offer.len() == 1 {
         "upgrade"
@@ -448,15 +456,38 @@ fn queue_copy(run: &UpgradeRun) -> String {
         "upgrades"
     };
     format!(
-        "{} eligible {offer_noun}  |  {} earned {choice_noun} remaining",
-        run.offer.len(),
+        "{heading} | {} left, {} ready\n{} eligible {offer_noun}. Pick or Skip spends this opportunity. No replacements.",
+        run.remaining(),
         run.pending,
+        run.offer.len(),
     )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn opportunity_copy_explains_skip_and_never_promises_a_fifth_reward() {
+        let mut run = UpgradeRun::default();
+        assert!(hud_copy(&run).contains("4 opportunities left"));
+        run.award(1_000);
+        run.prepare_offer(&crate::modules::Loadout::default());
+        assert!(queue_copy(&run).contains("OPPORTUNITY 1 / 4"));
+        assert!(queue_copy(&run).contains("Pick or Skip spends this opportunity"));
+        assert!(hud_copy(&run).contains("4 choices ready"));
+        assert!(!hud_copy(&run).contains("XP"));
+        for _ in 0..3 {
+            assert!(run.resolve(None));
+            run.prepare_offer(&crate::modules::Loadout::default());
+        }
+        assert!(queue_copy(&run).contains("FINAL OPPORTUNITY"));
+        assert!(run.resolve(None));
+        let complete = hud_copy(&run);
+        assert!(complete.contains("BUILD COMPLETE"));
+        assert!(complete.contains("NONE"));
+        assert!(!complete.contains("XP"));
+    }
 
     fn scene_app() -> App {
         let mut app = App::new();
