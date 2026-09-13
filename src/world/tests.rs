@@ -169,27 +169,28 @@ fn authored_routes_fit_scout_and_keep_spawn_and_chargers_clear() {
         crate::arena::DRONE_START.translation,
         half
     ));
-    for x in [-280., 280.] {
+    for (_, center) in layout::CHARGERS {
         let cylinder_bounds = Vec3::new(90., 80., 90.);
         assert!(
             world
                 .solids
                 .iter()
-                .all(|s| !s.overlaps(Vec3::new(x, 80., 0.), cylinder_bounds))
+                .all(|s| !s.overlaps(center + Vec3::Y * 80., cylinder_bounds))
         );
         assert!(
             !world
                 .hazard
                 .unwrap()
-                .overlaps(Vec3::new(x, 80., 0.), cylinder_bounds)
+                .overlaps(center + Vec3::Y * 80., cylinder_bounds)
         );
     }
-    assert!(world.clear_body(Vec3::new(-280., 100., 0.), Vec3::new(280., 100., 0.), half));
-    for (a, b) in [
-        (Vec3::new(-280., 150., 0.), Vec3::new(25., 150., 195.)),
-        (Vec3::new(25., 150., 195.), Vec3::new(215., 150., 195.)),
-        (Vec3::new(215., 150., 195.), Vec3::new(280., 150., 0.)),
-    ] {
+    assert!(world.clear_body(
+        Vec3::new(-layout::CHARGER_X, 100., 0.),
+        Vec3::new(layout::CHARGER_X, 100., 0.),
+        half
+    ));
+    for pair in layout::detour(150.).windows(2) {
+        let (a, b) = (pair[0], pair[1]);
         assert!(world.clear_body(a, b, half));
         assert!(world.hazard.unwrap().segment_hit(a, b, half).is_none());
     }

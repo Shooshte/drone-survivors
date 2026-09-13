@@ -143,7 +143,7 @@ pub(crate) struct Encounter {
 }
 
 #[derive(Component, Default)]
-pub(super) struct SpawnWarning {
+pub(crate) struct SpawnWarning {
     pub ready_at: f64,
     pub cancelled: bool,
 }
@@ -199,12 +199,51 @@ fn safe(
         })
 }
 
-// 4 sides x 5 offsets x 3 altitudes, permuted to alternate sides and heights.
+// Keep the original five samples per side at the original floor dimensions,
+// then add samples in proportion to each axis when the floor grows.
+fn side_samples(arena: &Arena) -> (usize, usize) {
+    let x = ((arena.half_size.x / 960. * 5.).ceil() as usize).max(5);
+    let z = ((arena.half_size.z / 540. * 5.).ceil() as usize).max(5);
+    (x, z)
+}
+
+fn candidate_count(arena: &Arena) -> usize {
+    let (x, z) = side_samples(arena);
+    2 * (x + z) * 3
+}
+
+// Interleave opposite sides and altitudes. The enlarged 1920 x 3240 floor
+// has 15 samples per long side and 5 per short side at each of 3 heights.
 fn candidate(index: usize, arena: &Arena, half: Vec3) -> Vec3 {
-    let n = (index % 60) * 37 % 60;
-    let side = n % 4;
-    let along = ((n / 4) % 5) as f32 / 4. * 1.6 - 0.8;
-    let height = (n / 20) as f32 / 2. * 0.7 + 0.15;
+    let (x_samples, z_samples) = side_samples(arena);
+    let perimeter = 2 * (x_samples + z_samples);
+    let count = candidate_count(arena);
+    // 37 is prime, so this permutation visits every candidate unless the
+    // count is divisible by 37. In that case count - 1 is always coprime.
+    let stride = if count.is_multiple_of(37) {
+        count - 1
+    } else {
+        37
+    };
+    let n = (index % count) * stride % count;
+    let slot = n % perimeter;
+    let shared = x_samples.min(z_samples);
+    let (side, offset) = if slot < shared * 4 {
+        (slot % 4, slot / 4)
+    } else {
+        let extra = slot - shared * 4;
+        (
+            if z_samples > x_samples {
+                extra % 2
+            } else {
+                2 + extra % 2
+            },
+            shared + extra / 2,
+        )
+    };
+    let samples = if side < 2 { z_samples } else { x_samples };
+    let along = offset as f32 / (samples - 1) as f32 * 1.6 - 0.8;
+    let height = (n / perimeter) as f32 / 2. * 0.7 + 0.15;
     let extent = (arena.half_size - half - Vec3::splat(2.)).max(Vec3::ZERO);
     let mut p = arena.center();
     p.y += (height * 2. - 1.) * extent.y;
@@ -331,11 +370,12 @@ pub(super) fn update(
     };
     let count = requested.min(config.cap.saturating_sub(live + pending));
     run.spawns.rejected_cap += requested - count;
+    let candidates = candidate_count(&arena);
     for offset in 0..count {
         let mut selected = None;
-        for _ in 0..60 {
+        for _ in 0..candidates {
             let position = candidate(run.candidate, &arena, half);
-            run.candidate = (run.candidate + 1) % 60;
+            run.candidate = (run.candidate + 1) % candidates;
             if safe(
                 position,
                 half,
@@ -432,7 +472,7 @@ mod terrain_tests {
             WorldGeometry {
                 solids: vec![Solid {
                     center: Vec3::new(0., 150., 0.),
-                    half: Vec3::new(5., 150., 270.),
+                    half: Vec3::new(5., 150., arena.half_size.z),
                 }],
                 hazard: None,
             },
@@ -458,5 +498,226 @@ mod terrain_tests {
             None,
             Some(&WorldGeometry::default())
         ));
+    }
+}
+
+#[cfg(test)]
+mod expanded_floor_tests {
+    use super::*;
+    use crate::world::{Solid, WorldGeometry};
+
+    fn expanded_arena() -> Arena {
+        Arena {
+            half_size: Vec3::new(960., 150., 1620.),
+        }
+    }
+
+    #[test]
+    fn original_floor_preserves_its_sixty_candidate_sequence() {
+        let arena = Arena {
+            half_size: Vec3::new(960., 150., 540.),
+        };
+        let half = spawn_half(&CombatConfig::default());
+        let extent = arena.half_size - half - Vec3::splat(2.);
+        assert_eq!(candidate_count(&arena), 60);
+        for index in 0..60 {
+            let n = index * 37 % 60;
+            let side = n % 4;
+            let along = ((n / 4) % 5) as f32 / 4. * 1.6 - 0.8;
+            let height = (n / 20) as f32 / 2. * 0.7 + 0.15;
+            let mut expected = arena.center();
+            expected.y += (height * 2. - 1.) * extent.y;
+            if side < 2 {
+                expected.x = if side == 0 { -extent.x } else { extent.x };
+                expected.z = along * extent.z;
+            } else {
+                expected.z = if side == 2 { -extent.z } else { extent.z };
+                expected.x = along * extent.x;
+            }
+            assert_eq!(candidate(index, &arena, half), expected);
+        }
+    }
+
+    #[test]
+    fn sampling_both_axes_and_a_count_divisible_by_thirty_seven_visit_every_location() {
+        let half = spawn_half(&CombatConfig::default());
+        for (dimensions, expected_count) in [
+            (Vec3::new(1920., 150., 540.), 90),
+            (Vec3::new(960., 150., 19440.), 1110),
+        ] {
+            let arena = Arena {
+                half_size: dimensions,
+            };
+            let count = candidate_count(&arena);
+            assert_eq!(count, expected_count);
+            let mut positions: Vec<_> = (0..count).map(|i| candidate(i, &arena, half)).collect();
+            positions.sort_by(|a, b| {
+                a.x.total_cmp(&b.x)
+                    .then(a.y.total_cmp(&b.y))
+                    .then(a.z.total_cmp(&b.z))
+            });
+            positions.dedup();
+            assert_eq!(positions.len(), count);
+        }
+    }
+
+    #[test]
+    fn expanded_perimeter_covers_fifteen_long_side_offsets_at_each_altitude() {
+        let arena = expanded_arena();
+        let half = spawn_half(&CombatConfig::default());
+        let extent = arena.half_size - half - Vec3::splat(2.);
+        let positions: Vec<_> = (0..120).map(|i| candidate(i, &arena, half)).collect();
+        let mut unique = positions.clone();
+        unique.sort_by(|a, b| {
+            a.x.total_cmp(&b.x)
+                .then(a.y.total_cmp(&b.y))
+                .then(a.z.total_cmp(&b.z))
+        });
+        unique.dedup();
+        assert_eq!(
+            unique.len(),
+            120,
+            "every perimeter candidate must be distinct"
+        );
+        for sign in [-1., 1.] {
+            for height in [-0.7, 0., 0.7] {
+                let y = arena.center().y + height * extent.y;
+                let long: Vec<_> = positions
+                    .iter()
+                    .filter(|p| (p.x - sign * extent.x).abs() < 0.01 && (p.y - y).abs() < 0.01)
+                    .collect();
+                let short: Vec<_> = positions
+                    .iter()
+                    .filter(|p| (p.z - sign * extent.z).abs() < 0.01 && (p.y - y).abs() < 0.01)
+                    .collect();
+                assert_eq!(long.len(), 15);
+                assert_eq!(short.len(), 5);
+                for longitudinal_region in [-1., 0., 1.] {
+                    assert!(
+                        long.iter()
+                            .any(|p| (p.z / extent.z - longitudinal_region * 0.6).abs() < 0.2)
+                    );
+                }
+            }
+        }
+        let legacy_offsets = [-0.8, -0.4, 0., 0.4, 0.8];
+        assert!(positions.iter().any(|p| {
+            p.x.abs() == extent.x
+                && legacy_offsets
+                    .iter()
+                    .all(|v| (p.z / extent.z - v).abs() > 0.01)
+        }));
+        for (index, position) in positions.iter().enumerate() {
+            assert!(
+                (*position - arena.center())
+                    .abs()
+                    .cmple(arena.half_size - half)
+                    .all()
+            );
+            assert_eq!(*position, candidate(index + 120, &arena, half));
+        }
+    }
+
+    #[test]
+    fn expanded_search_reaches_the_last_free_candidate_and_wraps_cursor() {
+        let arena = expanded_arena();
+        let combat = CombatConfig::default();
+        let half = spawn_half(&combat);
+        let mut app = App::new();
+        // Reserve every earlier candidate to force a complete search. The large
+        // test cap only makes those reservations possible; production stays 30.
+        let config = WaveConfig {
+            cap: 200,
+            bursts: vec![(0., 1)],
+            ..default()
+        };
+        app.insert_resource(config)
+            .insert_resource(combat)
+            .insert_resource(arena)
+            .insert_resource(GamePhase::Playing)
+            .insert_resource(Encounter::default())
+            .add_systems(Update, update);
+        app.world_mut()
+            .spawn((Drone, Transform::from_xyz(0., 150., 0.)));
+        for index in 0..119 {
+            app.world_mut().spawn((
+                SpawnWarning {
+                    ready_at: 10.,
+                    ..default()
+                },
+                Transform::from_translation(candidate(index, &arena, half)),
+            ));
+        }
+        app.update();
+        assert_eq!(app.world().resource::<Encounter>().spawns.admitted, 1);
+        assert_eq!(app.world().resource::<Encounter>().candidate, 0);
+        let selected = app
+            .world_mut()
+            .query::<(&SpawnWarning, &Transform)>()
+            .iter(app.world())
+            .find(|(w, _)| w.ready_at == 0.75)
+            .unwrap()
+            .1
+            .translation;
+        assert_eq!(selected, candidate(119, &arena, half));
+    }
+
+    #[test]
+    fn expanded_candidates_reject_geometry_and_revalidate_moved_player() {
+        let arena = expanded_arena();
+        let combat = CombatConfig::default();
+        let half = spawn_half(&combat);
+        let player = Transform::from_xyz(0., 150., 0.);
+        for index in 0..120 {
+            let position = candidate(index, &arena, half);
+            assert!(safe(position, half, &arena, &player, 120., &[], None, None));
+            for hazard in [false, true] {
+                let blocker = Solid {
+                    center: position,
+                    half: Vec3::splat(30.),
+                };
+                let world = WorldGeometry {
+                    solids: if hazard { vec![] } else { vec![blocker] },
+                    hazard: if hazard { Some(blocker) } else { None },
+                };
+                assert!(!safe(
+                    position,
+                    half,
+                    &arena,
+                    &player,
+                    120.,
+                    &[],
+                    None,
+                    Some(&world)
+                ));
+            }
+            let mut app = App::new();
+            let mut config = WaveConfig::default();
+            config.bursts.clear();
+            app.insert_resource(config)
+                .insert_resource(CombatConfig::default())
+                .insert_resource(arena)
+                .insert_resource(GamePhase::Playing)
+                .insert_resource(Encounter {
+                    elapsed: 0.75,
+                    ..default()
+                })
+                .add_systems(Update, update);
+            app.world_mut()
+                .spawn((Drone, Transform::from_translation(position)));
+            app.world_mut().spawn((
+                SpawnWarning {
+                    ready_at: 0.75,
+                    ..default()
+                },
+                Transform::from_translation(position),
+            ));
+            app.update();
+            assert_eq!(app.world().resource::<Encounter>().spawns.cancelled, 1);
+            assert_eq!(
+                app.world_mut().query::<&Enemy>().iter(app.world()).count(),
+                0
+            );
+        }
     }
 }

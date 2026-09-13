@@ -67,9 +67,13 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
         app.world_mut()
             .get_mut::<Transform>(drone)
             .unwrap()
-            .translation = Vec3::new(-280., 90., 0.);
+            .translation = Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.);
         if fatal {
-            enemy(&mut app, Vec3::new(-280., 90., 0.), 10000);
+            enemy(
+                &mut app,
+                Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+                10000,
+            );
             app.world_mut().resource_mut::<PlayerHealth>().current = 1;
         }
         let duration = app.world().resource::<WaveConfig>().duration;
@@ -174,7 +178,7 @@ fn movement_determines_charge_before_activation_and_same_frame_recharge() {
     app.world_mut()
         .get_mut::<Transform>(drone)
         .unwrap()
-        .translation = Vec3::new(-189., 90., 0.);
+        .translation = Vec3::new(-crate::world::layout::CHARGER_X + 91., 90., 0.);
     app.world_mut()
         .get_mut::<DroneFlight>(drone)
         .unwrap()

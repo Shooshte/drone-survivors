@@ -1,3 +1,4 @@
+use super::layout::{DIVIDER_X, LOW_COVER_LEFT, LOW_COVER_RIGHT};
 use bevy::prelude::*;
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Solid {
@@ -14,24 +15,24 @@ impl Default for WorldGeometry {
         Self {
             solids: vec![
                 Solid {
-                    center: Vec3::new(120., 150., -170.),
-                    half: Vec3::new(12., 150., 100.),
+                    center: Vec3::new(DIVIDER_X, 150., -845.),
+                    half: Vec3::new(12., 150., 775.),
                 },
                 Solid {
-                    center: Vec3::new(120., 150., 90.),
-                    half: Vec3::new(12., 150., 20.),
+                    center: Vec3::new(DIVIDER_X, 150., 185.),
+                    half: Vec3::new(12., 150., 115.),
                 },
                 Solid {
-                    center: Vec3::new(-170., 30., -185.),
+                    center: LOW_COVER_LEFT,
                     half: Vec3::new(65., 30., 30.),
                 },
                 Solid {
-                    center: Vec3::new(320., 35., 175.),
+                    center: LOW_COVER_RIGHT,
                     half: Vec3::new(60., 35., 25.),
                 },
             ],
             hazard: Some(Solid {
-                center: Vec3::new(120., 150., 0.),
+                center: Vec3::new(DIVIDER_X, 150., 0.),
                 half: Vec3::new(24., 150., 70.),
             }),
         }

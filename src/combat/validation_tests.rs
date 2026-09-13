@@ -477,6 +477,9 @@ fn charger_preview_flies_depletes_recovers_and_restarts_without_gameplay_overrid
             .query::<(&ChargingNode, &ChargerReserve)>()
             .iter(app.world())
         {
+            if node.center.z != 0. {
+                continue;
+            }
             if node.center.x < 0. {
                 seen[0] |= reserve.occupied && reserve.remaining == 0.;
                 seen[1] |=
@@ -502,4 +505,50 @@ fn charger_preview_flies_depletes_recovers_and_restarts_without_gameplay_overrid
         assert_eq!(reserve.remaining, 200.);
         assert_eq!(reserve.away_seconds, 0.);
     }
+}
+
+#[test]
+fn charger_preview_reaches_all_six_fields_with_ordinary_flight() {
+    use crate::energy::{ChargerReserve, ChargingNode};
+    let mut app = App::new();
+    app.init_resource::<ButtonInput<KeyCode>>()
+        .init_resource::<crate::world::WorldGeometry>()
+        .init_resource::<crate::world::PlayerPath>()
+        .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
+            Duration::ZERO,
+        ))
+        .add_message::<AppExit>()
+        .add_plugins((bevy::time::TimePlugin, ArenaPlugin, CombatPlugin));
+    validation::install(
+        &mut app,
+        ValidationConfig {
+            mode: ValidationMode::Chargers,
+            seconds: 120.,
+            enemies: 150,
+        },
+    );
+    app.update();
+    let mut visited = std::collections::HashSet::new();
+    for _ in 0..120 * 30 {
+        validation_tick(&mut app, 1. / 30., &[]);
+        for (entity, _, reserve) in app
+            .world_mut()
+            .query::<(Entity, &ChargingNode, &ChargerReserve)>()
+            .iter(app.world())
+        {
+            if reserve.occupied {
+                visited.insert(entity);
+            }
+        }
+        if visited.len() == 6 {
+            break;
+        }
+    }
+    assert_eq!(
+        visited.len(),
+        6,
+        "preview must fly to every real charging field"
+    );
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 100);
+    assert_eq!(count::<Enemy>(&mut app), 0);
 }

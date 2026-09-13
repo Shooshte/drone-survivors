@@ -70,11 +70,11 @@ fn setup(
         .spawn((
             UpgradeHud,
             UpgradeCopy::Hud,
-            FooterFont::new(14., 11.),
+            FooterFont::new(14., 12.),
             Text::default(),
             TextFont::from_font_size(14.),
             TextColor(Color::srgb(0.66, 0.86, 0.88)),
-            TextLayout::new(Justify::Right, LineBreak::WordBoundary),
+            TextLayout::new(Justify::Left, LineBreak::WordBoundary),
             Node {
                 width: percent(100),
                 ..default()
@@ -423,13 +423,13 @@ fn hud_copy(run: &UpgradeRun) -> String {
             .iter()
             .map(|kind| kind.name())
             .collect::<Vec<_>>()
-            .join("  |  ")
+            .join(", ")
     };
     if run.exhausted {
-        return format!("BUILD COMPLETE | No more upgrades this run\nRUN UPGRADES  |  {selected}");
+        return format!("BUILD COMPLETE | No more upgrades this run\n{selected}");
     }
     format!(
-        "LEVEL  {}   |   XP  {} / {}\nRUN UPGRADES  |  {selected}",
+        "LEVEL {} | XP {} / {} | BUILD\n{selected}",
         run.level,
         run.xp,
         run.threshold(),

@@ -1,6 +1,7 @@
 //! Repeatable keyboard-only terrain fixture; no waves, health overrides or module use.
 use super::*;
 use crate::world::hazard::{HazardPhase, HazardState};
+use crate::world::layout::{CHARGER_X, DETOUR_LEFT_X, DETOUR_RIGHT_X, DETOUR_Z};
 
 #[derive(Resource, Default)]
 pub(super) struct RouteProbe {
@@ -20,8 +21,8 @@ impl RouteProbe {
         elapsed: f64,
         hazard: &HazardState,
     ) -> Vec3 {
-        let left = Vec3::new(-280., 150., 0.);
-        let right = Vec3::new(280., 150., 0.);
+        let left = Vec3::new(-CHARGER_X, 150., 0.);
+        let right = Vec3::new(CHARGER_X, 150., 0.);
         let arrived = |point: Vec3| position.distance(point) < 18. && velocity.length() < 35.;
         let dt = (elapsed - self.last_update).max(0.);
         self.last_update = elapsed;
@@ -38,11 +39,15 @@ impl RouteProbe {
             0 => &[Vec3::new(0., 150., 0.), right],
             1 => &[Vec3::new(240., 150., 0.), left],
             2 => &[
-                Vec3::new(0., 150., 195.),
-                Vec3::new(210., 150., 195.),
+                Vec3::new(DETOUR_LEFT_X, 150., DETOUR_Z),
+                Vec3::new(DETOUR_RIGHT_X, 150., DETOUR_Z),
                 right,
             ],
-            _ => &[Vec3::new(210., 150., 195.), Vec3::new(0., 150., 195.), left],
+            _ => &[
+                Vec3::new(DETOUR_RIGHT_X, 150., DETOUR_Z),
+                Vec3::new(DETOUR_LEFT_X, 150., DETOUR_Z),
+                left,
+            ],
         };
         if self.leg < 2 && self.waypoint == 1 && !self.committed {
             if hazard.phase != HazardPhase::Inactive || hazard.remaining() < 2.5 {
@@ -119,6 +124,7 @@ pub(super) fn input(
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn keyboard_pilot_completes_both_routes_both_directions_without_hazard_damage() {
         for rate in [30, 60, 144] {

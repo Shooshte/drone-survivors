@@ -58,9 +58,13 @@ See [the handling measurements and playtest checklist](docs/playtests/dro-29-sco
 
 The full rotated drone stays inside the ground, ceiling, and side walls. Contact
 removes velocity into the surface while preserving motion along or away from it.
-The 960 × 540 arena has a 300-unit
+The 1920 × 3240 arena has a 300-unit
 ceiling, and the drone starts 90 units above ground (measured at its center).
-An angled camera keeps the full flight volume visible as the window is resized.
+An angled camera follows the scout horizontally at a fixed viewing scale. It keeps
+threats readable as you travel instead of shrinking the whole arena into view.
+Edge labels point toward off-screen named chargers and incoming spawn warnings;
+nearby charger names and warnings are grouped by direction. The compact HUD
+keeps the central flight area clear at 640×480.
 A ring on the ground and a vertical guide show the drone's ground position.
 
 Orange flying chasers arrive in timed bursts and pursue the drone at every altitude using the same
@@ -89,6 +93,9 @@ Each stage ends with at least six seconds without new spawn warnings. The
 schedule requests 447 enemies in 50 bursts before spawn rejection or skipped
 bursts. Surviving is intended to take a few attempts; that difficulty target
 still needs human playtesting.
+
+Warnings use 120 perimeter locations across the long sides, ends, and three
+altitudes. Spawn candidates still require safe body clearance and a connected route.
 
 Only enemy numbers increase. Chaser health, damage, movement, and behavior stay
 constant. Pink rings warn of incoming enemies for 0.75 seconds. Spawns are
@@ -147,7 +154,9 @@ Press the corresponding key when enough energy is available. Death/survival
 freezes power; R restores full energy, all modules off, a ready shield, and clears
 rockets, cooldowns and feedback.
 
-Two cyan charging fields sit on opposite sides of the arena. Enter a field
+Six cyan charging fields form three pairs: NW/NE in the north, LEFT/RIGHT
+in the center, and SW/SE in the south. Each pair is at x = ±560; the outer
+pairs are 1080 units north/south of the center. Enter a field
 with the drone's center below its visible top ring (height 160) to gain
 25 energy/second. Fly and fight freely while charging; leaving stops recharge.
 Fields have radius 90 and provide no protection. Each has a separate **200-energy
@@ -160,9 +169,9 @@ Leave a field for **eight uninterrupted active seconds** to begin recovery at
 cannot refill it. Occupied fields never recover, even with modules off. Partial
 reserves can be used immediately; an empty field takes 28 seconds away to refill.
 Overlapping fields share the same 25/s delivery ceiling and never double charge.
-The HUD shows LEFT/RIGHT reserves and recovery status before arrival; each field
+The HUD shows all six named reserves and recovery status before arrival; each field
 also has a shrinking reserve indicator. Choices and outcomes pause recovery;
-R restores both reserves. All four modules drain 36/s, so even charging produces a
+R restores all six reserves. All four modules drain 36/s, so even charging produces a
 net loss of 11/s. Rockets alone leave a net gain of 15/s at a charger.
 
 The HUD shows each slot's key, state and current/configured drain, shield
@@ -177,7 +186,7 @@ in `src/energy.rs`, alongside `ChargerConfig`, and remain provisional playtest v
 
 Low blocks provide cover and can be flown over. The tall divider reaches the
 ceiling: use its central electrical passage or follow the green dotted detour.
-Gold dots mark the shorter crossing between chargers. The detour avoids the
+Gold dots mark the shorter crossing between the central chargers. The detour avoids the
 field, but enemies can follow either route.
 
 The full-height electrical field repeats **3 seconds open → 1 second warning →
@@ -253,7 +262,8 @@ This opt-in 30 Hz simulation compares the previous and current waves/XP at both
 chargers, with overdrive and overdrive-plus-shield builds, plus a moving keyboard
 pilot. It uses the actual terrain/hazard and normally earned upgrade choices.
 Historical wave/XP profiles use effectively unlimited test-only charger reserves
-to preserve the earlier comparison. Camping fixtures start at a charger; the harness does not hold their position,
+with the current arena geometry. Earlier recorded results describe their original
+geometry and are retained as historical evidence. Camping fixtures start at a charger; the harness does not hold their position,
 refill health, or grant XP. Output includes outcomes, choice times, energy,
 peak population and spawn accounting. It is not a rendering benchmark or a human
 playtest; surviving camping probes leave the experiential gate pending.
@@ -267,7 +277,22 @@ cargo test --locked charger_depletion_probe -- --ignored --nocapture
 This compares all four camps plus a pilot alternating chargers with power
 conservation, using finite versus effectively unlimited test-only reserves. It
 reports actual reserve delivery, sampled powered time, visits, choices, and
-outcomes. [Results and limitations](docs/playtests/dro-32-charger-depletion.md).
+outcomes. [Earlier results](docs/playtests/dro-32-charger-depletion.md) and
+[current arena measurements](docs/playtests/dro-30-arena.md).
+
+### Arena flight-room comparison
+
+```sh
+cargo test --locked arena_pressure_probe -- --ignored --nocapture
+cargo test --locked arena_room -- --nocapture
+```
+
+The first probe uses ordinary combat and skips naturally earned upgrades to
+compare central camping, a fixed moving pilot, and a central charger relay.
+It reports threat distance, population, damage positions and outcomes without
+granting health or XP. It does not test every strategy across the long arena.
+The second measures sustained lanes and banked curves using production flight
+at 30/60/120 Hz. See [DRO-30 evidence and the human checklist](docs/playtests/dro-30-arena.md).
 
 ### Repeatable native validation
 
@@ -276,7 +301,7 @@ cargo dev -- --validate manual --seconds 600
 cargo dev -- --validate survival
 cargo dev -- --validate idle
 cargo dev -- --validate routes --seconds 40
-cargo dev -- --validate chargers --seconds 60
+cargo dev -- --validate chargers --seconds 110
 cargo dev -- --validate mobile
 cargo dev -- --validate armored
 cargo dev -- --validate choices
@@ -307,7 +332,8 @@ empty battery and recharge disabled in the test fixture.
 
 Chargers is an explicit UI fixture with authored waves disabled. It flies normally
 to the left field, powers overdrive until the reserve empties, waits two seconds,
-then conserves power while taking the detour to the right field. It applies no
+then conserves power while taking the detour to the right field and visiting
+NE, SE, SW, LEFT and NW. It applies no
 health, energy, reserve, or XP overrides. R restarts the fixture. It checks native
 presentation and route behavior, not encounter difficulty.
 
@@ -318,8 +344,9 @@ DRONE_CAPTURE_DIR=/tmp/drone-captures cargo dev -- --validate idle --seconds 20
 DRONE_CAPTURE_DIR=/tmp/drone-captures DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate idle --seconds 20
 ```
 
-Use `--validate chargers --seconds 60` with the same capture environment to save
-in-use, depleted, recovery-delay and recovering charger states automatically.
+Use `--validate chargers --seconds 110` with the same capture environment to save
+in-use, depleted, recovery-delay and recovering charger states automatically,
+plus a named capture on the first visit to each field.
 Only the chargers validation mode writes charger-state images; other modes
 retain their existing hazard captures.
 The second command uses the minimum 640 × 480 logical window. These environment

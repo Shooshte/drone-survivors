@@ -10,8 +10,14 @@ fn pursuers_arrive_across_divider_and_replan_when_target_changes_sides() {
     for (start, target) in [
         (Vec3::new(-280., 90., -180.), Vec3::new(280., 90., -180.)),
         (Vec3::new(280., 90., -180.), Vec3::new(-280., 90., -180.)),
-        (Vec3::new(280., 90., 195.), Vec3::new(-280., 90., 195.)),
-        (Vec3::new(-280., 90., 195.), Vec3::new(280., 90., 195.)),
+        (
+            Vec3::new(280., 90., crate::world::layout::DETOUR_Z),
+            Vec3::new(-280., 90., crate::world::layout::DETOUR_Z),
+        ),
+        (
+            Vec3::new(-280., 90., crate::world::layout::DETOUR_Z),
+            Vec3::new(280., 90., crate::world::layout::DETOUR_Z),
+        ),
     ] {
         let mut t = Transform::from_translation(start);
         let mut f = DroneFlight::default();

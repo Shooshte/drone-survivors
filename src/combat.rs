@@ -16,7 +16,8 @@ pub(crate) mod validation;
 mod waves;
 mod weapon;
 pub(crate) use waves::Encounter;
-use waves::{SpawnWarning, WaveConfig};
+pub(crate) use waves::SpawnWarning;
+use waves::WaveConfig;
 
 #[cfg(test)]
 mod tests;

@@ -252,7 +252,12 @@ fn expired_projectiles_cannot_hit_beyond_their_lifetime_and_outside_shots_are_re
     quiet(&mut app);
     let target = enemy(&mut app, START + Vec3::X * 200., 100);
     let expired = shot(&mut app, START, Vec3::X * 650., 0.1);
-    let outside = shot(&mut app, Vec3::new(470., 90., 0.), Vec3::X * 650., 1.);
+    let outside = shot(
+        &mut app,
+        Vec3::new(crate::arena::Arena::default().half_size.x - 10., 90., 0.),
+        Vec3::X * 650.,
+        1.,
+    );
     step(&mut app, 0.5, &[]);
     assert_eq!(app.world().get::<Enemy>(target).unwrap().health, 100);
     assert!(app.world().get_entity(expired).is_err());
@@ -616,3 +621,6 @@ mod upgrade_tests;
 
 #[path = "camping_tests.rs"]
 mod camping_tests;
+
+#[path = "arena_pressure_tests.rs"]
+mod arena_pressure_tests;

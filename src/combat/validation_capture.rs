@@ -10,6 +10,7 @@ struct Captures {
     minimum: bool,
     seen: [bool; 3],
     charger_seen: [bool; 4],
+    visited_chargers: std::collections::HashSet<Entity>,
 }
 
 pub(super) fn install(app: &mut App) {
@@ -26,6 +27,7 @@ pub(super) fn install(app: &mut App) {
         minimum: std::env::var_os("DRONE_CAPTURE_MINIMUM").is_some(),
         seen: [false; 3],
         charger_seen: [false; 4],
+        visited_chargers: default(),
     })
     .add_systems(Startup, resize)
     .add_systems(
@@ -76,13 +78,33 @@ fn capture_chargers(
     validation: Res<ValidationConfig>,
     run: Res<Encounter>,
     config: Res<crate::energy::ChargerConfig>,
-    nodes: Query<&crate::energy::ChargerReserve>,
+    nodes: Query<(
+        Entity,
+        &crate::energy::ChargerReserve,
+        Option<&crate::energy::ChargingNodeLabel>,
+    )>,
     mut captures: ResMut<Captures>,
 ) {
     if validation.mode != ValidationMode::Chargers || run.elapsed < 1. {
         return;
     }
-    for reserve in &nodes {
+    for (entity, reserve, label) in &nodes {
+        if reserve.occupied
+            && let Some(label) = label
+            && captures.visited_chargers.insert(entity)
+        {
+            let size = if captures.minimum {
+                "640x480"
+            } else {
+                "1120x720"
+            };
+            let path = captures
+                .directory
+                .join(format!("{size}-charger-{}.png", label.0));
+            commands
+                .spawn(Screenshot::primary_window())
+                .observe(save_to_disk(path));
+        }
         let state = if reserve.occupied && reserve.remaining == 0. {
             Some((1, "charger-depleted"))
         } else if !reserve.occupied && reserve.remaining < config.capacity {
@@ -148,6 +170,7 @@ mod tests {
                 minimum: false,
                 seen: [false; 3],
                 charger_seen: [false; 4],
+                visited_chargers: default(),
             })
             .add_systems(Update, (capture, capture_chargers).chain());
             // Exercise all four charger triggers without rendering or filesystem writes.

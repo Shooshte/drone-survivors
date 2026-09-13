@@ -61,7 +61,11 @@ fn set_reserve(app: &mut App, entity: Entity, remaining: f64, away_seconds: f64)
 #[test]
 fn stationary_overdrive_exhausts_left_charger_and_battery() {
     let (mut app, drone) = app();
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     step(&mut app, 0., &[KeyCode::Digit1]);
 
     step(&mut app, 31., &[]);
@@ -70,7 +74,7 @@ fn stationary_overdrive_exhausts_left_charger_and_battery() {
     assert!(app.world().resource::<Energy>().charging.is_none());
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .2;
     near(left.remaining, 0.);
@@ -88,15 +92,19 @@ fn charger_debits_only_energy_delivered_and_keeps_reserves_independent() {
     let initial = charger_states(&mut app);
     let left = initial
         .iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     let right = initial
         .iter()
-        .find(|(_, center, _)| center.x > 0.)
+        .find(|(_, center, _)| center.x > 0. && center.z == 0.)
         .unwrap()
         .0;
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
 
     step(&mut app, 5., &[]);
     near(
@@ -132,14 +140,14 @@ fn overlapping_chargers_share_delivery_and_handoff_when_the_first_empties() {
     let _duplicate = app
         .world_mut()
         .spawn(ChargingNode {
-            center: Vec3::new(-280., 0., 0.),
+            center: Vec3::new(-crate::world::layout::CHARGER_X, 0., 0.),
             radius: 90.,
             height: 160.,
         })
         .id();
     let mut occupied = charger_states(&mut app)
         .into_iter()
-        .filter(|(_, center, _)| center.x < 0.)
+        .filter(|(_, center, _)| center.x < 0. && center.z == 0.)
         .map(|(entity, _, _)| entity)
         .collect::<Vec<_>>();
     occupied.sort_by_key(|entity| entity.to_bits());
@@ -149,7 +157,11 @@ fn overlapping_chargers_share_delivery_and_handoff_when_the_first_empties() {
     set_reserve(&mut app, *first, 10., 0.);
     set_reserve(&mut app, *second, 200., 0.);
     app.world_mut().resource_mut::<Energy>().current = 0.;
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
 
     step(&mut app, 0., &[]);
     assert_eq!(app.world().resource::<Energy>().charging, Some(*first));
@@ -176,20 +188,24 @@ fn occupied_fields_do_not_recover_and_reentry_restarts_the_delay() {
     let duplicate = app
         .world_mut()
         .spawn(ChargingNode {
-            center: Vec3::new(-280., 0., 0.),
+            center: Vec3::new(-crate::world::layout::CHARGER_X, 0., 0.),
             radius: 90.,
             height: 160.,
         })
         .id();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(entity, center, _)| center.x < 0. && *entity != duplicate)
+        .find(|(entity, center, _)| center.x < 0. && center.z == 0. && *entity != duplicate)
         .unwrap()
         .0;
     for entity in [left, duplicate] {
         set_reserve(&mut app, entity, 0., 20.);
     }
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     step(&mut app, 3., &[]);
     for entity in [left, duplicate] {
         let reserve = app.world().get::<ChargerReserve>(entity).unwrap();
@@ -209,7 +225,11 @@ fn occupied_fields_do_not_recover_and_reentry_restarts_the_delay() {
         app.world().get::<ChargerReserve>(left).unwrap().remaining,
         5.,
     );
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     step(&mut app, 0., &[]);
     let reserve = app.world().get::<ChargerReserve>(left).unwrap();
     near(reserve.remaining, 5.);
@@ -221,7 +241,11 @@ fn occupied_fields_do_not_recover_and_reentry_restarts_the_delay() {
         app.world().get::<ChargerReserve>(left).unwrap().remaining,
         5.,
     );
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     step(&mut app, 0., &[]);
     near(
         app.world()
@@ -237,7 +261,7 @@ fn recovery_is_partial_after_the_delay_and_caps_at_capacity() {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     set_reserve(&mut app, left, 50., 6.);
@@ -272,7 +296,7 @@ fn setup_and_restart_use_the_configured_charger_capacity() {
         );
     app.update();
     let chargers = charger_states(&mut app);
-    assert_eq!(chargers.len(), 2);
+    assert_eq!(chargers.len(), crate::world::layout::CHARGERS.len());
     for (entity, _, reserve) in &chargers {
         near(reserve.remaining, 75.);
         set_reserve(&mut app, *entity, 10., 4.);
@@ -290,7 +314,7 @@ fn recovery_case(dt: f64) -> f64 {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     set_reserve(&mut app, left, 0., 0.);
@@ -316,7 +340,7 @@ fn boundary_case(dt: f64) -> (f64, f64, [bool; 4], f64) {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     set_reserve(&mut app, left, 50., 0.);
@@ -327,7 +351,11 @@ fn boundary_case(dt: f64) -> (f64, f64, [bool; 4], f64) {
         modules.shield.blocks = 0;
         modules.shield.remaining = 5.;
     }
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     let steps = (10. / dt).round() as usize;
     for _ in 0..steps {
         step(&mut app, dt, &[]);
@@ -383,7 +411,11 @@ fn depletes_without_negative_energy_and_never_restarts_automatically() {
             .resource::<Modules>()
             .active(ModuleKind::Overdrive)
     );
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     step(&mut app, 1., &[]);
     near(app.world().resource::<Energy>().current, 25.);
     assert!(
@@ -400,13 +432,16 @@ fn depletes_without_negative_energy_and_never_restarts_automatically() {
 }
 #[test]
 fn both_nodes_charge_clamp_and_combine_drain_before_clamping() {
-    for x in [-280., 280.] {
+    for x in [
+        -crate::world::layout::CHARGER_X,
+        crate::world::layout::CHARGER_X,
+    ] {
         let (mut app, drone) = app();
         // This regression predates finite reserves and exercises battery/module
         // clamping, so give its selected field an effectively unlimited fixture.
         let node = charger_states(&mut app)
             .into_iter()
-            .find(|(_, center, _)| center.x == x)
+            .find(|(_, center, _)| center.x == x && center.z == 0.)
             .unwrap()
             .0;
         set_reserve(&mut app, node, 1_000., 0.);
@@ -434,7 +469,7 @@ fn both_nodes_charge_clamp_and_combine_drain_before_clamping() {
 #[test]
 fn volume_uses_center_inclusive_radial_and_vertical_bounds() {
     let node = ChargingNode {
-        center: Vec3::new(-280., 0., 0.),
+        center: Vec3::new(-crate::world::layout::CHARGER_X, 0., 0.),
         radius: 90.,
         height: 160.,
     };
@@ -462,8 +497,8 @@ fn no_regeneration_above_or_outside_field_and_overlaps_do_not_stack() {
     let (mut app, drone) = app();
     app.world_mut().resource_mut::<Energy>().current = 20.;
     for point in [
-        Vec3::new(-280., 161., 0.),
-        Vec3::new(-189., 90., 0.),
+        Vec3::new(-crate::world::layout::CHARGER_X, 161., 0.),
+        Vec3::new(-crate::world::layout::CHARGER_X + 91., 90., 0.),
         Vec3::new(0., 90., 0.),
     ] {
         at(&mut app, drone, point);
@@ -472,11 +507,15 @@ fn no_regeneration_above_or_outside_field_and_overlaps_do_not_stack() {
         assert!(app.world().resource::<Energy>().charging.is_none());
     }
     app.world_mut().spawn(ChargingNode {
-        center: Vec3::new(-280., 0., 0.),
+        center: Vec3::new(-crate::world::layout::CHARGER_X, 0., 0.),
         radius: 90.,
         height: 160.,
     });
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     step(&mut app, 1., &[]);
     near(app.world().resource::<Energy>().current, 45.);
 }
@@ -524,11 +563,15 @@ fn frozen_outcomes_and_repeated_restart_win_over_toggles() {
     let (mut app, drone) = app();
     let left = charger_states(&mut app)
         .into_iter()
-        .find(|(_, center, _)| center.x < 0.)
+        .find(|(_, center, _)| center.x < 0. && center.z == 0.)
         .unwrap()
         .0;
     for phase in [GamePhase::Choosing, GamePhase::Dead, GamePhase::Survived] {
-        at(&mut app, drone, Vec3::new(-280., 90., 0.));
+        at(
+            &mut app,
+            drone,
+            Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+        );
         *app.world_mut().resource_mut::<GamePhase>() = phase;
         {
             let mut e = app.world_mut().resource_mut::<Energy>();
@@ -570,7 +613,7 @@ fn frozen_outcomes_and_repeated_restart_win_over_toggles() {
             .query::<&ChargingNode>()
             .iter(app.world())
             .count(),
-        2
+        crate::world::layout::CHARGERS.len()
     );
 }
 
@@ -594,7 +637,11 @@ fn each_of_four_slot_keys_has_independent_power_drain() {
 #[test]
 fn all_four_drain_adds_and_exceeds_charging() {
     let (mut app, drone) = app();
-    at(&mut app, drone, Vec3::new(-280., 90., 0.));
+    at(
+        &mut app,
+        drone,
+        Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+    );
     step(
         &mut app,
         1.,
@@ -606,4 +653,40 @@ fn all_four_drain_adds_and_exceeds_charging() {
         ],
     );
     near(app.world().resource::<Energy>().current, 89.);
+}
+
+#[test]
+fn six_spread_chargers_deliver_independently_and_all_reset() {
+    let (mut app, drone) = app();
+    let nodes = charger_states(&mut app);
+    assert_eq!(
+        nodes.len(),
+        6,
+        "long arena needs a charger pair in each third"
+    );
+    for z in [-1080., 0., 1080.] {
+        for x in [
+            -crate::world::layout::CHARGER_X,
+            crate::world::layout::CHARGER_X,
+        ] {
+            let node = nodes
+                .iter()
+                .find(|(_, center, _)| *center == Vec3::new(x, 0., z))
+                .unwrap();
+            at(&mut app, drone, Vec3::new(x, 90., z));
+            app.world_mut().resource_mut::<Energy>().current = 0.;
+            step(&mut app, 1., &[]);
+            near(app.world().resource::<Energy>().current, 25.);
+            near(
+                app.world().get::<ChargerReserve>(node.0).unwrap().remaining,
+                175.,
+            );
+            assert_eq!(app.world().resource::<Energy>().charging, Some(node.0));
+        }
+    }
+    step(&mut app, 0., &[KeyCode::KeyR]);
+    for (_, _, reserve) in charger_states(&mut app) {
+        near(reserve.remaining, 200.);
+        assert!(!reserve.occupied);
+    }
 }

@@ -187,17 +187,12 @@ fn setup(
         ..default()
     });
     let routes = [
+        (super::layout::detour(1.).to_vec(), safe),
         (
             vec![
-                Vec3::new(-280., 1., 0.),
-                Vec3::new(25., 1., 195.),
-                Vec3::new(215., 1., 195.),
-                Vec3::new(280., 1., 0.),
+                Vec3::new(-super::layout::CHARGER_X, 1., 0.),
+                Vec3::new(super::layout::CHARGER_X, 1., 0.),
             ],
-            safe,
-        ),
-        (
-            vec![Vec3::new(-280., 1., 0.), Vec3::new(280., 1., 0.)],
             shortcut,
         ),
     ];
@@ -218,7 +213,7 @@ fn setup(
     let hud = commands
         .spawn((
             HazardHud,
-            FooterFont::new(14., 11.),
+            FooterFont::new(14., 12.),
             Text::default(),
             TextFont::from_font_size(14.),
             TextColor(Color::srgb(0.95, 0.8, 0.45)),
@@ -252,16 +247,16 @@ fn present(
 ) {
     let (index, label) = match state.phase {
         HazardPhase::Inactive => (0, "OPEN"),
-        HazardPhase::Warning => (1, "WARNING - field about to fire"),
-        HazardPhase::Active => (2, "ACTIVE - electrical damage"),
+        HazardPhase::Warning => (1, "WARNING"),
+        HazardPhase::Active => (2, "ACTIVE:damage"),
     };
     let suffix = if *phase == GamePhase::Playing {
         ""
     } else {
-        " / PAUSED"
+        " PAUSED"
     };
     hud.0.0 = format!(
-        "SHORTCUT  {label}  {:.1}s{suffix}\nGold dots: timed crossing | Green dots: longer detour\nLow blocks: fly over | Tall walls: go around",
+        "SHORTCUT {label} {:.1}s{suffix} | Gold timed/Green detour | Low over/Tall around",
         state.remaining()
     );
     hud.1.0 = if state.phase == HazardPhase::Active {

@@ -33,10 +33,10 @@ pub(crate) fn present(
             };
             let detail = if kind == ModuleKind::Shield {
                 if modules.shield.blocks > 0 {
-                    format!(" | READY {}", modules.shield.blocks)
+                    format!(" READY {}", modules.shield.blocks)
                 } else {
                     format!(
-                        " | {:.1}s{}",
+                        " {:.1}s{}",
                         modules.shield.remaining,
                         if enabled && *phase == GamePhase::Playing {
                             " recharge"
@@ -49,18 +49,18 @@ pub(crate) fn present(
                 String::new()
             };
             let rejection = if modules.rejected_for[i] > 0. {
-                format!(" | Need {:.0} energy", battery_config.activation)
+                format!(" Need {:.0}", battery_config.activation)
             } else {
                 String::new()
             };
             format!(
-                "[{}] {} {state}  {drain:.0}/{:.0}/s{detail}{rejection}",
+                "{} {} {state} {drain:.0}/{:.0}/s{detail}{rejection}",
                 i + 1,
                 kind.name(),
                 config.drain(kind)
             )
         } else {
-            format!("[{}] EMPTY SLOT  0/s", i + 1)
+            format!("{} EMPTY SLOT  0/s", i + 1)
         };
         if text.0 != value {
             text.0 = value;

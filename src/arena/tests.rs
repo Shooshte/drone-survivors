@@ -106,34 +106,82 @@ fn rendered_drone_geometry_fits_the_movement_bounds() {
 }
 
 #[test]
-fn camera_keeps_the_whole_flight_volume_visible_after_resizing() {
-    use bevy::camera::CameraProjection;
-    let mut app = scene_app();
-    let (transform, projection) = app
+fn camera_retains_viewing_scale_when_the_arena_grows_and_window_resizes() {
+    use bevy::camera::{CameraProjection, ScalingMode};
+    let (mut app, _) = test_app();
+    app.world_mut().resource_mut::<Arena>().half_size = Vec3::new(960., 150., 540.);
+    app.init_resource::<Assets<Mesh>>()
+        .init_resource::<Assets<StandardMaterial>>()
+        .add_systems(Update, scene::setup_scene.run_if(run_once));
+    app.update();
+    let projection = app
         .world_mut()
-        .query_filtered::<(&Transform, &Projection), With<Camera3d>>()
+        .query_filtered::<&Projection, With<Camera3d>>()
         .single(app.world())
         .unwrap();
     let Projection::Orthographic(projection) = projection else {
-        panic!("expected orthographic camera")
+        panic!("orthographic camera")
     };
-    let view = transform.to_matrix().inverse();
+    assert!(matches!(
+        projection.scaling_mode,
+        ScalingMode::AutoMin {
+            min_width: 1120.,
+            min_height: 800.
+        }
+    ));
     for (width, height) in [(1120., 720.), (640., 480.), (1600., 480.), (640., 1000.)] {
         let mut projection = projection.clone();
         projection.update(width, height);
-        for x in [-482., 482.] {
-            for y in [-2., 302.] {
-                for z in [-272., 272.] {
-                    let point = view.transform_point3(Vec3::new(x, y, z));
-                    assert!(
-                        projection.area.contains(point.truncate()),
-                        "corner clipped at {width}x{height}: {point:?}"
-                    );
-                    assert!(-point.z >= projection.near && -point.z <= projection.far);
-                }
-            }
-        }
+        let size = projection.area.size();
+        assert!(size.x >= 1119.99 && size.y >= 799.99);
+        assert!((size.x / size.y - width / height).abs() < 0.001);
     }
+}
+
+#[test]
+fn camera_follows_ground_position_freezes_at_choices_and_outcomes_and_snaps_on_restart() {
+    let mut app = scene_app();
+    app.add_plugins(camera::ArenaCameraPlugin);
+    let drone = app
+        .world_mut()
+        .query_filtered::<Entity, With<Drone>>()
+        .single(app.world())
+        .unwrap();
+    let camera = app
+        .world_mut()
+        .query_filtered::<Entity, With<Camera3d>>()
+        .single(app.world())
+        .unwrap();
+    let initial = *app.world().get::<Transform>(camera).unwrap();
+    *app.world_mut().get_mut::<Transform>(drone).unwrap() =
+        Transform::from_xyz(300., 220., -150.).with_rotation(Quat::from_rotation_y(0.7));
+    app.update();
+    let following = *app.world().get::<Transform>(camera).unwrap();
+    near(
+        following.translation,
+        initial.translation + Vec3::new(300., 0., -150.),
+    );
+    assert_eq!(following.rotation, initial.rotation);
+    app.world_mut()
+        .get_mut::<Transform>(drone)
+        .unwrap()
+        .translation
+        .y = 25.;
+    app.update();
+    assert_eq!(*app.world().get::<Transform>(camera).unwrap(), following);
+    for phase in [GamePhase::Choosing, GamePhase::Dead, GamePhase::Survived] {
+        *app.world_mut().resource_mut::<GamePhase>() = phase;
+        app.world_mut()
+            .get_mut::<Transform>(drone)
+            .unwrap()
+            .translation
+            .x = -300.;
+        app.update();
+        assert_eq!(*app.world().get::<Transform>(camera).unwrap(), following);
+    }
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Playing;
+    step(&mut app, &[KeyCode::KeyR], 0.1);
+    assert_eq!(*app.world().get::<Transform>(camera).unwrap(), initial);
 }
 
 #[test]
@@ -545,7 +593,8 @@ fn every_rotated_boundary_removes_only_velocity_into_contact() {
                 for departing in [false, true] {
                     let (mut app, drone) = test_app();
                     let mut p = Vec3::new(0., 150., 0.);
-                    p[axis] = if axis == 1 { 150. } else { 0. } + sign * 1000.;
+                    p[axis] = Arena::default().center()[axis]
+                        + sign * (Arena::default().half_size[axis] + 100.);
                     app.world_mut()
                         .get_mut::<Transform>(drone)
                         .unwrap()
@@ -597,9 +646,9 @@ fn floor_takeoff_ceiling_departure_and_rotation_at_wall_work() {
         .get_mut::<Transform>(drone)
         .unwrap()
         .translation
-        .x = 445.;
+        .x = Arena::default().half_size.x - DRONE_HALF_EXTENTS.x;
     step(&mut app, &[KeyCode::KeyD], 0.375);
-    assert!(position(&app, drone).x < 430.);
+    assert!(position(&app, drone).x < Arena::default().half_size.x - 50.);
     near(state(&app, drone).velocity, Vec3::ZERO);
     step(&mut app, &[KeyCode::KeyQ], 0.25);
     assert!(state(&app, drone).velocity.x < 0.);
@@ -755,4 +804,456 @@ fn scout_reaches_full_tilt_within_one_eighth_second() {
     let (mut app, drone) = test_app();
     step(&mut app, &[KeyCode::KeyW], 0.125);
     assert!((state(&app, drone).tilt.length() - 30_f32.to_radians()).abs() < 0.001);
+}
+
+fn projected_camera(width: f32, height: f32, transform: Transform) -> (Camera, GlobalTransform) {
+    use bevy::camera::{CameraProjection, ComputedCameraValues, RenderTargetInfo, ScalingMode};
+    let mut projection = OrthographicProjection {
+        scaling_mode: ScalingMode::AutoMin {
+            min_width: 1120.,
+            min_height: 800.,
+        },
+        far: 3000.,
+        ..OrthographicProjection::default_3d()
+    };
+    projection.update(width, height);
+    (
+        Camera {
+            computed: ComputedCameraValues {
+                clip_from_view: projection.get_clip_from_view(),
+                target_info: Some(RenderTargetInfo {
+                    physical_size: UVec2::new(width as u32, height as u32),
+                    scale_factor: 1.,
+                }),
+                ..default()
+            },
+            ..default()
+        },
+        GlobalTransform::from(transform),
+    )
+}
+
+#[test]
+fn edge_indicators_use_camera_projection_and_reserve_hud_bands_after_resize() {
+    use camera::IndicatorEdge;
+    let transform =
+        Transform::from_xyz(300., 950., 900.).looking_at(Vec3::new(300., 150., -200.), Vec3::Y);
+    let (tiny, global) = projected_camera(640., 280., transform);
+    assert!(
+        camera::project_indicator(&tiny, &global, Vec3::X * 4000.).is_none(),
+        "hide indicators when no safe label area remains"
+    );
+    for (width, height) in [(1120., 720.), (640., 480.), (1600., 480.), (640., 1000.)] {
+        let (camera, global) = projected_camera(width, height, transform);
+        let (top, bottom) = if width < 800. {
+            (110., 125.)
+        } else {
+            (120., 145.)
+        };
+        assert!(
+            camera::project_indicator(&camera, &global, Vec3::new(300., 150., -200.)).is_none()
+        );
+        for (offset, expected) in [
+            (Vec3::X * 4000., IndicatorEdge::Right),
+            (Vec3::NEG_X * 4000., IndicatorEdge::Left),
+            (Vec3::NEG_Z * 4000., IndicatorEdge::Top),
+            (Vec3::Z * 4000., IndicatorEdge::Bottom),
+        ] {
+            let placement =
+                camera::project_indicator(&camera, &global, Vec3::new(300., 150., -200.) + offset)
+                    .expect("offscreen marker");
+            assert_eq!(placement.edge, expected, "{width}x{height}: {placement:?}");
+            assert!(placement.position.x >= 70. && placement.position.x <= width - 70.);
+            assert!(
+                placement.position.y >= top + 14. && placement.position.y <= height - bottom - 14.
+            );
+        }
+        for offset in [
+            Vec3::new(4000., 0., -4000.),
+            Vec3::new(-4000., 0., -4000.),
+            Vec3::new(4000., 0., 4000.),
+            Vec3::new(-4000., 0., 4000.),
+        ] {
+            let target = Vec3::new(300., 150., -200.) + offset;
+            let placement =
+                camera::project_indicator(&camera, &global, target).expect("diagonal indicator");
+            let ndc: Vec3 = camera.world_to_ndc(&global, target).unwrap();
+            let ray = Vec2::new(ndc.x * width, -ndc.y * height).normalize();
+            let placed = (placement.position - Vec2::new(width / 2., (height + top - bottom) / 2.))
+                .normalize();
+            assert!(
+                ray.distance(placed) < 0.001,
+                "indicator preserves projected direction"
+            );
+        }
+        let placement = camera::project_indicator(
+            &camera,
+            &global,
+            transform.translation + transform.rotation * Vec3::Z * 10.,
+        )
+        .expect("behind-camera target must still have a finite edge marker");
+        assert!(placement.position.is_finite());
+        assert!(camera::project_indicator(&camera, &global, Vec3::NAN).is_none());
+    }
+}
+
+#[test]
+fn edge_labels_follow_live_chargers_aggregate_warnings_and_hide_expired_or_choice_markers() {
+    use crate::{
+        combat::{Encounter, SpawnWarning},
+        energy::ChargingNode,
+    };
+    #[derive(Resource, Default)]
+    struct LabelsAtLayout(usize);
+    fn observe_layout(labels: Query<(&Name, &Node)>, mut count: ResMut<LabelsAtLayout>) {
+        count.0 = labels
+            .iter()
+            .filter(|(name, node)| {
+                name.as_str() == "Navigation edge indicator" && node.display != Display::None
+            })
+            .count();
+    }
+    let mut app = scene_app();
+    app.world_mut().resource_mut::<Arena>().half_size = Vec3::new(960., 150., 540.);
+    app.init_resource::<LabelsAtLayout>()
+        .configure_sets(
+            PostUpdate,
+            (
+                bevy::camera::CameraUpdateSystems,
+                bevy::ui::UiSystems::Prepare,
+                bevy::ui::UiSystems::Layout,
+                bevy::transform::TransformSystems::Propagate,
+            )
+                .chain(),
+        )
+        .add_systems(
+            PostUpdate,
+            observe_layout.in_set(bevy::ui::UiSystems::Layout),
+        );
+    app.insert_resource(Encounter {
+        elapsed: 3.,
+        ..default()
+    })
+    .add_plugins(camera::ArenaCameraPlugin)
+    .add_systems(Update, camera::setup_indicators.run_if(run_once));
+    let camera_entity = app
+        .world_mut()
+        .query_filtered::<Entity, With<Camera3d>>()
+        .single(app.world())
+        .unwrap();
+    let initial = *app.world().get::<Transform>(camera_entity).unwrap();
+    let (camera, global) = projected_camera(640., 480., initial);
+    app.world_mut()
+        .entity_mut(camera_entity)
+        .insert((camera, global));
+    let charger = app
+        .world_mut()
+        .spawn(ChargingNode {
+            center: Vec3::new(-1000., 0., 0.),
+            radius: 90.,
+            height: 160.,
+        })
+        .id();
+    app.world_mut().spawn(ChargingNode {
+        center: Vec3::new(1000., 0., 0.),
+        radius: 90.,
+        height: 160.,
+    });
+    for z in [-100., 100.] {
+        app.world_mut().spawn((
+            SpawnWarning {
+                ready_at: 4.,
+                cancelled: false,
+            },
+            Transform::from_xyz(1200., 90., z),
+        ));
+    }
+    app.world_mut().spawn((
+        SpawnWarning {
+            ready_at: 3.,
+            cancelled: false,
+        },
+        Transform::from_xyz(-1200., 90., 0.),
+    ));
+    app.world_mut().spawn((
+        SpawnWarning {
+            ready_at: 4.,
+            cancelled: true,
+        },
+        Transform::from_xyz(-1200., 90., 0.),
+    ));
+    app.world_mut().spawn((
+        SpawnWarning {
+            ready_at: 4.,
+            cancelled: false,
+        },
+        Transform::from_xyz(0., 90., 0.),
+    ));
+    app.update();
+    let labels = visible_edge_labels(&mut app);
+    assert_eq!(labels.len(), 3, "{labels:?}");
+    assert_eq!(
+        app.world().resource::<LabelsAtLayout>().0,
+        3,
+        "UI layout must see current-frame indicator positions"
+    );
+    assert!(labels.iter().any(|(text, _)| text.contains("LEFT CHARGER")));
+    assert!(
+        labels
+            .iter()
+            .any(|(text, _)| text.contains("RIGHT CHARGER"))
+    );
+    assert!(labels.iter().any(|(text, _)| text.contains("INCOMING x2")));
+    for (_, node) in &labels {
+        let (Val::Px(left), Val::Px(top)) = (node.left, node.top) else {
+            panic!("pixel placement")
+        };
+        assert!(left >= 0. && left + 126. <= 640.);
+        assert!(top >= 110. && top + 28. <= 480. - 125.);
+    }
+    for (i, (_, a)) in labels.iter().enumerate() {
+        for (_, b) in labels.iter().skip(i + 1) {
+            let (Val::Px(ax), Val::Px(ay), Val::Px(bx), Val::Px(by)) =
+                (a.left, a.top, b.left, b.top)
+            else {
+                panic!("pixel placement")
+            };
+            assert!(
+                ax + 126. <= bx || bx + 126. <= ax || ay + 28. <= by || by + 28. <= ay,
+                "labels overlap"
+            );
+        }
+    }
+    app.world_mut()
+        .get_mut::<ChargingNode>(charger)
+        .unwrap()
+        .center
+        .x = -100.;
+    app.update();
+    assert_eq!(
+        visible_edge_labels(&mut app).len(),
+        2,
+        "visible charger hides its label"
+    );
+    let scout = app
+        .world_mut()
+        .query_filtered::<Entity, With<Drone>>()
+        .single(app.world())
+        .unwrap();
+    app.world_mut()
+        .get_mut::<Transform>(scout)
+        .unwrap()
+        .translation
+        .x = 800.;
+    app.update();
+    let followed = visible_edge_labels(&mut app);
+    assert_eq!(
+        followed.len(),
+        2,
+        "current-frame camera follow reprojects live targets"
+    );
+    assert!(
+        followed
+            .iter()
+            .any(|(text, _)| text.contains("LEFT CHARGER"))
+    );
+    assert!(
+        followed
+            .iter()
+            .any(|(text, _)| text.contains("INCOMING x1"))
+    );
+    step(&mut app, &[KeyCode::KeyR], 0.1);
+    assert_eq!(
+        visible_edge_labels(&mut app).len(),
+        2,
+        "restart restores charger and warning projection immediately"
+    );
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Choosing;
+    app.update();
+    assert!(visible_edge_labels(&mut app).is_empty());
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Playing;
+    app.world_mut().resource_mut::<Encounter>().elapsed = 4.;
+    app.update();
+    let labels = visible_edge_labels(&mut app);
+    assert_eq!(labels.len(), 1);
+    assert!(labels[0].0.contains("RIGHT CHARGER"));
+}
+
+fn visible_edge_labels(app: &mut App) -> Vec<(String, Node)> {
+    app.world_mut()
+        .query::<(&Name, &Text, &Node)>()
+        .iter(app.world())
+        .filter(|(name, _, node)| {
+            name.as_str() == "Navigation edge indicator" && node.display != Display::None
+        })
+        .map(|(_, text, node)| (text.0.clone(), node.clone()))
+        .collect()
+}
+
+#[test]
+fn six_named_chargers_and_dense_warning_edges_remain_distinct_without_overlap() {
+    use crate::{
+        combat::{Encounter, SpawnWarning},
+        energy::{ChargingNode, ChargingNodeLabel},
+    };
+    let mut app = scene_app();
+    app.insert_resource(Encounter {
+        elapsed: 3.,
+        ..default()
+    })
+    .add_plugins(camera::ArenaCameraPlugin)
+    .add_systems(Update, camera::setup_indicators.run_if(run_once));
+    let entity = app
+        .world_mut()
+        .query_filtered::<Entity, With<Camera3d>>()
+        .single(app.world())
+        .unwrap();
+    let initial = *app.world().get::<Transform>(entity).unwrap();
+    let (camera, global) = projected_camera(640., 480., initial);
+    app.world_mut().entity_mut(entity).insert((camera, global));
+    for (name, x, z) in [
+        ("LEFT", -4000., 0.),
+        ("RIGHT", 4000., 0.),
+        ("NW", -4000., -4000.),
+        ("NE", 4000., -4000.),
+        ("SW", -4000., 4000.),
+        ("SE", 4000., 4000.),
+    ] {
+        app.world_mut().spawn((
+            ChargingNode {
+                center: Vec3::new(x, 0., z),
+                radius: 90.,
+                height: 160.,
+            },
+            ChargingNodeLabel(name),
+        ));
+    }
+    for position in [
+        Vec3::X * 4000.,
+        Vec3::NEG_X * 4000.,
+        Vec3::Z * 4000.,
+        Vec3::NEG_Z * 4000.,
+    ] {
+        app.world_mut().spawn((
+            SpawnWarning {
+                ready_at: 4.,
+                cancelled: false,
+            },
+            Transform::from_translation(position.with_y(90.)),
+        ));
+    }
+    app.update();
+    let labels = visible_edge_labels(&mut app);
+    assert_eq!(
+        labels.len(),
+        8,
+        "one charger group plus one warning group per edge: {labels:?}"
+    );
+    let charger_text = labels
+        .iter()
+        .filter(|(text, _)| !text.contains("INCOMING"))
+        .map(|(text, _)| text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    for name in ["LEFT", "RIGHT", "NW", "NE", "SW", "SE"] {
+        assert!(charger_text.contains(name), "{charger_text}");
+    }
+    for (i, (_, a)) in labels.iter().enumerate() {
+        let (Val::Px(ax), Val::Px(ay)) = (a.left, a.top) else {
+            panic!("pixel position")
+        };
+        assert!(ax >= 0. && ax + 126. <= 640. && ay >= 110. && ay + 28. <= 365.);
+        for (_, b) in labels.iter().skip(i + 1) {
+            let (Val::Px(bx), Val::Px(by)) = (b.left, b.top) else {
+                panic!("pixel position")
+            };
+            assert!(
+                ax + 126. <= bx || bx + 126. <= ax || ay + 28. <= by || by + 28. <= ay,
+                "edge labels overlap"
+            );
+        }
+    }
+    // All six on one edge still expose every identity within two short lines.
+    let mut query = app.world_mut().query::<&mut ChargingNode>();
+    for mut node in query.iter_mut(app.world_mut()) {
+        node.center = Vec3::new(-4000., 0., 0.);
+    }
+    app.update();
+    let labels = visible_edge_labels(&mut app);
+    let chargers: Vec<_> = labels
+        .iter()
+        .filter(|(text, _)| !text.contains("INCOMING"))
+        .collect();
+    assert_eq!(chargers.len(), 1);
+    assert!(chargers[0].0.lines().count() <= 2);
+    assert!(chargers[0].0.lines().all(|line| line.len() <= 18));
+    for name in ["LEFT", "RIGHT", "NW", "NE", "SW", "SE"] {
+        assert!(chargers[0].0.contains(name));
+    }
+    // The authored six-node placement hides the two visible central chargers
+    // and groups the north/south pairs correctly at both supported resolutions.
+    let mut query = app
+        .world_mut()
+        .query::<(&mut ChargingNode, &ChargingNodeLabel)>();
+    for (mut node, label) in query.iter_mut(app.world_mut()) {
+        node.center = match label.0 {
+            "LEFT" => Vec3::new(-560., 0., 0.),
+            "RIGHT" => Vec3::new(560., 0., 0.),
+            "NW" => Vec3::new(-560., 0., -1080.),
+            "NE" => Vec3::new(560., 0., -1080.),
+            "SW" => Vec3::new(-560., 0., 1080.),
+            "SE" => Vec3::new(560., 0., 1080.),
+            _ => unreachable!(),
+        };
+    }
+    for (width, height) in [(640., 480.), (1120., 720.)] {
+        let (camera, global) = projected_camera(width, height, initial);
+        app.world_mut().entity_mut(entity).insert((camera, global));
+        app.update();
+        let labels = visible_edge_labels(&mut app);
+        let chargers: Vec<_> = labels
+            .iter()
+            .filter(|(text, _)| !text.contains("INCOMING"))
+            .collect();
+        assert_eq!(
+            chargers.len(),
+            2,
+            "north/south groups at {width}x{height}: {chargers:?}"
+        );
+        let north = chargers
+            .iter()
+            .find(|(text, _)| text.starts_with('^'))
+            .unwrap();
+        let south = chargers
+            .iter()
+            .find(|(text, _)| text.starts_with('v'))
+            .unwrap();
+        assert!(north.0.contains("NW") && north.0.contains("NE"));
+        assert!(south.0.contains("SW") && south.0.contains("SE"));
+        assert!(
+            chargers
+                .iter()
+                .all(|(text, _)| !text.contains("LEFT") && !text.contains("RIGHT"))
+        );
+    }
+}
+
+#[test]
+fn bottom_indicators_clear_responsive_footer_at_both_font_sizes() {
+    let transform =
+        Transform::from_xyz(0., 950., 1100.).looking_at(Vec3::new(0., 150., 0.), Vec3::Y);
+    for (width, height, footer_height) in [
+        (640., 480., 114.8),
+        (800., 480., 131.6),
+        (1120., 720., 131.6),
+    ] {
+        let (camera, global) = projected_camera(width, height, transform);
+        let marker =
+            camera::project_indicator(&camera, &global, Vec3::new(0., 150., 4000.)).unwrap();
+        assert_eq!(marker.edge, camera::IndicatorEdge::Bottom);
+        assert!(
+            marker.position.y + 14. <= height - footer_height - 8.,
+            "{width}x{height}: full card must clear the responsive footer with an 8px gap"
+        );
+    }
 }

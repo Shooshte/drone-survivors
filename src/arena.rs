@@ -7,6 +7,7 @@ pub(crate) use flight::{
     DroneFlight, FlightConfig, FlightInput, drone_world_half_extents, world_half_extents,
 };
 
+mod camera;
 mod scene;
 pub use scene::ArenaScenePlugin;
 pub(crate) use scene::{ArenaSceneSetup, FooterFont, HazardFooterSlot, UpgradeFooterSlot};
@@ -28,7 +29,7 @@ pub(crate) struct Arena {
 impl Default for Arena {
     fn default() -> Self {
         Self {
-            half_size: Vec3::new(480., 150., 270.),
+            half_size: Vec3::new(960., 150., 1620.),
         }
     }
 }

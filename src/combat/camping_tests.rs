@@ -2,6 +2,7 @@
 //! `cargo test --locked camping_balance_probe -- --ignored --nocapture`.
 use super::super::waves::SpawnCounts;
 use super::*;
+use crate::world::layout::{CHARGER_X, DETOUR_Z};
 use crate::{
     arena::DroneFlight,
     energy::{ChargerConfig, ChargerReserve, ChargingNode, Energy},
@@ -64,22 +65,10 @@ enum Tactic {
 impl Tactic {
     fn label(self) -> &'static str {
         match self {
-            Self::Camp {
-                x: -280.,
-                shield: false,
-            } => "camp-left-overdrive",
-            Self::Camp {
-                x: 280.,
-                shield: false,
-            } => "camp-right-overdrive",
-            Self::Camp {
-                x: -280.,
-                shield: true,
-            } => "camp-left-overdrive-shield",
-            Self::Camp {
-                x: 280.,
-                shield: true,
-            } => "camp-right-overdrive-shield",
+            Self::Camp { x, shield: false } if x < 0. => "camp-left-overdrive",
+            Self::Camp { x, shield: false } if x > 0. => "camp-right-overdrive",
+            Self::Camp { x, shield: true } if x < 0. => "camp-left-overdrive-shield",
+            Self::Camp { x, shield: true } if x > 0. => "camp-right-overdrive-shield",
             Self::Camp { .. } => "camp",
             Self::Moving => "moving-keyboard-pilot",
             Self::Relay => "alternating-conservation-pilot",
@@ -473,19 +462,19 @@ fn run_case(balance: Balance, tactic: Tactic) -> ResultRow {
 fn camping_balance_probe() {
     let tactics = [
         Tactic::Camp {
-            x: -280.,
+            x: -CHARGER_X,
             shield: false,
         },
         Tactic::Camp {
-            x: 280.,
+            x: CHARGER_X,
             shield: false,
         },
         Tactic::Camp {
-            x: -280.,
+            x: -CHARGER_X,
             shield: true,
         },
         Tactic::Camp {
-            x: 280.,
+            x: CHARGER_X,
             shield: true,
         },
         Tactic::Moving,
@@ -524,6 +513,9 @@ fn reserve_snapshot(app: &mut App) -> [(f64, bool); 2] {
         .query::<(&ChargingNode, &ChargerReserve)>()
         .iter(app.world())
     {
+        if node.center.z != 0. {
+            continue;
+        }
         result[usize::from(node.center.x > 0.)] = (reserve.remaining, reserve.occupied);
     }
     result
@@ -540,12 +532,12 @@ impl RelayPilot {
         // Follow the authored empty-battery detour in both directions. Dwell only
         // to refill, leaving at 90% battery, reserve exhaustion or eight seconds.
         let route = [
-            Vec3::new(-280., 150., 0.),
-            Vec3::new(-280., 150., 195.),
-            Vec3::new(210., 150., 195.),
-            Vec3::new(280., 150., 0.),
-            Vec3::new(210., 150., 195.),
-            Vec3::new(-280., 150., 195.),
+            Vec3::new(-CHARGER_X, 150., 0.),
+            Vec3::new(-CHARGER_X, 150., DETOUR_Z),
+            Vec3::new(crate::world::layout::DETOUR_RIGHT_X, 150., DETOUR_Z),
+            Vec3::new(CHARGER_X, 150., 0.),
+            Vec3::new(crate::world::layout::DETOUR_RIGHT_X, 150., DETOUR_Z),
+            Vec3::new(-CHARGER_X, 150., DETOUR_Z),
         ];
         let point = position(app, drone);
         let flight = app.world().get::<DroneFlight>(drone).unwrap();
@@ -592,19 +584,19 @@ fn charger_depletion_probe() {
     for balance in [Balance::Tuned, Balance::Depleting] {
         for tactic in [
             Tactic::Camp {
-                x: -280.,
+                x: -CHARGER_X,
                 shield: false,
             },
             Tactic::Camp {
-                x: 280.,
+                x: CHARGER_X,
                 shield: false,
             },
             Tactic::Camp {
-                x: -280.,
+                x: -CHARGER_X,
                 shield: true,
             },
             Tactic::Camp {
-                x: 280.,
+                x: CHARGER_X,
                 shield: true,
             },
             Tactic::Relay,
@@ -656,11 +648,11 @@ fn charger_depletion_probe() {
                     "unexpected powered time: {}",
                     row.powered_seconds
                 );
-            } else {
+            } else if tactic != Tactic::Relay {
                 assert_eq!(
                     row.phase,
                     GamePhase::Survived,
-                    "control camps and relay must survive: {balance:?} {tactic:?}"
+                    "unlimited control camps must survive: {balance:?} {tactic:?}"
                 );
                 assert!((row.active_seconds - WaveConfig::default().duration).abs() < 1e-5);
                 assert!(row.hull > 0);

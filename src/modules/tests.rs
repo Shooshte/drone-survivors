@@ -60,7 +60,11 @@ fn every_slot_handles_threshold_held_input_and_depletion() {
         step(&mut app, 2., &[]);
         assert_eq!(app.world().resource::<Energy>().current, 0.);
         assert_eq!(app.world().resource::<Modules>().enabled, [false; 4]);
-        at(&mut app, drone, Vec3::new(-280., 90., 0.));
+        at(
+            &mut app,
+            drone,
+            Vec3::new(-crate::world::layout::CHARGER_X, 90., 0.),
+        );
         step(&mut app, 1., &[]);
         assert_eq!(app.world().resource::<Modules>().enabled, [false; 4]);
     }
