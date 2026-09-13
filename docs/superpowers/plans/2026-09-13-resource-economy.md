@@ -49,7 +49,7 @@ Files: `src/economy/scene.rs`, `src/mission/scene.rs`, `src/mission/validation.r
 - [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`.
 - [x] Review with requesting-code-review subagent while performing native verification. Fix findings with focused regressions and verify affected checks.
 - [x] Record actual evidence/limitations in `docs/playtests.md` and an issue-specific playtest report; commit.
-- Delivery: latest main rechecked (0 upstream commits missing); push this branch and open the PR against main after the evidence commit. Preserve the worktree.
+- [x] Latest main rechecked (0 upstream commits missing), branch pushed, and [PR #18](https://github.com/Shooshte/drone-survivors/pull/18) opened against main. Worktree preserved.
 
 ## Progress
 

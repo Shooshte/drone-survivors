@@ -23,4 +23,3 @@ MISSION UI FIXTURE failure: phase=Dead, results=2, elapsed=1.992, unbanked=Amoun
 MISSION UI FIXTURE hub-history: phase=Hub, results=2, elapsed=1.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
 MISSION UI FIXTURE relaunch: phase=Playing, results=2, elapsed=0.992, unbanked=Amounts { salvage: 0, components: 0 }, bank=Amounts { salvage: 30, components: 4 }
 MISSION UI FIXTURE PASS: choice restart, success, failure, final relaunch; history=2, prior success retained
-
