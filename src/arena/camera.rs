@@ -1,7 +1,7 @@
 use super::Drone;
 use crate::{
     combat::{Encounter, SpawnWarning},
-    energy::ChargingNode,
+    energy::{ChargingNode, ChargingNodeLabel, charging_node_name},
     game::{GamePhase, GameplaySet},
 };
 use bevy::{camera::CameraUpdateSystems, prelude::*, ui::UiSystems};
@@ -72,7 +72,7 @@ fn indicator_bounds(viewport: Rect) -> Option<Rect> {
         min: viewport.min + Vec2::new(70., 124.),
         max: viewport.max - Vec2::new(70., 129.),
     };
-    // Leave enough room for two chargers and one grouped warning on an edge.
+    // Leave enough room for one charger group and one warning group on an edge.
     bounds
         .size()
         .cmpge(Vec2::new(268., 136.))
@@ -119,20 +119,17 @@ pub(super) fn project_indicator(
 
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
 enum IndicatorKind {
-    ChargerLeft,
-    ChargerRight,
+    Charger(IndicatorEdge),
     Incoming(IndicatorEdge),
 }
 
 pub(super) fn setup_indicators(mut commands: Commands) {
-    let kinds = [IndicatorKind::ChargerLeft, IndicatorKind::ChargerRight]
+    let kinds = IndicatorEdge::ALL
+        .map(IndicatorKind::Charger)
         .into_iter()
         .chain(IndicatorEdge::ALL.map(IndicatorKind::Incoming));
     for kind in kinds {
-        let charger = matches!(
-            kind,
-            IndicatorKind::ChargerLeft | IndicatorKind::ChargerRight
-        );
+        let charger = matches!(kind, IndicatorKind::Charger(_));
         commands.spawn((
             Name::new("Navigation edge indicator"),
             kind,
@@ -161,6 +158,28 @@ struct Label {
     kind: IndicatorKind,
     text: String,
     placement: IndicatorPlacement,
+    compact: bool,
+}
+
+fn charger_group_text(edge: IndicatorEdge, names: &[&str]) -> String {
+    if names.len() == 1 {
+        return format!("{} {} CHARGER", edge.arrow(), names[0]);
+    }
+    let mut result = format!("{} CHG ", edge.arrow());
+    let mut line_len = result.len();
+    for (index, name) in names.iter().enumerate() {
+        let separator = usize::from(index > 0);
+        if line_len + separator + name.len() > 18 {
+            result.push('\n');
+            line_len = 0;
+        } else if index > 0 {
+            result.push('/');
+            line_len += 1;
+        }
+        result.push_str(name);
+        line_len += name.len();
+    }
+    result
 }
 
 // Preserve projection direction while separating labels on each edge. Side
@@ -204,9 +223,9 @@ fn update_indicators(
     phase: Res<GamePhase>,
     camera: Single<(&Camera, &Transform), With<ArenaCamera>>,
     run: Option<Res<Encounter>>,
-    chargers: Query<&ChargingNode>,
+    chargers: Query<(&ChargingNode, Option<&ChargingNodeLabel>)>,
     warnings: Query<(&SpawnWarning, &Transform)>,
-    mut indicators: Query<(&IndicatorKind, &mut Text, &mut Node)>,
+    mut indicators: Query<(&IndicatorKind, &mut Text, &mut Node, &mut TextFont)>,
 ) {
     let (camera, transform) = *camera;
     // This camera is an unparented scene root. Its current transform is ready
@@ -217,24 +236,29 @@ fn update_indicators(
     if *phase == GamePhase::Playing
         && let Some(bounds) = bounds
     {
-        // Query the actual authored charging nodes; layout changes flow through.
-        let mut nodes: Vec<_> = chargers.iter().collect();
-        nodes.sort_by(|a, b| a.center.x.total_cmp(&b.center.x));
-        for (node, kind, name) in [
-            (nodes.first(), IndicatorKind::ChargerLeft, "LEFT CHARGER"),
-            (
-                nodes.last().filter(|_| nodes.len() > 1),
-                IndicatorKind::ChargerRight,
-                "RIGHT CHARGER",
-            ),
-        ] {
-            if let Some(node) = node
-                && let Some(placement) = project_indicator(camera, &transform, node.center)
-            {
+        // Every live node contributes its shared identity to its projected edge.
+        for edge in IndicatorEdge::ALL {
+            let mut projected: Vec<_> = chargers
+                .iter()
+                .filter_map(|(node, label)| {
+                    project_indicator(camera, &transform, node.center)
+                        .filter(|placement| placement.edge == edge)
+                        .map(|placement| (charging_node_name(node, label), placement))
+                })
+                .collect();
+            projected.sort_by(|a, b| a.0.cmp(b.0));
+            if !projected.is_empty() {
+                let position = projected
+                    .iter()
+                    .map(|(_, placement)| placement.position)
+                    .sum::<Vec2>()
+                    / projected.len() as f32;
+                let names: Vec<_> = projected.iter().map(|(name, _)| *name).collect();
                 labels.push(Label {
-                    kind,
-                    text: format!("{} {name}", placement.edge.arrow()),
-                    placement,
+                    kind: IndicatorKind::Charger(edge),
+                    text: charger_group_text(edge, &names),
+                    placement: IndicatorPlacement { position, edge },
+                    compact: names.len() > 1,
                 });
             }
         }
@@ -257,15 +281,18 @@ fn update_indicators(
                         kind: IndicatorKind::Incoming(edge),
                         text: format!("{} INCOMING x{}", edge.arrow(), placements.len()),
                         placement: IndicatorPlacement { position, edge },
+                        compact: false,
                     });
                 }
             }
         }
         separate_labels(&mut labels, bounds);
     }
-    for (kind, mut text, mut node) in &mut indicators {
+    for (kind, mut text, mut node, mut font) in &mut indicators {
         if let Some(label) = labels.iter().find(|label| label.kind == *kind) {
             node.display = Display::Flex;
+            font.font_size = bevy::text::FontSize::Px(if label.compact { 10. } else { 11. });
+            node.padding.top = px(if label.compact { 2. } else { 6. });
             node.left = px(label.placement.position.x - 63.);
             node.top = px(label.placement.position.y - 14.);
             if text.0 != label.text {

@@ -1081,3 +1081,151 @@ fn visible_edge_labels(app: &mut App) -> Vec<(String, Node)> {
         .map(|(_, text, node)| (text.0.clone(), node.clone()))
         .collect()
 }
+
+#[test]
+fn six_named_chargers_and_dense_warning_edges_remain_distinct_without_overlap() {
+    use crate::{
+        combat::{Encounter, SpawnWarning},
+        energy::{ChargingNode, ChargingNodeLabel},
+    };
+    let mut app = scene_app();
+    app.insert_resource(Encounter {
+        elapsed: 3.,
+        ..default()
+    })
+    .add_plugins(camera::ArenaCameraPlugin)
+    .add_systems(Update, camera::setup_indicators.run_if(run_once));
+    let entity = app
+        .world_mut()
+        .query_filtered::<Entity, With<Camera3d>>()
+        .single(app.world())
+        .unwrap();
+    let initial = *app.world().get::<Transform>(entity).unwrap();
+    let (camera, global) = projected_camera(640., 480., initial);
+    app.world_mut().entity_mut(entity).insert((camera, global));
+    for (name, x, z) in [
+        ("LEFT", -4000., 0.),
+        ("RIGHT", 4000., 0.),
+        ("NW", -4000., -4000.),
+        ("NE", 4000., -4000.),
+        ("SW", -4000., 4000.),
+        ("SE", 4000., 4000.),
+    ] {
+        app.world_mut().spawn((
+            ChargingNode {
+                center: Vec3::new(x, 0., z),
+                radius: 90.,
+                height: 160.,
+            },
+            ChargingNodeLabel(name),
+        ));
+    }
+    for position in [
+        Vec3::X * 4000.,
+        Vec3::NEG_X * 4000.,
+        Vec3::Z * 4000.,
+        Vec3::NEG_Z * 4000.,
+    ] {
+        app.world_mut().spawn((
+            SpawnWarning {
+                ready_at: 4.,
+                cancelled: false,
+            },
+            Transform::from_translation(position.with_y(90.)),
+        ));
+    }
+    app.update();
+    let labels = visible_edge_labels(&mut app);
+    assert_eq!(
+        labels.len(),
+        8,
+        "one charger group plus one warning group per edge: {labels:?}"
+    );
+    let charger_text = labels
+        .iter()
+        .filter(|(text, _)| !text.contains("INCOMING"))
+        .map(|(text, _)| text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    for name in ["LEFT", "RIGHT", "NW", "NE", "SW", "SE"] {
+        assert!(charger_text.contains(name), "{charger_text}");
+    }
+    for (i, (_, a)) in labels.iter().enumerate() {
+        let (Val::Px(ax), Val::Px(ay)) = (a.left, a.top) else {
+            panic!("pixel position")
+        };
+        assert!(ax >= 0. && ax + 126. <= 640. && ay >= 110. && ay + 28. <= 365.);
+        for (_, b) in labels.iter().skip(i + 1) {
+            let (Val::Px(bx), Val::Px(by)) = (b.left, b.top) else {
+                panic!("pixel position")
+            };
+            assert!(
+                ax + 126. <= bx || bx + 126. <= ax || ay + 28. <= by || by + 28. <= ay,
+                "edge labels overlap"
+            );
+        }
+    }
+    // All six on one edge still expose every identity within two short lines.
+    let mut query = app.world_mut().query::<&mut ChargingNode>();
+    for mut node in query.iter_mut(app.world_mut()) {
+        node.center = Vec3::new(-4000., 0., 0.);
+    }
+    app.update();
+    let labels = visible_edge_labels(&mut app);
+    let chargers: Vec<_> = labels
+        .iter()
+        .filter(|(text, _)| !text.contains("INCOMING"))
+        .collect();
+    assert_eq!(chargers.len(), 1);
+    assert!(chargers[0].0.lines().count() <= 2);
+    assert!(chargers[0].0.lines().all(|line| line.len() <= 18));
+    for name in ["LEFT", "RIGHT", "NW", "NE", "SW", "SE"] {
+        assert!(chargers[0].0.contains(name));
+    }
+    // The authored six-node placement hides the two visible central chargers
+    // and groups the north/south pairs correctly at both supported resolutions.
+    let mut query = app
+        .world_mut()
+        .query::<(&mut ChargingNode, &ChargingNodeLabel)>();
+    for (mut node, label) in query.iter_mut(app.world_mut()) {
+        node.center = match label.0 {
+            "LEFT" => Vec3::new(-560., 0., 0.),
+            "RIGHT" => Vec3::new(560., 0., 0.),
+            "NW" => Vec3::new(-560., 0., -1080.),
+            "NE" => Vec3::new(560., 0., -1080.),
+            "SW" => Vec3::new(-560., 0., 1080.),
+            "SE" => Vec3::new(560., 0., 1080.),
+            _ => unreachable!(),
+        };
+    }
+    for (width, height) in [(640., 480.), (1120., 720.)] {
+        let (camera, global) = projected_camera(width, height, initial);
+        app.world_mut().entity_mut(entity).insert((camera, global));
+        app.update();
+        let labels = visible_edge_labels(&mut app);
+        let chargers: Vec<_> = labels
+            .iter()
+            .filter(|(text, _)| !text.contains("INCOMING"))
+            .collect();
+        assert_eq!(
+            chargers.len(),
+            2,
+            "north/south groups at {width}x{height}: {chargers:?}"
+        );
+        let north = chargers
+            .iter()
+            .find(|(text, _)| text.starts_with('^'))
+            .unwrap();
+        let south = chargers
+            .iter()
+            .find(|(text, _)| text.starts_with('v'))
+            .unwrap();
+        assert!(north.0.contains("NW") && north.0.contains("NE"));
+        assert!(south.0.contains("SW") && south.0.contains("SE"));
+        assert!(
+            chargers
+                .iter()
+                .all(|(text, _)| !text.contains("LEFT") && !text.contains("RIGHT"))
+        );
+    }
+}

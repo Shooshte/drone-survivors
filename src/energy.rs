@@ -66,6 +66,26 @@ pub(crate) struct ChargingNode {
     pub height: f32,
 }
 
+#[derive(Component, Clone, Copy)]
+pub(crate) struct ChargingNodeLabel(pub &'static str);
+
+pub(crate) fn charging_node_name(
+    node: &ChargingNode,
+    label: Option<&ChargingNodeLabel>,
+) -> &'static str {
+    if let Some(label) = label {
+        return label.0;
+    }
+    match (node.center.x < 0., node.center.z.total_cmp(&0.)) {
+        (true, std::cmp::Ordering::Less) => "NW",
+        (false, std::cmp::Ordering::Less) => "NE",
+        (true, std::cmp::Ordering::Greater) => "SW",
+        (false, std::cmp::Ordering::Greater) => "SE",
+        (true, _) => "LEFT",
+        (false, _) => "RIGHT",
+    }
+}
+
 #[derive(Component, Clone, Copy, Debug)]
 pub(crate) struct ChargerReserve {
     pub remaining: f64,

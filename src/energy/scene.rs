@@ -54,7 +54,12 @@ fn setup_scene(
         .iter()
         .map(|(entity, node)| (entity, *node))
         .collect::<Vec<_>>();
-    chargers.sort_by(|a, b| a.1.center.x.total_cmp(&b.1.center.x));
+    chargers.sort_by(|a, b| {
+        a.1.center
+            .x
+            .total_cmp(&b.1.center.x)
+            .then(a.1.center.z.total_cmp(&b.1.center.z))
+    });
     let idle = materials.add(StandardMaterial {
         base_color: Color::srgba(0.1, 0.8, 0.85, 0.055),
         alpha_mode: AlphaMode::Blend,
@@ -194,30 +199,32 @@ fn setup_scene(
                         BackgroundColor(Color::srgb(0.2, 0.9, 0.75)),
                     ));
                 });
-            parent
-                .spawn(Node {
-                    width: percent(100),
-                    column_gap: px(12),
-                    ..default()
-                })
-                .with_children(|row| {
-                    for (entity, _) in &chargers {
-                        row.spawn((
-                            ChargerHud(*entity),
-                            Text::default(),
-                            crate::arena::FooterFont::new(14., 12.),
-                            TextFont::from_font_size(14.),
-                            TextColor(Color::srgb(0.75, 0.96, 0.9)),
-                            TextLayout::new(Justify::Left, LineBreak::WordBoundary),
-                            Node {
-                                flex_grow: 1.,
-                                flex_basis: px(0),
-                                min_width: px(0),
-                                ..default()
-                            },
-                        ));
-                    }
-                });
+            for group in chargers.chunks(3) {
+                parent
+                    .spawn(Node {
+                        width: percent(100),
+                        column_gap: px(12),
+                        ..default()
+                    })
+                    .with_children(|row| {
+                        for (entity, _) in group {
+                            row.spawn((
+                                ChargerHud(*entity),
+                                Text::default(),
+                                crate::arena::FooterFont::new(12., 11.),
+                                TextFont::from_font_size(12.),
+                                TextColor(Color::srgb(0.75, 0.96, 0.9)),
+                                TextLayout::new(Justify::Left, LineBreak::NoWrap),
+                                Node {
+                                    flex_grow: 1.,
+                                    flex_basis: px(0),
+                                    min_width: px(0),
+                                    ..default()
+                                },
+                            ));
+                        }
+                    });
+            }
         })
         .id();
     commands.entity(*hud_root).add_child(panel);
@@ -250,14 +257,10 @@ fn setup_scene(
     });
 }
 
-fn charger_label(center: Vec3) -> &'static str {
-    if center.x < 0. { "LEFT" } else { "RIGHT" }
-}
-
 fn charger_status(reserve: &ChargerReserve, config: &ChargerConfig, active: bool) -> String {
     let status = if reserve.occupied {
         if reserve.remaining <= 0. {
-            "DEPLETED; LEAVE TO RECOVER".to_string()
+            "EMPTY; EXIT".to_string()
         } else {
             "IN USE".to_string()
         }
@@ -265,16 +268,16 @@ fn charger_status(reserve: &ChargerReserve, config: &ChargerConfig, active: bool
         "READY".to_string()
     } else if reserve.away_seconds < config.recovery_delay {
         format!(
-            "RECOVER IN {:.0}s",
+            "REC IN {:.0}s",
             (config.recovery_delay - reserve.away_seconds).ceil()
         )
     } else {
-        "RECOVERING".to_string()
+        format!("REC +{:.0}/s", config.recovery_rate)
     };
     if active {
         status
     } else {
-        format!("{status} / PAUSED")
+        format!("{status} PAUSE")
     }
 }
 
@@ -290,7 +293,7 @@ fn present(
     mut hud: Single<&mut Text, (With<EnergyHud>, Without<ChargerHud>)>,
     mut fill: Single<(&mut Node, &mut BackgroundColor), With<EnergyFill>>,
     mut fields: Query<(&FieldVisual, &mut MeshMaterial3d<StandardMaterial>)>,
-    chargers: Query<(&ChargingNode, &ChargerReserve)>,
+    chargers: Query<(&ChargingNode, &ChargerReserve, Option<&ChargingNodeLabel>)>,
     mut charger_hud: Query<(&ChargerHud, &mut Text, &mut TextColor), Without<EnergyHud>>,
     mut world_fill: Query<(&WorldReserveFill, &mut Transform)>,
 ) {
@@ -309,7 +312,7 @@ fn present(
         format!("DRAINING -{drain:.0}/s")
     } else if chargers
         .iter()
-        .any(|(_, reserve)| reserve.occupied && reserve.remaining <= 0.)
+        .any(|(_, reserve, _)| reserve.occupied && reserve.remaining <= 0.)
     {
         "CHARGER DEPLETED | LEAVE FIELD TO RECOVER".to_string()
     } else {
@@ -342,10 +345,10 @@ fn present(
         }
     }
     for (marker, mut text, mut color) in &mut charger_hud {
-        let Ok((node, reserve)) = chargers.get(marker.0) else {
+        let Ok((node, reserve, label)) = chargers.get(marker.0) else {
             continue;
         };
-        let label = charger_label(node.center);
+        let label = charging_node_name(node, label);
         let value = format!(
             "{label} {:.0}/{:.0} {}",
             reserve.remaining.floor(),
@@ -366,7 +369,7 @@ fn present(
         };
     }
     for (marker, mut transform) in &mut world_fill {
-        let Ok((node, reserve)) = chargers.get(marker.0) else {
+        let Ok((node, reserve, _)) = chargers.get(marker.0) else {
             continue;
         };
         let ratio = if charger_config.capacity > 0. {
@@ -599,7 +602,7 @@ mod tests {
         at(&mut app, drone, Vec3::new(0., 90., 0.));
         step(&mut app, 2., &[]);
         let value = text(&mut app);
-        assert!(value.contains("LEFT 150/200 RECOVER IN 6s"), "{value}");
+        assert!(value.contains("LEFT 150/200 REC IN 6s"), "{value}");
 
         app.world_mut().entity_mut(left).insert(ChargerReserve {
             remaining: 0.,
@@ -613,10 +616,7 @@ mod tests {
         );
         step(&mut app, 0., &[]);
         let value = text(&mut app);
-        assert!(
-            value.contains("LEFT 0/200 DEPLETED; LEAVE TO RECOVER"),
-            "{value}"
-        );
+        assert!(value.contains("LEFT 0/200 EMPTY; EXIT"), "{value}");
         assert!(
             value.contains("CHARGER DEPLETED | LEAVE FIELD TO RECOVER"),
             "{value}"
@@ -631,7 +631,7 @@ mod tests {
         });
         step(&mut app, 1., &[]);
         let value = text(&mut app);
-        assert!(value.contains("LEFT 60/200 RECOVERING"), "{value}");
+        assert!(value.contains("LEFT 60/200 REC +10/s"), "{value}");
 
         app.world_mut().entity_mut(left).insert(ChargerReserve {
             remaining: 60.,
@@ -641,10 +641,7 @@ mod tests {
         *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Choosing;
         step(&mut app, 3., &[]);
         let value = text(&mut app);
-        assert!(
-            value.contains("LEFT 60/200 RECOVER IN 4s / PAUSED"),
-            "{value}"
-        );
+        assert!(value.contains("LEFT 60/200 REC IN 4s PAUSE"), "{value}");
     }
 
     #[test]
@@ -705,5 +702,112 @@ mod tests {
                 .count(),
             8
         );
+    }
+    #[test]
+    fn six_named_chargers_use_two_rows_of_three_with_compact_live_statuses() {
+        fn add_outer_chargers(mut commands: Commands, nodes: Query<(Entity, &ChargingNode)>) {
+            for (entity, node) in &nodes {
+                commands
+                    .entity(entity)
+                    .insert(ChargingNodeLabel(if node.center.x < 0. {
+                        "LEFT"
+                    } else {
+                        "RIGHT"
+                    }));
+            }
+            for (label, x, z) in [
+                ("NW", -560., -1080.),
+                ("NE", 560., -1080.),
+                ("SW", -560., 1080.),
+                ("SE", 560., 1080.),
+            ] {
+                commands.spawn((
+                    ChargingNode {
+                        center: Vec3::new(x, 0., z),
+                        radius: 90.,
+                        height: 160.,
+                    },
+                    ChargingNodeLabel(label),
+                ));
+            }
+        }
+        let mut app = App::new();
+        app.init_resource::<Time>()
+            .init_resource::<ButtonInput<KeyCode>>()
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .add_plugins((
+                crate::arena::ArenaPlugin,
+                crate::combat::CombatPlugin,
+                crate::combat::CombatScenePlugin,
+                EnergyScenePlugin,
+            ))
+            .add_systems(
+                Startup,
+                add_outer_chargers
+                    .after(crate::energy::setup)
+                    .before(setup_scene),
+            );
+        app.world_mut().spawn((ModuleFooterSlot, Node::default()));
+        app.update();
+        let rows: Vec<_> = app
+            .world_mut()
+            .query::<(&ChargerHud, &ChildOf)>()
+            .iter(app.world())
+            .map(|(_, parent)| parent.parent())
+            .collect();
+        assert_eq!(rows.len(), 6);
+        let mut counts = std::collections::HashMap::new();
+        for row in rows {
+            *counts.entry(row).or_insert(0) += 1;
+        }
+        assert_eq!(counts.len(), 2);
+        assert!(counts.values().all(|&count| count == 3));
+        let value = text(&mut app);
+        for name in ["LEFT", "RIGHT", "NW", "NE", "SW", "SE"] {
+            assert!(value.contains(&format!("{name} 200/200 READY")), "{value}");
+        }
+        let ids: Vec<_> = app
+            .world_mut()
+            .query_filtered::<Entity, With<ChargingNode>>()
+            .iter(app.world())
+            .collect();
+        for (index, id) in ids.iter().enumerate() {
+            *app.world_mut().get_mut::<ChargerReserve>(*id).unwrap() = ChargerReserve {
+                remaining: if index == 0 { 0. } else { 50. },
+                away_seconds: if index == 2 { 8. } else { 0. },
+                occupied: index <= 1,
+            };
+        }
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Choosing;
+        app.update();
+        let values: Vec<_> = app
+            .world_mut()
+            .query_filtered::<&Text, With<ChargerHud>>()
+            .iter(app.world())
+            .map(|text| text.0.clone())
+            .collect();
+        assert!(
+            values
+                .iter()
+                .all(|text| text.len() <= 29 && text.contains("PAUSE")),
+            "{values:?}"
+        );
+        let joined = values.join(" ");
+        assert!(joined.contains("EMPTY; EXIT"));
+        assert!(joined.contains("IN USE"));
+        assert!(joined.contains("REC IN 8s"));
+        assert!(joined.contains("REC +10/s"));
+        app.world_mut()
+            .resource_mut::<ChargerConfig>()
+            .recovery_rate = 12.;
+        app.update();
+        assert!(text(&mut app).contains("REC +12/s"));
+        // Shared explicit labels override side inference, including live updates.
+        app.world_mut()
+            .entity_mut(ids[0])
+            .insert(ChargingNodeLabel("CUSTOM"));
+        app.update();
+        assert!(text(&mut app).contains("CUSTOM"));
     }
 }
