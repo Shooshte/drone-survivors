@@ -9,8 +9,8 @@ use crate::{
 };
 use bevy::prelude::*;
 
-#[derive(Resource, Clone)]
-struct Baseline {
+#[derive(Resource, Clone, Default)]
+pub(crate) struct Baseline {
     flight: FlightConfig,
     combat: CombatConfig,
     energy: EnergyConfig,
@@ -18,6 +18,14 @@ struct Baseline {
 }
 
 impl Baseline {
+    pub(crate) fn launch_power(
+        &self,
+        campaign: &crate::mission::Campaign,
+    ) -> (EnergyConfig, ModuleConfig) {
+        let effective = self.for_campaign(Some(campaign));
+        (effective.energy, effective.modules)
+    }
+
     fn for_campaign(&self, campaign: Option<&crate::mission::Campaign>) -> Self {
         let mut effective = self.clone();
         if let Some(campaign) = campaign {
@@ -137,7 +145,11 @@ fn earn(
         || keys.just_pressed(KeyCode::KeyR)
         || matches!(
             *phase,
-            GamePhase::Choosing | GamePhase::Hub | GamePhase::Passives | GamePhase::Briefing
+            GamePhase::Choosing
+                | GamePhase::Hub
+                | GamePhase::Passives
+                | GamePhase::ModuleShop
+                | GamePhase::Briefing
         )
     {
         return;

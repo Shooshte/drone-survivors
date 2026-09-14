@@ -290,7 +290,11 @@ pub(super) fn update(
 ) {
     if matches!(
         *phase,
-        GamePhase::Hub | GamePhase::Passives | GamePhase::Briefing | GamePhase::Choosing
+        GamePhase::Hub
+            | GamePhase::Passives
+            | GamePhase::ModuleShop
+            | GamePhase::Briefing
+            | GamePhase::Choosing
     ) {
         return;
     }

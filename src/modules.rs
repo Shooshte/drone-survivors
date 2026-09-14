@@ -181,6 +181,7 @@ impl Modules {
 }
 
 pub(crate) mod scene;
+pub(crate) mod shop_input;
 pub(crate) mod shop;
 
 #[cfg(test)]
