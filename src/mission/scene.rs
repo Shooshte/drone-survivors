@@ -317,7 +317,7 @@ fn present(
             }).unwrap_or_default(),
             (MenuCopy::Note, GamePhase::Hub) => "Launches and loadout changes are free. Purchased modules and replays persist this session.\nBalances, permanent upgrades and history last until you quit.".into(),
             (MenuCopy::Note, GamePhase::Briefing) => {
-                let instructions = "Loot: gold 100 / purple 50. Success +10 salvage, +1 component; failure keeps 25%.\n1-4 toggle modules; R discards loot and restarts.";
+                let instructions = "Fly close to collect loot. Success +10 salvage, +1 component; failure keeps 25%.\n1-4 toggle modules; R discards loot and restarts.";
                 if session.purchase_feedback.is_empty() {
                     instructions.into()
                 } else {

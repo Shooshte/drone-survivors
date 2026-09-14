@@ -35,7 +35,7 @@ except the dedicated `missions`, `passives`, and `shop` menu fixtures.
 
 ## Module shop and loadout
 
-Choose **Module shop & loadout** in the hub or press **M**. All four existing
+Choose **Module shop / loadout** in the hub or press **M**. All four existing
 modules are available from the start; a purchase unlocks one type for this
 application session. Prices are provisional for later balance playtesting.
 

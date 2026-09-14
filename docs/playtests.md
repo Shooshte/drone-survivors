@@ -1445,3 +1445,19 @@ and restart were verified. Independent code review found no remaining issues.
 The fixed no-module encounter produced 2 base versus 5 upgraded kills in 12 seconds;
 contact hull loss was 60 versus 20. Balance values remain provisional and disk
 persistence is downstream. [Full evidence and captures](playtests/dro-15-passive-tree.md).
+
+## DRO-16 — Module shop and loadout (September 14)
+
+Added session module ownership, atomic purchases at the agreed provisional prices,
+free assignment/removal across all four slots, and actual loadout/energy previews
+before launch. New campaigns start empty; basic shooting and flight remain free.
+Launch snapshots equipment, R preserves it, and ownership survives results/replay.
+
+Formatting and strict all-target Clippy pass; 323 tests pass with four existing
+diagnostics ignored. Native purchase/edit/launch fixtures pass at 1120×720 and
+640×480 with button-label geometry checks and inspected screenshots. Ordinary
+mouse/keyboard play verified rejection paths, empty launch, natural automatic
+fire/XP progression and empty-loadout restart. Prices remain provisional for
+later balance playtesting; disk persistence remains DRO-18.
+
+[Full evidence, captures and limitations](playtests/dro-16-module-shop.md).
