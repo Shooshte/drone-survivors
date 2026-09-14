@@ -56,6 +56,7 @@ pub(crate) enum ValidationMode {
     Choices,
     Missions,
     Passives,
+    Shop,
 }
 
 #[derive(Resource, Clone, Copy, Debug)]
@@ -115,9 +116,10 @@ impl ValidationConfig {
                         "choices" => ValidationMode::Choices,
                         "missions" => ValidationMode::Missions,
                         "passives" => ValidationMode::Passives,
+                        "shop" => ValidationMode::Shop,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, or passives"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, or shop"
                                     .into(),
                             );
                         }
@@ -156,6 +158,7 @@ impl ValidationConfig {
                 ValidationMode::Stress => 30.,
                 ValidationMode::Missions => 36.,
                 ValidationMode::Passives => 40.,
+                ValidationMode::Shop => 40.,
                 ValidationMode::Choices | ValidationMode::Chargers => 60.,
                 _ => 305.,
             }),
@@ -165,6 +168,10 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    if config.mode == ValidationMode::Shop {
+        crate::modules::shop_validation::install(app, config.seconds);
+        return;
+    }
     if config.mode == ValidationMode::Passives {
         crate::passives::validation::install(app, config.seconds);
         return;
@@ -361,6 +368,7 @@ fn validation_choice_input(
         ValidationMode::Choices
         | ValidationMode::Manual
         | ValidationMode::Missions
+        | ValidationMode::Shop
         | ValidationMode::Passives => {
             unreachable!()
         }

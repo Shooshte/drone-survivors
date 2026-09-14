@@ -75,10 +75,10 @@ impl ModuleInventory {
         if slot >= self.loadout.slots().len() {
             return Err(ShopError::InvalidSlot(slot));
         }
-        if let Some(kind) = kind {
-            if !self.owns(kind) {
-                return Err(ShopError::NotOwned(kind));
-            }
+        if let Some(kind) = kind
+            && !self.owns(kind)
+        {
+            return Err(ShopError::NotOwned(kind));
         }
 
         let mut slots = *self.loadout.slots();

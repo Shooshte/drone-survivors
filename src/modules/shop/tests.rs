@@ -1,4 +1,4 @@
-use super::{price, ModuleInventory, ShopError};
+use super::{ModuleInventory, ShopError, price};
 use crate::{economy::Amounts, modules::ModuleKind};
 
 fn amounts(salvage: u64, components: u64) -> Amounts {
@@ -20,9 +20,11 @@ fn catalog_prices_match_the_provisional_balance() {
 fn new_inventory_has_no_owned_modules_and_four_empty_slots() {
     let inventory = ModuleInventory::default();
 
-    assert!(ModuleKind::ALL
-        .into_iter()
-        .all(|kind| !inventory.owns(kind)));
+    assert!(
+        ModuleKind::ALL
+            .into_iter()
+            .all(|kind| !inventory.owns(kind))
+    );
     assert_eq!(inventory.loadout().slots(), &[None, None, None, None]);
     assert_eq!(inventory.validate(), Ok(()));
 }

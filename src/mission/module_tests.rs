@@ -253,3 +253,65 @@ fn shop_does_not_award_stale_xp_or_advance_wave_state() {
         before
     );
 }
+
+#[test]
+fn launch_preview_ignores_stale_attempt_tuning_and_matches_permanent_launch_values() {
+    use crate::{
+        energy::{ChargerConfig, EnergyConfig},
+        modules::{ModuleConfig, ModuleKind, shop_preview::potential_power},
+        passives::NodeId,
+        upgrades::runtime::Baseline,
+    };
+    let mut app = app();
+    {
+        let mut campaign = app.world_mut().resource_mut::<Campaign>();
+        campaign.wallet = crate::economy::Amounts {
+            salvage: 500,
+            components: 10,
+        };
+        let Campaign {
+            inventory,
+            wallet,
+            passives,
+            ..
+        } = &mut *campaign;
+        for (slot, kind) in ModuleKind::ALL.into_iter().enumerate() {
+            inventory.purchase(kind, wallet).unwrap();
+            inventory.assign(slot, Some(kind)).unwrap();
+        }
+        for node in [NodeId::Battery, NodeId::Reserve, NodeId::Charging] {
+            passives.purchase(node, wallet).unwrap();
+        }
+    }
+    // Dirty tuning left by an old attempt must not be used for the next launch.
+    app.world_mut().resource_mut::<EnergyConfig>().capacity = 75.;
+    app.world_mut().resource_mut::<EnergyConfig>().recharge = 7.;
+    app.world_mut().resource_mut::<ModuleConfig>().drains = [1.; 4];
+    let preview = potential_power(
+        app.world().resource::<Baseline>(),
+        app.world().resource::<Campaign>(),
+        app.world().resource::<ChargerConfig>(),
+    );
+    assert_eq!(preview.battery_capacity, 120.);
+    assert_eq!(preview.potential_drain, 36.);
+    assert_eq!(preview.charger_supply, 30.);
+    assert_eq!(preview.net_rate, -6.);
+    launch(&mut app);
+    assert_eq!(
+        app.world().resource::<EnergyConfig>().capacity,
+        preview.battery_capacity
+    );
+    assert_eq!(
+        app.world().resource::<EnergyConfig>().recharge,
+        preview.charger_supply
+    );
+    let modules = app.world().resource::<Modules>();
+    let drain: f64 = modules
+        .loadout
+        .slots()
+        .iter()
+        .flatten()
+        .map(|kind| app.world().resource::<ModuleConfig>().drain(*kind))
+        .sum();
+    assert_eq!(drain, preview.potential_drain);
+}

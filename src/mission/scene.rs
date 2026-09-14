@@ -1,6 +1,11 @@
 //! Session menus over the reusable arena scene.
 use super::{Campaign, MissionAction, MissionSession};
-use crate::game::{GamePhase, GameplaySet};
+use crate::{
+    energy::ChargerConfig,
+    game::{GamePhase, GameplaySet},
+    modules::shop_preview::{loadout_lines, potential_power},
+    upgrades::runtime::Baseline,
+};
 use bevy::prelude::*;
 
 pub(crate) struct MissionScenePlugin;
@@ -35,7 +40,12 @@ enum MenuCopy {
 
 impl Plugin for MissionScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(crate::passives::scene::PassiveScenePlugin)
+        app.init_resource::<Baseline>()
+            .init_resource::<ChargerConfig>()
+            .add_plugins((
+                crate::passives::scene::PassiveScenePlugin,
+                crate::modules::shop_scene::ModuleShopScenePlugin,
+            ))
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -92,7 +102,7 @@ fn setup(mut commands: Commands) {
                         },
                         BackgroundColor(Color::srgb(0.16, 0.29, 0.33)),
                     ));
-                    copy(panel, MenuCopy::Body, 15., SILVER);
+                    copy(panel, MenuCopy::Body, 13., SILVER);
                     copy(panel, MenuCopy::Note, 13., MUTED);
                     panel
                         .spawn((
@@ -130,6 +140,28 @@ fn setup(mut commands: Commands) {
                             ));
                             button.spawn((
                                 Text::new("U"),
+                                TextFont::from_font_size(12.),
+                                TextColor(CYAN),
+                            ));
+                        });
+                    panel
+                        .spawn((
+                            Button,
+                            ShopAction,
+                            MissionAction::ModuleShop,
+                            Name::new("Module shop and loadout"),
+                            button_node(34.),
+                            BackgroundColor(PANEL),
+                            BorderColor::all(CYAN),
+                        ))
+                        .with_children(|button| {
+                            button.spawn((
+                                Text::new("Module shop / loadout"),
+                                TextFont::from_font_size(14.),
+                                TextColor(SILVER),
+                            ));
+                            button.spawn((
+                                Text::new("M"),
                                 TextFont::from_font_size(12.),
                                 TextColor(CYAN),
                             ));
@@ -210,10 +242,13 @@ type MenuVisibility<'w, 's> = Query<
     Or<(With<MissionOverlay>, With<BackAction>, With<ShopAction>)>,
 >;
 
+#[allow(clippy::too_many_arguments)]
 fn present(
     phase: Res<GamePhase>,
     campaign: Res<Campaign>,
     session: Res<MissionSession>,
+    baseline: Res<Baseline>,
+    chargers: Res<ChargerConfig>,
     mut panels: MenuVisibility,
     mut primary: Single<&mut MissionAction, With<PrimaryAction>>,
     mut text: Query<(&MenuCopy, &mut Text, &mut TextColor)>,
@@ -265,7 +300,14 @@ fn present(
                 let status = if campaign.mission_succeeded { "Survival achieved" } else { "Survival not yet achieved" };
                 format!("SURVIVAL / 5:00\n{count} completed {noun} this session / {status}\nBANK  Salvage {}  |  Components {}", campaign.wallet.salvage, campaign.wallet.components)
             },
-            (MenuCopy::Body, GamePhase::Briefing) => "FIXED LOADOUT / SCOUT\n1  Weapon overdrive  |  2  Shield\n3  Mobility          |  4  Rocket launcher".into(),
+            (MenuCopy::Body, GamePhase::Briefing) => {
+                let (_, modules) = baseline.launch_power(&campaign);
+                format!(
+                    "LOADOUT / SCOUT\n{}\n\n{}",
+                    loadout_lines(campaign.inventory.loadout(), &modules),
+                    potential_power(&baseline, &campaign, &chargers).display(),
+                )
+            }
             (MenuCopy::Body, _) => result.map(|r| {
                 let seconds = r.elapsed.floor() as u64;
                 format!("ATTEMPT {}  |  Active time {}:{:02}  |  Kills {}\n\nSALVAGE  {} collected -{} lost +{} bonus\nBanked +{}  |  Balance {}\nCOMPONENTS  {} collected -{} lost +{} bonus\nBanked +{}  |  Balance {}",
@@ -273,8 +315,15 @@ fn present(
                     r.rewards.collected.salvage, r.rewards.lost.salvage, r.rewards.bonus.salvage, r.rewards.credited.salvage, r.rewards.balance.salvage,
                     r.rewards.collected.components, r.rewards.lost.components, r.rewards.bonus.components, r.rewards.credited.components, r.rewards.balance.components)
             }).unwrap_or_default(),
-            (MenuCopy::Note, GamePhase::Hub) => "Launch and equipment are free. Replays earn rewards.\nBalances, permanent upgrades and history last until you quit.".into(),
-            (MenuCopy::Note, GamePhase::Briefing) => "Fly nearby: gold salvage 100 units / purple caches 50 units.\nSuccess: loot +10 salvage, +1 component. Failure: keep 25%.\n1-4 toggle modules; R discards loot and restarts.".into(),
+            (MenuCopy::Note, GamePhase::Hub) => "Launches and loadout changes are free. Purchased modules and replays persist this session.\nBalances, permanent upgrades and history last until you quit.".into(),
+            (MenuCopy::Note, GamePhase::Briefing) => {
+                let instructions = "Loot: gold 100 / purple 50. Success +10 salvage, +1 component; failure keeps 25%.\n1-4 toggle modules; R discards loot and restarts.";
+                if session.purchase_feedback.is_empty() {
+                    instructions.into()
+                } else {
+                    format!("{}\n{instructions}", session.purchase_feedback)
+                }
+            }
             (MenuCopy::Note, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
                 "Balance limit reached: reward could not be banked.\nThe result retains the collection and bonus amounts."
             } else {
@@ -367,6 +416,31 @@ mod tests {
     }
 
     #[test]
+    fn both_hub_shop_actions_hide_outside_the_hub() {
+        let mut app = app();
+        for (phase, shown) in [
+            (GamePhase::Hub, true),
+            (GamePhase::Briefing, false),
+            (GamePhase::Playing, false),
+            (GamePhase::Dead, false),
+        ] {
+            *app.world_mut().resource_mut::<GamePhase>() = phase;
+            app.update();
+            let world = app.world_mut();
+            let actions = world
+                .query_filtered::<&Node, With<ShopAction>>()
+                .iter(world)
+                .collect::<Vec<_>>();
+            assert_eq!(actions.len(), 2);
+            assert!(
+                actions
+                    .iter()
+                    .all(|node| (node.display != Display::None) == shown)
+            );
+        }
+    }
+
+    #[test]
     fn results_use_completed_snapshot_and_hub_preserves_campaign_success() {
         let mut app = app();
         let result = super::super::MissionResult {
@@ -450,5 +524,66 @@ mod tests {
         app.update();
         assert!(all_text(&mut app).contains("Salvage 0"));
         assert!(all_text(&mut app).contains("Components 0"));
+    }
+
+    #[test]
+    fn briefing_uses_campaign_loadout_and_pristine_power_projection() {
+        let mut app = app();
+        {
+            let mut campaign = app.world_mut().resource_mut::<Campaign>();
+            campaign.wallet = crate::economy::Amounts {
+                salvage: 20,
+                components: 0,
+            };
+            let mut wallet = campaign.wallet;
+            campaign
+                .inventory
+                .purchase(crate::modules::ModuleKind::Overdrive, &mut wallet)
+                .unwrap();
+            campaign.wallet = wallet;
+            campaign
+                .inventory
+                .assign(1, Some(crate::modules::ModuleKind::Overdrive))
+                .unwrap();
+        }
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Briefing;
+        app.update();
+        let body = app
+            .world_mut()
+            .query::<(&MenuCopy, &Text)>()
+            .iter(app.world())
+            .find(|(part, _)| matches!(part, MenuCopy::Body))
+            .unwrap()
+            .1
+            .0
+            .clone();
+
+        assert!(body.contains("SLOT 1  EMPTY"));
+        assert!(body.contains("SLOT 2  OVERDRIVE"));
+        assert!(body.contains("BATTERY 100"));
+        assert!(body.contains("ALL-ON DRAIN 10/s"));
+        assert!(body.contains("ALL MODULES START OFF"));
+    }
+
+    #[test]
+    fn briefing_shows_loadout_validation_feedback() {
+        let mut app = app();
+        app.world_mut()
+            .resource_mut::<MissionSession>()
+            .purchase_feedback =
+            "Invalid loadout. Return to the hub and equip owned modules only.".into();
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Briefing;
+        app.update();
+        let note = app
+            .world_mut()
+            .query::<(&MenuCopy, &Text)>()
+            .iter(app.world())
+            .find(|(part, _)| matches!(part, MenuCopy::Note))
+            .unwrap()
+            .1
+            .0
+            .clone();
+
+        assert!(note.contains("Invalid loadout"));
     }
 }

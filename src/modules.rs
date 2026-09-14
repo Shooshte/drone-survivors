@@ -181,8 +181,11 @@ impl Modules {
 }
 
 pub(crate) mod scene;
-pub(crate) mod shop_input;
 pub(crate) mod shop;
+pub(crate) mod shop_input;
+pub(crate) mod shop_preview;
+pub(crate) mod shop_scene;
+pub(crate) mod shop_validation;
 
 #[cfg(test)]
 mod tests;
