@@ -50,6 +50,30 @@ pub(crate) enum PurchaseError {
     InsufficientFunds,
 }
 impl PassiveTree {
+    /// Called only on fresh copies of pristine tuning, before run-local modifiers.
+    pub(crate) fn apply(
+        &self,
+        combat: &mut crate::combat::CombatConfig,
+        energy: &mut crate::energy::EnergyConfig,
+    ) {
+        let increase = |base: u32, node| {
+            ((u64::from(base) * u64::from(100 + self.bonus_percent(node))) / 100)
+                .min(u64::from(u32::MAX)) as u32
+        };
+        let factor = |node| 1. + f64::from(self.bonus_percent(node)) / 100.;
+        combat.shot_damage = increase(combat.shot_damage, NodeId::Damage);
+        combat.player_health = increase(combat.player_health, NodeId::Hull);
+        combat.fire_interval /= factor(NodeId::FireRate);
+        combat.target_range *= factor(NodeId::Range) as f32;
+        combat.projectile_lifetime *= factor(NodeId::Range) as f32;
+        combat.contact_damage = (u64::from(combat.contact_damage)
+            * u64::from(100 - self.bonus_percent(NodeId::Armor)))
+        .div_ceil(100) as u32;
+        combat.invulnerability *= factor(NodeId::Protection);
+        energy.capacity *= factor(NodeId::Battery);
+        energy.recharge *= factor(NodeId::Charging);
+        energy.reserve_cost *= 1. - f64::from(self.bonus_percent(NodeId::Reserve)) / 100.;
+    }
     pub(crate) fn rank(&self, node: NodeId) -> u8 {
         self.ranks[node as usize]
     }
@@ -90,3 +114,6 @@ impl PassiveTree {
 }
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod lifecycle_tests;

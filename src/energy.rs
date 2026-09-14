@@ -16,6 +16,7 @@ pub(crate) struct EnergyConfig {
     pub capacity: f64,
     pub recharge: f64,
     pub activation: f64,
+    pub reserve_cost: f64,
 }
 impl Default for EnergyConfig {
     fn default() -> Self {
@@ -23,6 +24,7 @@ impl Default for EnergyConfig {
             capacity: 100.,
             recharge: 25.,
             activation: 10.,
+            reserve_cost: 1.,
         }
     }
 }
@@ -222,6 +224,7 @@ pub(crate) fn prepare(
         modules_enabled,
         &flow::FlowConfig {
             battery_capacity: config.capacity,
+            reserve_cost: config.reserve_cost,
             delivery_rate: config.recharge,
             charger_capacity: charger_config.capacity,
             recovery_delay: charger_config.recovery_delay,
@@ -256,3 +259,6 @@ pub(crate) fn update(
         }
     }
 }
+
+#[cfg(test)]
+mod efficiency_tests;

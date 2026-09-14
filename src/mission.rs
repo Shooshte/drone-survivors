@@ -25,6 +25,7 @@ pub(crate) struct Campaign {
     pub history: Vec<MissionResult>,
     pub mission_succeeded: bool,
     pub wallet: crate::economy::Amounts,
+    pub passives: crate::passives::PassiveTree,
 }
 #[derive(Resource, Default)]
 pub(crate) struct MissionSession {

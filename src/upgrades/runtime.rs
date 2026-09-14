@@ -17,6 +17,18 @@ struct Baseline {
     modules: ModuleConfig,
 }
 
+impl Baseline {
+    fn for_campaign(&self, campaign: Option<&crate::mission::Campaign>) -> Self {
+        let mut effective = self.clone();
+        if let Some(campaign) = campaign {
+            campaign
+                .passives
+                .apply(&mut effective.combat, &mut effective.energy);
+        }
+        effective
+    }
+}
+
 #[derive(Resource)]
 pub(crate) struct ExplorationPickup {
     pub position: Vec3,
@@ -76,6 +88,7 @@ fn begin_frame(
     keys: Res<ButtonInput<KeyCode>>,
     boundary: Option<Res<crate::game::MissionBoundary>>,
     baseline: Res<Baseline>,
+    campaign: Option<Res<crate::mission::Campaign>>,
     mut run: ResMut<UpgradeRun>,
     mut session: ResMut<ChoiceSession>,
     mut pickup: ResMut<ExplorationPickup>,
@@ -90,6 +103,7 @@ fn begin_frame(
         .as_ref()
         .map_or_else(|| keys.just_pressed(KeyCode::KeyR), |b| b.reset)
     {
+        let baseline = baseline.for_campaign(campaign.as_deref());
         *flight = baseline.flight;
         *combat = baseline.combat.clone();
         *energy = baseline.energy.clone();
@@ -150,14 +164,14 @@ fn earn(
 
 #[allow(clippy::too_many_arguments)]
 fn choose(
-    keys: Res<ButtonInput<KeyCode>>,
-    mouse: Res<ButtonInput<MouseButton>>,
+    input: (Res<ButtonInput<KeyCode>>, Res<ButtonInput<MouseButton>>),
     buttons: Query<(&ChoiceAction, &Interaction), Changed<Interaction>>,
     mut run: ResMut<UpgradeRun>,
     mut session: ResMut<ChoiceSession>,
     phase: Res<GamePhase>,
     mut clock: ResMut<Time<Virtual>>,
     baseline: Res<Baseline>,
+    campaign: Option<Res<crate::mission::Campaign>>,
     mut flight: ResMut<FlightConfig>,
     mut combat: ResMut<CombatConfig>,
     mut energy_config: ResMut<EnergyConfig>,
@@ -167,6 +181,7 @@ fn choose(
     mut modules: ResMut<Modules>,
     mut launcher: ResMut<crate::combat::RocketLauncher>,
 ) {
+    let (keys, mouse) = input;
     if *phase != GamePhase::Choosing || keys.just_pressed(KeyCode::KeyR) || session.resume_pending {
         return;
     }
@@ -206,6 +221,7 @@ fn choose(
         return;
     }
     if index.is_some() {
+        let baseline = baseline.for_campaign(campaign.as_deref());
         let effective = UpgradeModifiers::from_selected(&run.selected);
         let old_hull = combat.player_health;
         let old_recharge = module_config.shield_recharge;

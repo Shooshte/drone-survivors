@@ -10,6 +10,7 @@ pub(super) struct FlowResult {
 
 pub(super) struct FlowConfig {
     pub battery_capacity: f64,
+    pub reserve_cost: f64,
     pub delivery_rate: f64,
     pub charger_capacity: f64,
     pub recovery_delay: f64,
@@ -29,6 +30,7 @@ pub(super) fn advance(
     let dt = dt.max(0.);
     let battery_capacity = config.battery_capacity.max(0.);
     let delivery_rate = config.delivery_rate.max(0.);
+    let reserve_cost = config.reserve_cost.clamp(0.01, 1.);
     let module_drain = module_drain.max(0.);
     let charger_capacity = config.charger_capacity.max(0.);
     let recovery_delay = config.recovery_delay.max(0.);
@@ -73,13 +75,14 @@ pub(super) fn advance(
         } else {
             potential_supply
         };
+        let reserve_rate = supply * reserve_cost;
         let battery_rate = supply - demand;
         let mut span = dt - elapsed;
 
         if let Some(index) = source
             && supply > 0.
         {
-            span = span.min(chargers[index].1.remaining / supply);
+            span = span.min(chargers[index].1.remaining / reserve_rate);
         }
         if battery_rate > 0. && battery < battery_capacity {
             span = span.min((battery_capacity - battery) / battery_rate);
@@ -94,7 +97,8 @@ pub(super) fn advance(
             powered_seconds += span;
         }
         if let Some(index) = source {
-            chargers[index].1.remaining = (chargers[index].1.remaining - supply * span).max(0.);
+            chargers[index].1.remaining =
+                (chargers[index].1.remaining - reserve_rate * span).max(0.);
         }
         battery = (battery + battery_rate * span).clamp(0., battery_capacity);
         elapsed += span;
