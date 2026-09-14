@@ -1427,3 +1427,21 @@ Ordinary mouse/keyboard play collected 1 salvage, naturally failed at 0:37/18 ki
 correctly banked 0 after rounding, returned to a single recorded result and replayed.
 
 [Full evidence, screenshots, placeholder locations and limitations](playtests/dro-14-resource-economy.md).
+
+
+## DRO-15 — Permanent passive tree (September 14)
+
+Added nine distinct, five-rank passive nodes with atomic banked-resource purchases,
+rank-one prerequisites and a hub purchase screen. Permanent effects survive
+mission outcomes and restart; temporary XP bonuses clear without contaminating
+the original tuning. Charger efficiency conserves reserve at power boundaries.
+
+All 298 tests, formatting and strict all-target Clippy pass; four existing
+diagnostics remain ignored. Both native purchase fixtures pass at 640×480 and
+1120×720, including label geometry checks added after finding and fixing a blank
+label defect. Ordinary mouse/keyboard navigation, rejection, launch, module input
+and restart were verified. Independent code review found no remaining issues.
+
+The fixed no-module encounter produced 2 base versus 5 upgraded kills in 12 seconds;
+contact hull loss was 60 versus 20. Balance values remain provisional and disk
+persistence is downstream. [Full evidence and captures](playtests/dro-15-passive-tree.md).
