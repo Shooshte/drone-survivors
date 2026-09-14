@@ -8,7 +8,7 @@ pub(crate) const SLOT_KEYS: [KeyCode; 4] = [
     KeyCode::Digit4,
 ];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum ModuleKind {
     Overdrive,
     Shield,
@@ -16,6 +16,8 @@ pub(crate) enum ModuleKind {
     Rocket,
 }
 impl ModuleKind {
+    pub(crate) const ALL: [Self; 4] = [Self::Overdrive, Self::Shield, Self::Mobility, Self::Rocket];
+
     pub fn name(self) -> &'static str {
         match self {
             Self::Overdrive => "OVERDRIVE",
@@ -179,6 +181,7 @@ impl Modules {
 }
 
 pub(crate) mod scene;
+pub(crate) mod shop;
 
 #[cfg(test)]
 mod tests;
