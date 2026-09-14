@@ -633,3 +633,6 @@ mod mission_lifecycle_tests;
 
 #[path = "economy_tests.rs"]
 mod economy_tests;
+
+#[path = "passive_tests.rs"]
+mod passive_tests;

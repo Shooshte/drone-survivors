@@ -5,6 +5,7 @@ mod energy;
 mod game;
 mod mission;
 mod modules;
+mod passives;
 mod upgrades;
 mod world;
 

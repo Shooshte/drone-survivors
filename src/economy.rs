@@ -29,8 +29,7 @@ impl Amounts {
         };
         Ok(())
     }
-    // Downstream passive/shop purchases share this all-or-nothing transaction.
-    #[allow(dead_code)]
+    // Passive/shop purchases share this all-or-nothing transaction.
     pub(crate) fn try_spend(&mut self, cost: Self) -> Result<(), TransactionError> {
         let salvage = self
             .salvage

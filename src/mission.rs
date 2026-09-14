@@ -6,8 +6,10 @@ use crate::{
     combat::Encounter,
     game::{GamePhase, GameplaySet, MissionBoundary},
 };
-#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum MissionAction {
+    Passives,
+    Purchase(crate::passives::NodeId),
     Briefing,
     Launch,
     Hub,
@@ -25,10 +27,12 @@ pub(crate) struct Campaign {
     pub history: Vec<MissionResult>,
     pub mission_succeeded: bool,
     pub wallet: crate::economy::Amounts,
+    pub passives: crate::passives::PassiveTree,
 }
 #[derive(Resource, Default)]
 pub(crate) struct MissionSession {
     pub result: Option<MissionResult>,
+    pub purchase_feedback: String,
     next_attempt: u64,
     active_attempt: Option<u64>,
     armed: bool,
@@ -63,6 +67,7 @@ fn input(
     buttons: Query<(&MissionAction, Ref<Interaction>)>,
     mut phase: ResMut<GamePhase>,
     mut session: ResMut<MissionSession>,
+    mut campaign: ResMut<Campaign>,
     mut boundary: ResMut<MissionBoundary>,
     mut clock: ResMut<Time<Virtual>>,
 ) {
@@ -74,7 +79,8 @@ fn input(
         return;
     }
     if !session.armed {
-        if !keys.any_pressed([KeyCode::Enter, KeyCode::Backspace])
+        if !keys.any_pressed([KeyCode::Enter, KeyCode::Backspace, KeyCode::KeyU])
+            && !keys.any_pressed(crate::passives::PURCHASE_KEYS)
             && !mouse.pressed(MouseButton::Left)
             && !buttons
                 .iter()
@@ -92,14 +98,58 @@ fn input(
     };
     let action = if keys.just_pressed(KeyCode::Enter) {
         primary
-    } else if keys.just_pressed(KeyCode::Backspace) && *phase == GamePhase::Briefing {
+    } else if keys.just_pressed(KeyCode::KeyU) && *phase == GamePhase::Hub {
+        Some(MissionAction::Passives)
+    } else if keys.just_pressed(KeyCode::Backspace)
+        && matches!(*phase, GamePhase::Briefing | GamePhase::Passives)
+    {
         Some(MissionAction::Hub)
     } else {
-        buttons.iter().find_map(|(action, interaction)| {
-            (interaction.is_changed() && *interaction == Interaction::Pressed).then_some(*action)
+        let purchase_key = (*phase == GamePhase::Passives)
+            .then(|| {
+                crate::passives::PURCHASE_KEYS
+                    .iter()
+                    .position(|key| keys.just_pressed(*key))
+                    .map(|index| MissionAction::Purchase(crate::passives::NodeId::ALL[index]))
+            })
+            .flatten();
+        purchase_key.or_else(|| {
+            buttons
+                .iter()
+                .filter_map(|(action, interaction)| {
+                    (interaction.is_changed() && *interaction == Interaction::Pressed)
+                        .then_some(*action)
+                })
+                .min()
         })
     };
     match (*phase, action) {
+        (GamePhase::Hub, Some(MissionAction::Passives)) => {
+            *phase = GamePhase::Passives;
+            session.armed = false;
+            session.purchase_feedback.clear();
+        }
+        (GamePhase::Passives, Some(MissionAction::Purchase(node))) => {
+            let Campaign {
+                passives, wallet, ..
+            } = &mut *campaign;
+            session.purchase_feedback = match passives.purchase(node, wallet) {
+                Ok(rank) => format!(
+                    "{} rank {rank} purchased. Applies next launch.",
+                    node.name()
+                ),
+                Err(crate::passives::PurchaseError::Locked(previous)) => {
+                    format!("Buy {} rank 1 first.", previous.name())
+                }
+                Err(crate::passives::PurchaseError::Maxed) => {
+                    format!("{} is already at rank 5.", node.name())
+                }
+                Err(crate::passives::PurchaseError::InsufficientFunds) => {
+                    "Not enough banked resources for this rank.".into()
+                }
+            };
+            session.armed = false;
+        }
         (GamePhase::Hub, Some(MissionAction::Briefing)) => {
             *phase = GamePhase::Briefing;
             session.armed = false;
@@ -107,7 +157,10 @@ fn input(
         (GamePhase::Briefing, Some(MissionAction::Launch)) => {
             launch(&mut session, &mut boundary, &mut phase, &mut clock)
         }
-        (GamePhase::Briefing | GamePhase::Dead | GamePhase::Survived, Some(MissionAction::Hub)) => {
+        (
+            GamePhase::Briefing | GamePhase::Passives | GamePhase::Dead | GamePhase::Survived,
+            Some(MissionAction::Hub),
+        ) => {
             *phase = GamePhase::Hub;
             session.armed = false;
             boundary.cleanup = true;

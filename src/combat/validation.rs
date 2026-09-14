@@ -55,6 +55,7 @@ pub(crate) enum ValidationMode {
     Armored,
     Choices,
     Missions,
+    Passives,
 }
 
 #[derive(Resource, Clone, Copy, Debug)]
@@ -97,7 +98,7 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions \
+                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
@@ -113,9 +114,10 @@ impl ValidationConfig {
                         "armored" => ValidationMode::Armored,
                         "choices" => ValidationMode::Choices,
                         "missions" => ValidationMode::Missions,
+                        "passives" => ValidationMode::Passives,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, or missions"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, or passives"
                                     .into(),
                             );
                         }
@@ -153,6 +155,7 @@ impl ValidationConfig {
             seconds: seconds.unwrap_or(match mode {
                 ValidationMode::Stress => 30.,
                 ValidationMode::Missions => 36.,
+                ValidationMode::Passives => 40.,
                 ValidationMode::Choices | ValidationMode::Chargers => 60.,
                 _ => 305.,
             }),
@@ -162,6 +165,10 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    if config.mode == ValidationMode::Passives {
+        crate::passives::validation::install(app, config.seconds);
+        return;
+    }
     if config.mode == ValidationMode::Missions {
         crate::mission::validation::install(app, config.seconds);
         return;
@@ -351,7 +358,10 @@ fn validation_choice_input(
         | ValidationMode::Idle
         | ValidationMode::Routes
         | ValidationMode::Chargers => &[],
-        ValidationMode::Choices | ValidationMode::Manual | ValidationMode::Missions => {
+        ValidationMode::Choices
+        | ValidationMode::Manual
+        | ValidationMode::Missions
+        | ValidationMode::Passives => {
             unreachable!()
         }
     };

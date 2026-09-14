@@ -1,0 +1,40 @@
+dro15-final-tests.log
+
+running 302 tests
+.......................................i..ii.i......................................... 87/302
+....................................................................................... 174/302
+....................................................................................... 261/302
+.........................................
+test result: ok. 298 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 9.20s
+
+
+dro15-native-final-640.log
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-15-passive-tree)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 3.66s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate passives --seconds 45`
+PASSIVE UI FIXTURE: synthetic bank=1500/50, XP/offer and success timer; purchases use normal input rules. Not natural progression or balance evidence.
+PASSIVE UI FIXTURE hub: phase=Res(Hub) bank=Amounts { salvage: 0, components: 0 } battery_rank=0 capacity=100 battery=100
+PASSIVE UI FIXTURE empty: phase=Res(Passives) bank=Amounts { salvage: 0, components: 0 } battery_rank=0 capacity=100 battery=100
+PASSIVE UI FIXTURE purchased: phase=Res(Passives) bank=Amounts { salvage: 1490, components: 50 } battery_rank=1 capacity=100 battery=100
+PASSIVE UI FIXTURE maxed: phase=Res(Passives) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=100 battery=100
+PASSIVE UI FIXTURE launch: phase=Res(Playing) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=200 battery=200
+PASSIVE UI FIXTURE temporary: phase=Res(Playing) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=150 battery=150
+PASSIVE UI FIXTURE restart: phase=Res(Playing) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=200 battery=200
+PASSIVE UI FIXTURE persistent: phase=Res(Passives) bank=Amounts { salvage: 1360, components: 47 } battery_rank=5 capacity=200 battery=200
+PASSIVE UI FIXTURE PASS: locked/empty, mouse purchase, rank 5 cap, launch, temporary stack, restart, success, hub persistence.
+2026-09-14T17:17:56.849056Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(49203036800)
+
+dro15-native-final-1120.log
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.75s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate passives --seconds 45`
+PASSIVE UI FIXTURE: synthetic bank=1500/50, XP/offer and success timer; purchases use normal input rules. Not natural progression or balance evidence.
+PASSIVE UI FIXTURE hub: phase=Res(Hub) bank=Amounts { salvage: 0, components: 0 } battery_rank=0 capacity=100 battery=100
+PASSIVE UI FIXTURE empty: phase=Res(Passives) bank=Amounts { salvage: 0, components: 0 } battery_rank=0 capacity=100 battery=100
+PASSIVE UI FIXTURE purchased: phase=Res(Passives) bank=Amounts { salvage: 1490, components: 50 } battery_rank=1 capacity=100 battery=100
+PASSIVE UI FIXTURE maxed: phase=Res(Passives) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=100 battery=100
+PASSIVE UI FIXTURE launch: phase=Res(Playing) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=200 battery=200
+PASSIVE UI FIXTURE temporary: phase=Res(Playing) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=150 battery=150
+PASSIVE UI FIXTURE restart: phase=Res(Playing) bank=Amounts { salvage: 1350, components: 46 } battery_rank=5 capacity=200 battery=200
+PASSIVE UI FIXTURE persistent: phase=Res(Passives) bank=Amounts { salvage: 1360, components: 47 } battery_rank=5 capacity=200 battery=200
+PASSIVE UI FIXTURE PASS: locked/empty, mouse purchase, rank 5 cap, launch, temporary stack, restart, success, hub persistence.
+2026-09-14T17:18:48.972757Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(54119924352)

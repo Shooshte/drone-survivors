@@ -26,10 +26,58 @@ remain in memory for this application session; quitting clears this history.
 Each launch restores the Scout, battery, chargers, hazard cycle and encounter,
 including all temporary upgrades and pending choices. A restart during combat
 or an upgrade choice starts a fresh attempt without recording a result for the
-interrupted attempt. R does nothing in the hub, briefing or results.
+interrupted attempt. R does nothing in the hub, permanent upgrade screen, briefing or results.
 
 The existing `--validate` modes still enter their combat fixtures directly,
-except the dedicated `missions` menu fixture described below.
+except the dedicated `missions` and `passives` menu fixtures.
+
+## Permanent passive tree
+
+From the hub, choose **Permanent upgrades** or press **U**. Click a node or press
+its number **1–9** to buy one rank with banked resources. **Backspace** returns to
+the hub. Each node has five ranks; the first rank unlocks the next node below it.
+Branches are independent, and there is no respec/refund in this prototype.
+
+| Branch | Node | Bonus per rank / maximum |
+| --- | --- | --- |
+| Offense | Projectile damage | +10% / +50% basic projectile damage |
+| Offense | Fire rate | +10% / +50% basic shots per second |
+| Offense | Targeting range | +10% / +50% target range and projectile lifetime |
+| Resilience | Hull capacity | +20% / +100% maximum hull |
+| Resilience | Contact armor | 10% / 50% less enemy contact damage |
+| Resilience | Post-hit protection | +10% / +50% damage invulnerability duration |
+| Energy efficiency | Battery capacity | +20% / +100% battery capacity |
+| Energy efficiency | Reserve efficiency | 5% / 25% less charger reserve per energy delivered |
+| Energy efficiency | Charging speed | +20% / +100% energy delivered per second |
+
+Rank 1–5 costs are **10/20/30/40/50 salvage** and **0/0/1/1/2 components** for
+every node. Costs and balance values are provisional. The screen shows current
+and next bonuses, price, prerequisite, and affordability. A fresh press purchases
+one rank; insufficient funds, locked nodes, and maxed nodes leave the bank intact.
+
+Bonuses add against the original base value: five battery ranks mean 200 capacity,
+not five compounded increases. Fire rate divides the firing interval by its rate
+multiplier. Integer damage/hull increases round down; contact damage rounds up,
+so armor does not erase a small nonzero hit. Armor affects enemy contact only;
+post-hit protection extends the existing shared window for contacts, hazards and
+shield blocks. Charger reserve efficiency also covers power supplied to running
+modules, without changing battery drain or charger recovery.
+
+Purchases apply on the next launch and survive completed missions and R restarts
+within this application session. Temporary XP effects layer on top and clear on
+restart: a full battery tree plus Interceptor gives 150 capacity during that
+attempt, returning to 200 on restart. Quitting clears the campaign, including
+purchased ranks; disk saves remain a later chunk. All nine passives work without
+requiring a particular equipped module.
+
+Native purchase/lifecycle check (synthetic funds, XP and outcome, not balance evidence):
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/dro15-native cargo dev -- --validate passives --seconds 45
+DRONE_CAPTURE_DIR=/tmp/dro15-native DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate passives --seconds 45
+```
+
+[Fixed encounter comparison and native evidence](docs/playtests/dro-15-passive-tree.md).
 
 Fly relative to the drone's heading:
 
