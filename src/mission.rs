@@ -1,5 +1,7 @@
 //! Session-only mission transitions and completion boundary.
 use bevy::prelude::*;
+#[cfg(test)]
+mod module_tests;
 pub(crate) mod scene;
 pub(crate) mod validation;
 use crate::{
@@ -8,6 +10,11 @@ use crate::{
 };
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum MissionAction {
+    ModuleShop,
+    SelectModule(crate::modules::ModuleKind),
+    BuyModule,
+    AssignModule(usize),
+    RemoveModule(usize),
     Passives,
     Purchase(crate::passives::NodeId),
     Briefing,
@@ -28,11 +35,14 @@ pub(crate) struct Campaign {
     pub mission_succeeded: bool,
     pub wallet: crate::economy::Amounts,
     pub passives: crate::passives::PassiveTree,
+    pub inventory: crate::modules::shop::ModuleInventory,
 }
 #[derive(Resource, Default)]
 pub(crate) struct MissionSession {
     pub result: Option<MissionResult>,
     pub purchase_feedback: String,
+    pub selected_module: usize,
+    pub active_loadout: Option<crate::modules::Loadout>,
     next_attempt: u64,
     active_attempt: Option<u64>,
     armed: bool,
@@ -79,7 +89,13 @@ fn input(
         return;
     }
     if !session.armed {
-        if !keys.any_pressed([KeyCode::Enter, KeyCode::Backspace, KeyCode::KeyU])
+        if !keys.any_pressed([
+            KeyCode::Enter,
+            KeyCode::Backspace,
+            KeyCode::KeyU,
+            KeyCode::KeyM,
+        ]) && !(*phase == GamePhase::ModuleShop
+            && keys.any_pressed(crate::modules::shop_input::ACTION_KEYS))
             && !keys.any_pressed(crate::passives::PURCHASE_KEYS)
             && !mouse.pressed(MouseButton::Left)
             && !buttons
@@ -100,8 +116,13 @@ fn input(
         primary
     } else if keys.just_pressed(KeyCode::KeyU) && *phase == GamePhase::Hub {
         Some(MissionAction::Passives)
+    } else if keys.just_pressed(KeyCode::KeyM) && *phase == GamePhase::Hub {
+        Some(MissionAction::ModuleShop)
     } else if keys.just_pressed(KeyCode::Backspace)
-        && matches!(*phase, GamePhase::Briefing | GamePhase::Passives)
+        && matches!(
+            *phase,
+            GamePhase::Briefing | GamePhase::Passives | GamePhase::ModuleShop
+        )
     {
         Some(MissionAction::Hub)
     } else {
@@ -113,17 +134,33 @@ fn input(
                     .map(|index| MissionAction::Purchase(crate::passives::NodeId::ALL[index]))
             })
             .flatten();
-        purchase_key.or_else(|| {
-            buttons
-                .iter()
-                .filter_map(|(action, interaction)| {
-                    (interaction.is_changed() && *interaction == Interaction::Pressed)
-                        .then_some(*action)
-                })
-                .min()
-        })
+        purchase_key
+            .or_else(|| {
+                (*phase == GamePhase::ModuleShop)
+                    .then(|| crate::modules::shop_input::keyboard(&keys, session.selected_module))
+                    .flatten()
+            })
+            .or_else(|| {
+                buttons
+                    .iter()
+                    .filter_map(|(action, interaction)| {
+                        (interaction.is_changed() && *interaction == Interaction::Pressed)
+                            .then_some(*action)
+                    })
+                    .min()
+            })
     };
     match (*phase, action) {
+        (GamePhase::Hub, Some(MissionAction::ModuleShop)) => {
+            *phase = GamePhase::ModuleShop;
+            session.armed = false;
+            session.purchase_feedback.clear();
+        }
+        (GamePhase::ModuleShop, Some(action)) if action != MissionAction::Hub => {
+            if crate::modules::shop_input::apply(action, &mut campaign, &mut session) {
+                session.armed = false;
+            }
+        }
         (GamePhase::Hub, Some(MissionAction::Passives)) => {
             *phase = GamePhase::Passives;
             session.armed = false;
@@ -153,12 +190,25 @@ fn input(
         (GamePhase::Hub, Some(MissionAction::Briefing)) => {
             *phase = GamePhase::Briefing;
             session.armed = false;
+            session.purchase_feedback.clear();
         }
-        (GamePhase::Briefing, Some(MissionAction::Launch)) => {
-            launch(&mut session, &mut boundary, &mut phase, &mut clock)
-        }
+        (GamePhase::Briefing, Some(MissionAction::Launch)) => match campaign.inventory.validate() {
+            Ok(()) => {
+                session.active_loadout = Some(campaign.inventory.loadout().clone());
+                launch(&mut session, &mut boundary, &mut phase, &mut clock);
+            }
+            Err(_) => {
+                session.purchase_feedback =
+                    "Invalid loadout. Return to the hub and equip owned modules only.".into();
+                session.armed = false;
+            }
+        },
         (
-            GamePhase::Briefing | GamePhase::Passives | GamePhase::Dead | GamePhase::Survived,
+            GamePhase::Briefing
+            | GamePhase::Passives
+            | GamePhase::ModuleShop
+            | GamePhase::Dead
+            | GamePhase::Survived,
             Some(MissionAction::Hub),
         ) => {
             *phase = GamePhase::Hub;

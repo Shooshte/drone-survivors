@@ -16,8 +16,10 @@ cargo dev
 
 Normal launch opens the operations hub. Choose **Mission briefing** (Enter),
 then **Launch mission** (Enter) to start the five-minute survival encounter.
-**Backspace** returns from briefing to the hub. The Scout and its four modules
-are fixed before launch; module toggles and temporary upgrades work in combat.
+**Backspace** returns from briefing to the hub. New campaigns start with four empty
+module slots. Buy and arrange modules in the hub before launch; module toggles
+and temporary upgrades work in combat. Basic shooting, flight, and mission entry
+are free, including with an empty loadout.
 Hub and briefing story text is provisional.
 
 Success or failure opens results showing active time, kills, and resource rewards. Choose
@@ -25,11 +27,48 @@ Success or failure opens results showing active time, kills, and resource reward
 remain in memory for this application session; quitting clears this history.
 Each launch restores the Scout, battery, chargers, hazard cycle and encounter,
 including all temporary upgrades and pending choices. A restart during combat
-or an upgrade choice starts a fresh attempt without recording a result for the
-interrupted attempt. R does nothing in the hub, permanent upgrade screen, briefing or results.
+or an upgrade choice starts a fresh attempt with the same loadout without recording
+a result for the interrupted attempt. R does nothing in the hub, either shop, briefing or results.
 
 The existing `--validate` modes still enter their combat fixtures directly,
-except the dedicated `missions` and `passives` menu fixtures.
+except the dedicated `missions`, `passives`, and `shop` menu fixtures.
+
+## Module shop and loadout
+
+Choose **Module shop / loadout** in the hub or press **M**. All four existing
+modules are available from the start; a purchase unlocks one type for this
+application session. Prices are provisional for later balance playtesting.
+
+| Module | Salvage | Components |
+| --- | ---: | ---: |
+| Overdrive | 10 | 0 |
+| Shield | 15 | 0 |
+| Mobility | 15 | 0 |
+| Rockets | 25 | 1 |
+
+Select a module by clicking its catalog entry or pressing **Up/Down**. Press **B**
+or click **Buy** to purchase it with banked resources. Buying does not equip it.
+Press **1–4** or click a slot to assign the selected owned module; use
+**Shift+1–4** or that slot's **Remove** button to clear it. Assignments, moves and
+removals are free. Moving an equipped type clears its old slot and replaces the
+destination; both types remain owned. A type cannot occupy more than one slot.
+**Backspace** returns to the hub. Each action requires a fresh press or click.
+
+The shop shows ownership, affordability, effects, drain and tradeoffs. Briefing
+shows the actual equipment and potential drain if all equipped modules are ON,
+plus battery capacity and charger supply/net rate including permanent passives.
+Temporary effects from earlier attempts are excluded. Charger supply requires a
+nonempty reserve; modules start OFF, and empty slots consume no power. There is
+no power-budget restriction on launch. Ownership and arrangement survive results
+and replay; R keeps the active attempt's loadout. Quitting clears the campaign;
+disk persistence remains a later chunk.
+
+Native purchase/loadout fixture (synthetic funds and completion time, not balance evidence):
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/dro16-native cargo dev -- --validate shop --seconds 40
+DRONE_CAPTURE_DIR=/tmp/dro16-native DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate shop --seconds 40
+```
 
 ## Permanent passive tree
 

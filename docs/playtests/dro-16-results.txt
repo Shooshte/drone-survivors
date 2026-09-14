@@ -1,0 +1,36 @@
+Native 640 window:
+MODULE SHOP FIXTURE: synthetic bank=65/1 and success timer; normal menu input and transaction rules. Not natural progression or balance evidence.
+MODULE SHOP FIXTURE hub: phase=Res(Hub) bank=Amounts { salvage: 0, components: 0 } planned=[None, None, None, None] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE empty: phase=Res(ModuleShop) bank=Amounts { salvage: 0, components: 0 } planned=[None, None, None, None] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE purchased: phase=Res(ModuleShop) bank=Amounts { salvage: 55, components: 1 } planned=[None, None, None, None] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE full: phase=Res(ModuleShop) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Rocket), Some(Shield), Some(Mobility), Some(Overdrive)] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE rearranged: phase=Res(ModuleShop) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE briefing: phase=Res(Briefing) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE launch: phase=Res(Playing) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE restart: phase=Res(Playing) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE persistent: phase=Res(ModuleShop) bank=Amounts { salvage: 10, components: 1 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE empty-briefing: phase=Res(Briefing) bank=Amounts { salvage: 10, components: 1 } planned=[None, None, None, None] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE empty-launch: phase=Res(Playing) bank=Amounts { salvage: 10, components: 1 } planned=[None, None, None, None] active=[None, None, None, None]
+MODULE SHOP FIXTURE PASS: empty bank rejection, mouse purchase, four purchases, repeat purchase, free remove/move/replace, briefing, launch, restart, results persistence, empty launch.
+
+Native 1120 window:
+MODULE SHOP FIXTURE: synthetic bank=65/1 and success timer; normal menu input and transaction rules. Not natural progression or balance evidence.
+MODULE SHOP FIXTURE hub: phase=Res(Hub) bank=Amounts { salvage: 0, components: 0 } planned=[None, None, None, None] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE empty: phase=Res(ModuleShop) bank=Amounts { salvage: 0, components: 0 } planned=[None, None, None, None] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE purchased: phase=Res(ModuleShop) bank=Amounts { salvage: 55, components: 1 } planned=[None, None, None, None] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE full: phase=Res(ModuleShop) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Rocket), Some(Shield), Some(Mobility), Some(Overdrive)] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE rearranged: phase=Res(ModuleShop) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE briefing: phase=Res(Briefing) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Overdrive), Some(Shield), Some(Mobility), Some(Rocket)]
+MODULE SHOP FIXTURE launch: phase=Res(Playing) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE restart: phase=Res(Playing) bank=Amounts { salvage: 0, components: 0 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE persistent: phase=Res(ModuleShop) bank=Amounts { salvage: 10, components: 1 } planned=[Some(Mobility), Some(Shield), None, Some(Rocket)] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE empty-briefing: phase=Res(Briefing) bank=Amounts { salvage: 10, components: 1 } planned=[None, None, None, None] active=[Some(Mobility), Some(Shield), None, Some(Rocket)]
+MODULE SHOP FIXTURE empty-launch: phase=Res(Playing) bank=Amounts { salvage: 10, components: 1 } planned=[None, None, None, None] active=[None, None, None, None]
+MODULE SHOP FIXTURE PASS: empty bank rejection, mouse purchase, four purchases, repeat purchase, free remove/move/replace, briefing, launch, restart, results persistence, empty launch.
+
+running 327 tests
+.......................................i..ii.i......................................... 87/327
+....................................................................................... 174/327
+....................................................................................... 261/327
+..................................................................
+test result: ok. 323 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 12.77s

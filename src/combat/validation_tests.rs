@@ -4,6 +4,13 @@ use crate::upgrades::{UpgradeKind, UpgradeRun};
 use std::time::{Duration, Instant};
 
 #[test]
+fn module_shop_validation_is_available_and_rejects_stress_only_options() {
+    let parse = |args: &[&str]| ValidationConfig::parse(args.iter().map(|s| s.to_string()));
+    assert!(parse(&["--validate", "shop"]).is_ok());
+    assert!(parse(&["--validate", "shop", "--enemies", "20"]).is_err());
+}
+
+#[test]
 fn validation_arguments_are_opt_in_bounded_and_mode_specific() {
     let parse = |args: &[&str]| ValidationConfig::parse(args.iter().map(|s| s.to_string()));
     assert!(parse(&[]).unwrap().is_none());

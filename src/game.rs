@@ -7,6 +7,7 @@ pub(crate) enum GamePhase {
     Hub,
     Briefing,
     Passives,
+    ModuleShop,
     Choosing,
     Dead,
     Survived,

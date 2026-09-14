@@ -168,10 +168,13 @@ fn reset(
     mut modules: ResMut<Modules>,
     mut chargers: Query<&mut ChargerReserve>,
     mut pending: ResMut<PowerFrame>,
-    boundary: Option<Res<crate::game::MissionBoundary>>,
+    session: Option<Res<crate::mission::MissionSession>>,
 ) {
-    if boundary.is_some() {
-        modules.loadout = default();
+    if let Some(loadout) = session
+        .as_ref()
+        .and_then(|session| session.active_loadout.as_ref())
+    {
+        modules.loadout = loadout.clone();
     }
     *pending = default();
     *modules = Modules::new(modules.loadout.clone(), &config_modules);
