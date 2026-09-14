@@ -1,5 +1,18 @@
 //! Deterministic campaign purchases, independent of UI and encounter state.
 use crate::economy::Amounts;
+pub(crate) mod scene;
+pub(crate) mod validation;
+pub(crate) const PURCHASE_KEYS: [bevy::prelude::KeyCode; 9] = [
+    bevy::prelude::KeyCode::Digit1,
+    bevy::prelude::KeyCode::Digit2,
+    bevy::prelude::KeyCode::Digit3,
+    bevy::prelude::KeyCode::Digit4,
+    bevy::prelude::KeyCode::Digit5,
+    bevy::prelude::KeyCode::Digit6,
+    bevy::prelude::KeyCode::Digit7,
+    bevy::prelude::KeyCode::Digit8,
+    bevy::prelude::KeyCode::Digit9,
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum NodeId {
@@ -14,6 +27,19 @@ pub(crate) enum NodeId {
     Charging,
 }
 impl NodeId {
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Self::Damage => "Projectile damage",
+            Self::FireRate => "Fire rate",
+            Self::Range => "Targeting range",
+            Self::Hull => "Hull capacity",
+            Self::Armor => "Contact armor",
+            Self::Protection => "Post-hit protection",
+            Self::Battery => "Battery capacity",
+            Self::Reserve => "Reserve efficiency",
+            Self::Charging => "Charging speed",
+        }
+    }
     pub(crate) fn prerequisite(self) -> Option<Self> {
         match self {
             Self::Damage | Self::Hull | Self::Battery => None,
@@ -117,3 +143,6 @@ mod tests;
 
 #[cfg(test)]
 mod lifecycle_tests;
+
+#[cfg(test)]
+mod input_tests;

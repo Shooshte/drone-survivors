@@ -22,6 +22,8 @@ pub(super) struct PrimaryLabel;
 #[derive(Component)]
 struct BackAction;
 #[derive(Component)]
+struct ShopAction;
+#[derive(Component)]
 enum MenuCopy {
     Eyebrow,
     Heading,
@@ -33,10 +35,12 @@ enum MenuCopy {
 
 impl Plugin for MissionScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup).add_systems(
-            Update,
-            (present, hover).chain().in_set(GameplaySet::Presentation),
-        );
+        app.add_plugins(crate::passives::scene::PassiveScenePlugin)
+            .add_systems(Startup, setup)
+            .add_systems(
+                Update,
+                (present, hover).chain().in_set(GameplaySet::Presentation),
+            );
     }
 }
 
@@ -111,6 +115,28 @@ fn setup(mut commands: Commands) {
                     panel
                         .spawn((
                             Button,
+                            ShopAction,
+                            MissionAction::Passives,
+                            Name::new("Permanent upgrades"),
+                            button_node(34.),
+                            BackgroundColor(PANEL),
+                            BorderColor::all(CYAN),
+                        ))
+                        .with_children(|button| {
+                            button.spawn((
+                                Text::new("Permanent upgrades"),
+                                TextFont::from_font_size(14.),
+                                TextColor(SILVER),
+                            ));
+                            button.spawn((
+                                Text::new("U"),
+                                TextFont::from_font_size(12.),
+                                TextColor(CYAN),
+                            ));
+                        });
+                    panel
+                        .spawn((
+                            Button,
                             BackAction,
                             MissionAction::Hub,
                             Name::new("Back to hub"),
@@ -172,12 +198,23 @@ fn button_node(height: f32) -> Node {
     }
 }
 
+type MenuVisibility<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static mut Node,
+        Has<MissionOverlay>,
+        Has<BackAction>,
+        Has<ShopAction>,
+    ),
+    Or<(With<MissionOverlay>, With<BackAction>, With<ShopAction>)>,
+>;
+
 fn present(
     phase: Res<GamePhase>,
     campaign: Res<Campaign>,
     session: Res<MissionSession>,
-    mut overlay: Single<&mut Node, (With<MissionOverlay>, Without<BackAction>)>,
-    mut back: Single<&mut Node, (With<BackAction>, Without<MissionOverlay>)>,
+    mut panels: MenuVisibility,
     mut primary: Single<&mut MissionAction, With<PrimaryAction>>,
     mut text: Query<(&MenuCopy, &mut Text, &mut TextColor)>,
 ) {
@@ -185,12 +222,16 @@ fn present(
         *phase,
         GamePhase::Hub | GamePhase::Briefing | GamePhase::Dead | GamePhase::Survived
     );
-    overlay.display = if shown { Display::Flex } else { Display::None };
-    back.display = if *phase == GamePhase::Briefing {
-        Display::Flex
-    } else {
-        Display::None
-    };
+    for (mut node, overlay, back, shop) in &mut panels {
+        let visible = (overlay && shown)
+            || (back && *phase == GamePhase::Briefing)
+            || (shop && *phase == GamePhase::Hub);
+        node.display = if visible {
+            Display::Flex
+        } else {
+            Display::None
+        };
+    }
     if !shown {
         return;
     }
@@ -232,7 +273,7 @@ fn present(
                     r.rewards.collected.salvage, r.rewards.lost.salvage, r.rewards.bonus.salvage, r.rewards.credited.salvage, r.rewards.balance.salvage,
                     r.rewards.collected.components, r.rewards.lost.components, r.rewards.bonus.components, r.rewards.credited.components, r.rewards.balance.components)
             }).unwrap_or_default(),
-            (MenuCopy::Note, GamePhase::Hub) => "Launch and equipment are free. Replays earn rewards.\nBalances and history last until you quit.".into(),
+            (MenuCopy::Note, GamePhase::Hub) => "Launch and equipment are free. Replays earn rewards.\nBalances, permanent upgrades and history last until you quit.".into(),
             (MenuCopy::Note, GamePhase::Briefing) => "Fly nearby: gold salvage 100 units / purple caches 50 units.\nSuccess: loot +10 salvage, +1 component. Failure: keep 25%.\n1-4 toggle modules; R discards loot and restarts.".into(),
             (MenuCopy::Note, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
                 "Balance limit reached: reward could not be banked.\nThe result retains the collection and bonus amounts."

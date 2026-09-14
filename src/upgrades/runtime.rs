@@ -137,7 +137,7 @@ fn earn(
         || keys.just_pressed(KeyCode::KeyR)
         || matches!(
             *phase,
-            GamePhase::Choosing | GamePhase::Hub | GamePhase::Briefing
+            GamePhase::Choosing | GamePhase::Hub | GamePhase::Passives | GamePhase::Briefing
         )
     {
         return;
