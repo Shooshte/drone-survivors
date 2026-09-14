@@ -71,6 +71,7 @@ fn drive(
         &ComputedNode,
         &UiGlobalTransform,
     )>,
+    labels: Query<(&Text, &ComputedNode), With<super::scene::PassiveCardText>>,
     window: Single<&Window>,
     mut buttons: Query<(&MissionAction, &mut Interaction)>,
 ) {
@@ -191,6 +192,16 @@ fn drive(
         if *phase == GamePhase::Passives {
             let scale = window.scale_factor();
             assert_eq!(cards.iter().count(), 9);
+            assert_eq!(labels.iter().count(), 9);
+            for (text, node) in &labels {
+                assert!(!text.0.is_empty());
+                assert!(
+                    node.size().x / scale > 100. && node.size().y / scale > 40.,
+                    "passive text collapsed: {:?} {:?}",
+                    text.0,
+                    node.size()
+                );
+            }
             for (card, node, transform) in &cards {
                 let center = transform.translation / scale;
                 let half = node.size() / scale / 2.;

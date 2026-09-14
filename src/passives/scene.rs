@@ -19,6 +19,8 @@ struct PassiveOverlay;
 #[derive(Component)]
 pub(super) struct PassiveCard(pub NodeId);
 #[derive(Component)]
+pub(super) struct PassiveCardText;
+#[derive(Component)]
 enum Copy {
     Bank,
     Feedback,
@@ -127,6 +129,7 @@ fn setup(mut commands: Commands) {
                                                 .with_children(|card| {
                                                     card.spawn((
                                                         Copy::Card(*node),
+                                                        PassiveCardText,
                                                         Text::default(),
                                                         TextFont::from_font_size(12.),
                                                         TextColor(SILVER),
@@ -136,6 +139,8 @@ fn setup(mut commands: Commands) {
                                                         ),
                                                         Node {
                                                             min_width: px(0),
+                                                            width: percent(100),
+                                                            flex_grow: 1.,
                                                             ..default()
                                                         },
                                                     ));
@@ -174,7 +179,7 @@ fn setup(mut commands: Commands) {
                         });
                     text(
                         panel,
-                        "1–9 or click: buy one rank. Applies next launch. Lasts until you quit.",
+                        "1-9 or click: buy one rank. Applies next launch. Lasts until you quit.",
                         12.,
                         MUTED,
                     );
@@ -186,7 +191,7 @@ fn card_copy(node: NodeId, campaign: &Campaign) -> String {
     let rank = tree.rank(node);
     let bonus = tree.bonus_percent(node);
     let sign = if matches!(node, NodeId::Armor | NodeId::Reserve) {
-        "−"
+        "-"
     } else {
         "+"
     };
@@ -194,7 +199,7 @@ fn card_copy(node: NodeId, campaign: &Campaign) -> String {
         format!("{sign}{bonus}% total")
     } else {
         format!(
-            "{sign}{bonus}% → {sign}{}%",
+            "{sign}{bonus}% -> {sign}{}%",
             bonus + node.percent_per_rank()
         )
     };
@@ -211,7 +216,7 @@ fn card_copy(node: NodeId, campaign: &Campaign) -> String {
         Err(PurchaseError::InsufficientFunds) => "Not enough resources".into(),
     };
     format!(
-        "{}  {}\nRank {rank}/5  |  {effect}\n{price}\n{state}",
+        "{}  {}\nRank {rank}/5  {effect}\n{price}\n{state}",
         node as usize + 1,
         node.name()
     )
