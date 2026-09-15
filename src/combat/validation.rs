@@ -24,7 +24,7 @@ mod chargers;
 #[path = "validation_observation_tests.rs"]
 mod observation_tests;
 #[path = "route_validation.rs"]
-pub(super) mod routes;
+pub(crate) mod routes;
 
 const CHOICE_KEYS: [KeyCode; 4] = [
     KeyCode::Digit1,
@@ -57,6 +57,7 @@ pub(crate) enum ValidationMode {
     Missions,
     Campaign,
     Objectives,
+    Exploration,
     Passives,
     Shop,
 }
@@ -101,7 +102,7 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives|shop|campaign|objectives \
+            "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives|shop|campaign|objectives|exploration \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
@@ -121,9 +122,10 @@ impl ValidationConfig {
                         "shop" => ValidationMode::Shop,
                         "campaign" => ValidationMode::Campaign,
                         "objectives" => ValidationMode::Objectives,
+                        "exploration" => ValidationMode::Exploration,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, shop, campaign, or objectives"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, shop, campaign, objectives, or exploration"
                                     .into(),
                             );
                         }
@@ -162,6 +164,7 @@ impl ValidationConfig {
                 ValidationMode::Stress => 30.,
                 ValidationMode::Missions => 36.,
                 ValidationMode::Campaign | ValidationMode::Objectives => 90.,
+                ValidationMode::Exploration => 180.,
                 ValidationMode::Passives => 40.,
                 ValidationMode::Shop => 40.,
                 ValidationMode::Choices | ValidationMode::Chargers => 60.,
@@ -173,6 +176,11 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    if config.mode == ValidationMode::Exploration {
+        app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
+        crate::exploration_validation::install(app, config.seconds);
+        return;
+    }
     if config.mode == ValidationMode::Objectives {
         app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
         crate::mission::objective_validation::install(app, config.seconds);
@@ -384,6 +392,7 @@ fn validation_choice_input(
         | ValidationMode::Missions
         | ValidationMode::Campaign
         | ValidationMode::Objectives
+        | ValidationMode::Exploration
         | ValidationMode::Shop
         | ValidationMode::Passives => {
             unreachable!()
@@ -586,6 +595,21 @@ fn replenish(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn exploration_mode_defaults_to_three_minutes_and_rejects_stress_options() {
+        let parsed = ValidationConfig::parse(["--validate", "exploration"].map(str::to_string))
+            .unwrap()
+            .unwrap();
+        assert_eq!(parsed.mode, ValidationMode::Exploration);
+        assert_eq!(parsed.seconds, 180.);
+        assert!(
+            ValidationConfig::parse(
+                ["--validate", "exploration", "--enemies", "1"].map(str::to_string)
+            )
+            .is_err()
+        );
+    }
 
     #[test]
     fn restarting_clears_the_previous_terminal_exit_deadline() {

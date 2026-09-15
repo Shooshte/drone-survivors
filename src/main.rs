@@ -2,6 +2,7 @@ mod arena;
 mod combat;
 mod economy;
 mod energy;
+mod exploration_validation;
 mod game;
 mod mission;
 mod modules;

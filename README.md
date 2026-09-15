@@ -37,8 +37,9 @@ except the dedicated `missions`, `campaign`, `passives`, and `shop` menu fixture
 
 ## Campaign mission selection
 
-All **12 missions** are playable placeholders using the **same existing arena,
-waves, chargers, hazards and rewards**. Each has its own completion record.
+All **12 missions** are playable placeholders using the **same arena layout,
+waves, charger locations and hazards**. Each act has a distinct resource profile
+(see Exploration below). Each has its own completion record.
 Mission **02 is reconnaissance**, mission **03 is cargo extraction**; the other
 ten retain the five-minute survival objective.
 
@@ -63,7 +64,8 @@ Enter launches. **Backspace** returns to the hub. The hub's Mission briefing
 shortcut uses the selection you last made. Briefings and results identify the
 mission; R restarts the active mission. Menus pause gameplay.
 
-Progress saves between missions and resumes in the hub. The ten survival missions
+Progress saves between missions; secret discoveries also save immediately during play.
+Continue resumes in the hub. The ten survival missions
 total 50 minutes before pauses/retries; reconnaissance and extraction have no
 time limit. The roughly 90-minute campaign target awaits authored content.
 
@@ -118,11 +120,60 @@ DRONE_CAPTURE_DIR=/tmp/dro19-normal cargo dev -- --validate objectives
 DRONE_CAPTURE_DIR=/tmp/dro19-compact DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate objectives
 ```
 
+## Exploration, regions, and secrets
+
+The placeholder arena layout is shared across all acts. Reusable content pieces
+assemble the same six chargers and three cache locations. Briefing summaries
+and runtime resources use the same profile data:
+
+| Act / region | Chaser salvage chance | Components per cache | Energy per charger |
+| --- | --- | --- | --- |
+| 1 / Scrapyard | 50% for 1 salvage | 1 | 200 |
+| 2 / Ruins | 25% for 1 salvage | 2 | 200 |
+| 3 / Power station | 25% for 1 salvage | 1 | 300 |
+
+All three caches are optional and award **30 XP once per attempt**, in addition
+to their components. Descend near their purple rings to collect automatically;
+there is no interaction key. The normal standalone 30-XP pickup remains.
+
+- **Northwest cache:** permanently discovers the Reserve battery blueprint.
+- **Southeast cache:** permanently opens a secret route to the current act's
+  finale (mission 04, 08, or 12), without completing the branch missions first.
+- **Central cache:** XP and region resources.
+
+Discoveries save immediately, even if the mission later fails or restarts.
+Repeating a discovery grants that attempt's XP/components again, without
+stacking the campaign unlock. Secret access never marks missions complete.
+The ordinary unlock path remains available; all 12 distinct victories are
+still required to finish the campaign.
+
+Once the blueprint is discovered, open **Upgrades (U)** in the hub and press
+**B** or click **Reserve battery**. It costs **20 salvage + 1 component** and adds
+**25 maximum battery capacity**, after permanent passive bonuses and before
+run-upgrade modifiers. Only one purchase can be active. It survives successful
+missions and normal application reloads. **Defeat or R restart forfeits the
+purchased bonus immediately**; the blueprint stays unlocked so you can buy it
+again. Ordinary passive ranks and owned modules remain permanent. Restart
+otherwise keeps its existing abort behavior (discard unbanked loot, no result).
+
+Native validation (isolated fixture; no campaign save access):
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/dro20-normal cargo dev -- --validate exploration
+DRONE_CAPTURE_DIR=/tmp/dro20-compact DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate exploration
+```
+
+The fixture flies to the northwest cache using production keyboard controls;
+other transitions use disclosed synthetic setup. It checks discoveries, region
+briefings, purchase/forfeit rules, shortcut selection, and text bounds. It is a
+navigation and presentation check, not a combat-balance playtest.
+
 ## Campaign save and resume
 
 The game uses one local, versioned save slot. **Continue campaign** (Enter)
 restores the bank, permanent passive ranks, owned modules, four-slot loadout,
-mission completion, selection and completed attempt history, then returns to the
+mission completion, selection, discovered blueprints/routes, active Reserve battery
+purchase and completed attempt history, then returns to the
 hub. **New campaign** (N) creates a fresh campaign. From the hub, click
 **Campaign menu** or press **N** to return to these choices.
 
@@ -134,8 +185,9 @@ instructions and remain untouched until replacement is explicitly confirmed.
 readable or moved aside before replacement can preserve them.
 
 Purchases, loadout edits, mission selection and settled results save immediately
-between missions. There is no mid-mission save: quitting in combat loses that
-attempt's unbanked loot and temporary upgrades. Continue returns to the last
+between missions. Secret blueprints/routes and forfeiture of Reserve battery on
+restart also save immediately during play. The active attempt itself is not
+saved: quitting in combat loses that attempt's unbanked loot and temporary upgrades. Continue returns to the last
 saved campaign in the hub, ready for a fresh launch. Reloading never re-applies
 mission rewards. Validation modes continue to use isolated, session-only state.
 
@@ -202,7 +254,7 @@ DRONE_CAPTURE_DIR=/tmp/dro16-native DRONE_CAPTURE_MINIMUM=1 cargo dev -- --valid
 
 ## Permanent passive tree
 
-From the hub, choose **Permanent upgrades** or press **U**. Click a node or press
+From the hub, choose **Permanent upgrades** or press **U** to open **Upgrades**. Click a node or press
 its number **1–9** to buy one rank with banked resources. **Backspace** returns to
 the hub. Each node has five ranks; the first rank unlocks the next node below it.
 Branches are independent, and there is no respec/refund in this prototype.
@@ -355,13 +407,14 @@ provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
 ### Resources and rewards
 
 New campaigns start with **0 salvage and 0 components**. Each chaser has a
-**25% chance to drop 1 salvage**. Gold salvage rests on the ground (or low cover)
+**50% chance to drop 1 salvage in Act 1**, or **25% in Acts 2 and 3**. Gold salvage rests on the ground (or low cover)
 until collected or the attempt ends. Fly within **100 world units in 3D** with
 clear line of sight to attract it; once attracted it follows at 900 units/second.
 There is no interaction key or despawn timer. Solid cover blocks collection.
 
-Three purple caches each contain **1 component**, collected once per attempt
-within **50 world units in 3D**. Look near the northwest and southeast spawn
+Three purple caches each contain **1 component** (or **2 in Act 2**) and
+**30 run XP**, collected once per attempt within **50 world units in 3D**
+with clear line of sight. Fast crossings count along the actual flight path. Look near the northwest and southeast spawn
 perimeter, and inside the central electrical passage. Descend to reach them;
 the passage cache is exposed to the hazard cycle. These fixed locations are
 reachable testing placeholders for later handcrafted maps, and reset each attempt.
@@ -444,14 +497,15 @@ pairs are 1080 units north/south of the center. Enter a field
 with the drone's center below its visible top ring (height 160) to gain
 25 energy/second. Fly and fight freely while charging; leaving stops recharge.
 Fields have radius 90 and provide no protection. Each has a separate **200-energy
-reserve**. Charging uses up that reserve only when energy actually reaches the
+reserve** in Acts 1 and 2, or **300 energy in Act 3**. Charging uses up that reserve only when energy actually reaches the
 battery or sustains enabled modules; full-battery overdrive still costs the field
 10/s. A depleted field supplies nothing.
 
 Leave a field for **eight uninterrupted active seconds** to begin recovery at
 10 reserve/second. Returning resets that delay, so briefly crossing the boundary
 cannot refill it. Occupied fields never recover, even with modules off. Partial
-reserves can be used immediately; an empty field takes 28 seconds away to refill.
+reserves can be used immediately; an empty field takes 28 seconds away to refill
+(38 seconds in Act 3).
 Overlapping fields share the same 25/s delivery ceiling and never double charge.
 The HUD shows all six named reserves and recovery status before arrival; each field
 also has a shrinking reserve indicator. Choices and outcomes pause recovery;

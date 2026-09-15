@@ -306,6 +306,10 @@ fn present(
         return;
     }
     let (_, modules) = baseline.launch_power(&campaign);
+    let mut preview_chargers = chargers.clone();
+    preview_chargers.capacity =
+        crate::world::regions::RegionProfile::for_mission(session.selected_mission)
+            .charger_capacity;
     let selected = ModuleKind::ALL[session.selected_module.min(ModuleKind::ALL.len() - 1)];
     for (part, mut text, mut color) in &mut copy {
         let value = match part {
@@ -315,7 +319,7 @@ fn present(
                 selected.name(),
                 catalog_detail(selected, &modules)
             ),
-            Copy::Power => potential_power(&baseline, &campaign, &chargers).display(),
+            Copy::Power => potential_power(&baseline, &campaign, &preview_chargers).display(),
             Copy::Feedback => session.purchase_feedback.clone(),
         };
         if text.0 != value {
@@ -445,6 +449,22 @@ mod tests {
             .map(|text| text.0.clone())
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    #[test]
+    fn shop_power_preview_tracks_selected_region_before_launch() {
+        let mut app = app();
+        app.world_mut()
+            .resource_mut::<MissionSession>()
+            .selected_mission = crate::mission::campaign::MissionId::ALL[8];
+        app.update();
+        assert!(text(&mut app).contains("300 per field"));
+        app.world_mut()
+            .resource_mut::<MissionSession>()
+            .selected_mission = crate::mission::campaign::MissionId::ALL[0];
+        app.world_mut().resource_mut::<ChargerConfig>().capacity = 300.;
+        app.update();
+        assert!(text(&mut app).contains("200 per field"));
     }
 
     #[test]

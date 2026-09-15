@@ -24,12 +24,12 @@ Files: create `src/mission/secrets.rs`; modify `src/mission.rs`, `src/mission/ca
 
 Interfaces: `Campaign.secrets: Secrets`; `Secrets` exposes `blueprint: bool`, `reserve_battery: bool`, `discover_blueprint() -> bool`, `purchase(&mut Amounts) -> Result<(), &'static str>`, `lose_battery()`; `Progress::discover_route(act: usize) -> bool`, `routes() -> [bool; 3]`. Mission action `BuyReserveBattery` buys from Passives with key B.
 
-- [ ] Write tests for insufficient/exact payment, duplicate purchase, blueprint idempotence, route access without completion, normal progression, and invalid active purchase without blueprint.
-- [ ] Run focused tests to establish missing behavior.
-- [ ] Implement secrets, routes, mission purchase/restart/death handling, baseline capacity bonus.
-- [ ] Extend snapshot defaults for old saves, validate discovered-route reachability, allow immediate durable campaign writes during play/choices, correctly resume clocks after save retry.
-- [ ] Test immediate save/reload, death/restart loss, repurchase, success retention, old saves and write-error recovery.
-- [ ] Commit only task-owned files after focused tests pass.
+- [x] Write tests for insufficient/exact payment, duplicate purchase, blueprint idempotence, route access without completion, normal progression, and invalid active purchase without blueprint.
+- [x] Run focused tests to establish missing behavior.
+- [x] Implement secrets, routes, mission purchase/restart/death handling, baseline capacity bonus.
+- [x] Extend snapshot defaults for old saves, validate discovered-route reachability, allow immediate durable campaign writes during play/choices, correctly resume clocks after save retry.
+- [x] Test immediate save/reload, death/restart loss, repurchase, success retention, old saves and write-error recovery.
+- [x] Commit only task-owned files after focused tests pass.
 
 Core assertion examples:
 ```rust
@@ -46,12 +46,12 @@ Files: create `src/world/regions.rs`; modify `src/world.rs`, `src/world/layout.r
 
 Interfaces: `RegionProfile::for_mission(MissionId)` returns named data for drop chance, component amount, charger capacity, and a resource-summary method. Reusable content pieces expose existing cache/charger sites without moving any geometry. `DiscoveryNotice` stores the latest collection feedback.
 
-- [ ] Write runtime tests that launch each act and inspect actual drops, cache awards, and charger reserve values.
-- [ ] Run tests and confirm missing profile/discovery behavior.
-- [ ] Configure profiles during Baseline before charger/economy Reset; preserve legacy direct-combat fixtures.
-- [ ] Tag existing caches with stable indices. Credit XP and campaign unlocks exactly once on successful collection, with swept path + clear line of sight and terminal/reset/pause guards.
-- [ ] Test fast crossings, walls, repeated contact, reset, fatal-frame precedence, region switching and fixed placement.
-- [ ] Commit after focused tests pass.
+- [x] Write runtime tests that launch each act and inspect actual drops, cache awards, and charger reserve values.
+- [x] Run tests and confirm missing profile/discovery behavior.
+- [x] Configure profiles during Baseline before charger/economy Reset; preserve legacy direct-combat fixtures.
+- [x] Tag existing caches with stable indices. Credit XP and campaign unlocks exactly once on successful collection, with swept path + clear line of sight and terminal/reset/pause guards.
+- [x] Test fast crossings, walls, repeated contact, reset, fatal-frame precedence, region switching and fixed placement.
+- [x] Commit after focused tests pass.
 
 Collection contract:
 ```rust
@@ -84,3 +84,6 @@ Files: `src/passives/scene.rs`, `src/mission/scene.rs`, `src/mission/selection_s
 
 - Baseline: 361 passed, 4 ignored; branch starts at ef88578.
 - Approved scope recorded in Linear and issue set In Progress before implementation.
+
+- Task 1 complete: 3814d84, independent review found no actionable issues.
+- Task 2 complete: 727fe5f; 11 economy tests and actual cache-to-disk integration passed.

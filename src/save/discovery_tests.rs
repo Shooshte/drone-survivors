@@ -44,3 +44,45 @@ fn actual_cache_discoveries_save_during_play_and_upgrade_choice_without_banking_
     assert!(restored.world().resource::<Campaign>().secrets.blueprint);
     assert!(restored.world().resource::<Campaign>().progress.routes()[0]);
 }
+
+#[test]
+fn shortcut_victories_reload_without_inventing_branch_completion() {
+    use crate::mission::campaign::MissionId;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("campaign.json");
+    let mut app = app(&path);
+    key(&mut app, KeyCode::KeyN);
+    for act in 0..3 {
+        assert!(
+            app.world_mut()
+                .resource_mut::<Campaign>()
+                .progress
+                .discover_route(act)
+        );
+        app.world_mut()
+            .resource_mut::<MissionSession>()
+            .selected_mission = MissionId::ALL[act * 4 + 3];
+        launch(&mut app);
+        app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
+        tick(&mut app, 0., &[]);
+        assert!(
+            app.world()
+                .resource::<MissionSession>()
+                .result
+                .as_ref()
+                .unwrap()
+                .succeeded
+        );
+        drop(app);
+        app = super::app(&path);
+        key(&mut app, KeyCode::Enter);
+        let progress = &app.world().resource::<Campaign>().progress;
+        assert_eq!(progress.count(), act + 1);
+        assert!(!progress.finished());
+        assert!(!progress.completed(MissionId::ALL[act * 4 + 1]));
+        assert!(!progress.completed(MissionId::ALL[act * 4 + 2]));
+        if act < 2 {
+            assert!(progress.unlocked(MissionId::ALL[(act + 1) * 4]));
+        }
+    }
+}

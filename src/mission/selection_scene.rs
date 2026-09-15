@@ -65,7 +65,7 @@ fn setup(mut commands: Commands) {
                     panel.spawn(Node { width: percent(100), column_gap: px(8), ..default() }).with_children(|row| {
                         for act in 0..3 {
                             row.spawn(Node { flex_direction: FlexDirection::Column, flex_grow: 1., flex_basis: px(0), min_width: px(0), row_gap: px(6), ..default() }).with_children(|column| {
-                                label(column, format!("ACT {}", act + 1), 14., CYAN);
+                                label(column, format!("ACT {} / {}", act + 1, crate::world::regions::RegionProfile::for_mission(MissionId::ALL[act * 4]).name), 12., CYAN);
                                 for id in &MissionId::ALL[act * 4..act * 4 + 4] {
                                     column.spawn((Button, Card(*id), MissionAction::SelectMission(*id),
                                         Node { width: percent(100), min_height: px(48), padding: UiRect::all(px(6)), border: UiRect::all(px(1)), align_items: AlignItems::Center, ..default() },
@@ -125,7 +125,7 @@ fn present(
             ),
             Copy::Feedback => {
                 if session.purchase_feedback.is_empty() {
-                    "Win introduction, then both branches, then finale to unlock the next act. All 12 wins finish the campaign.".into()
+                    "Win introduction, both branches, then finale. Secret routes also open finales. All 12 wins finish the campaign.".into()
                 } else {
                     session.purchase_feedback.clone()
                 }
@@ -144,7 +144,11 @@ fn present(
                 let status = if campaign.progress.completed(*id) {
                     "COMPLETE / Replay".into()
                 } else if campaign.progress.unlocked(*id) {
-                    "AVAILABLE".into()
+                    if id.index() % 4 == 3 && campaign.progress.routes()[id.index() / 4] {
+                        "AVAILABLE / Secret route".into()
+                    } else {
+                        "AVAILABLE".into()
+                    }
                 } else {
                     format!("LOCKED / {}", id.requirement())
                 };
