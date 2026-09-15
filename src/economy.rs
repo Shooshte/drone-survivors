@@ -3,12 +3,12 @@ use bevy::prelude::*;
 pub(crate) mod runtime;
 pub(crate) mod scene;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Amounts {
     pub salvage: u64,
     pub components: u64,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum TransactionError {
     InsufficientFunds,
     Overflow,
@@ -46,7 +46,7 @@ impl Amounts {
         Ok(())
     }
 }
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RewardReceipt {
     pub collected: Amounts,
     pub lost: Amounts,

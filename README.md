@@ -14,7 +14,8 @@ editor to use the installed language server.
 cargo dev
 ```
 
-Normal launch opens the operations hub. Choose **Mission briefing** (Enter),
+Normal launch opens the campaign menu. Choose **New campaign** (N) or
+**Continue campaign** (Enter) to reach the operations hub. Choose **Mission briefing** (Enter),
 then **Launch mission** (Enter) to start the five-minute survival encounter.
 **Choose mission** (C) opens the campaign selection screen.
 **Backspace** returns from briefing or selection to the hub. New campaigns start with four empty
@@ -25,7 +26,7 @@ Hub and briefing story text is provisional.
 
 Success or failure opens results showing active time, kills, and resource rewards. Choose
 **Return to hub** (Enter) to launch again. Completed attempts and individual mission victories
-remain in memory for this application session; quitting clears this history.
+save with the campaign and survive application restarts.
 Each launch restores the Scout, battery, chargers, hazard cycle and encounter,
 including all temporary upgrades and pending choices. A restart during combat
 or an upgrade choice starts a fresh attempt with the same mission and loadout without recording
@@ -61,7 +62,7 @@ Enter launches. **Backspace** returns to the hub. The hub's Mission briefing
 shortcut uses the selection you last made. Briefings and results identify the
 mission; R restarts the active mission. Menus pause gameplay.
 
-Progress lasts until the app quits; save/resume belongs to DRO-18. The identical
+Progress saves between missions and resumes in the hub. The identical
 placeholder missions total 60 minutes of successful active combat before pauses
 or retries; the roughly 90-minute campaign target awaits authored content.
 
@@ -78,11 +79,56 @@ It checks text bounds at each captured screen and exits after about 65 seconds
 salvage/13 components across 14 results. This validates campaign behavior and
 presentation, not combat balance. [DRO-17 evidence](docs/playtests/dro-17-campaign.md).
 
+## Campaign save and resume
+
+The game uses one local, versioned save slot. **Continue campaign** (Enter)
+restores the bank, permanent passive ranks, owned modules, four-slot loadout,
+mission completion, selection and completed attempt history, then returns to the
+hub. **New campaign** (N) creates a fresh campaign. From the hub, click
+**Campaign menu** or press **N** to return to these choices.
+
+A new campaign replacing an existing or invalid save requires a separate
+confirmation: **Enter** archives the original and starts over; **Backspace**
+cancels. Missing saves are normal. Invalid or incompatible saves show recovery
+instructions and remain untouched until replacement is explicitly confirmed.
+**R** retries reading after you fix/move the file. Unreadable files must be made
+readable or moved aside before replacement can preserve them.
+
+Purchases, loadout edits, mission selection and settled results save immediately
+between missions. There is no mid-mission save: quitting in combat loses that
+attempt's unbanked loot and temporary upgrades. Continue returns to the last
+saved campaign in the hub, ready for a fresh launch. Reloading never re-applies
+mission rewards. Validation modes continue to use isolated, session-only state.
+
+On macOS the slot is `~/Library/Application Support/Drone Survivors/campaign.json`.
+Other native Unix platforms use `$XDG_DATA_HOME/drone-survivors/campaign.json`
+(or `~/.local/share/drone-survivors/campaign.json`). Set **DRONE_SAVE_PATH** to
+choose a different file, including for isolated playtesting:
+
+```sh
+DRONE_SAVE_PATH=/tmp/drone-save-test/campaign.json cargo dev
+```
+
+Writes use a synced temporary file and atomic replacement. The prior snapshot
+is retained as `campaign.previous.json`; confirmed resets archive the original
+as `campaign-replaced-*.json` in the same folder. To recover a previous/archived
+save manually, quit the game, preserve the current file and copy the chosen
+backup to `campaign.json`, then reopen. This build reads schema version 1 and
+rejects unsupported versions rather than guessing a migration.
+
+If saving fails, progression pauses with **Retry / R**. The transaction remains
+in memory and retry does not charge or pay it twice. Resolve the displayed file
+error before retrying; quitting loses changes since the last successful save.
+If another app instance has changed the slot, quit and reopen to load it. Saves
+are limited to 16 MiB; an oversized file must be moved aside manually.
+
+[DRO-18 checks and native evidence](docs/playtests/dro-18-save-resume.md).
+
 ## Module shop and loadout
 
 Choose **Module shop / loadout** in the hub or press **M**. All four existing
-modules are available from the start; a purchase unlocks one type for this
-application session. Prices are provisional for later balance playtesting.
+modules are available from the start; a purchase permanently unlocks one type for this
+campaign. Prices are provisional for later balance playtesting.
 
 | Module | Salvage | Components |
 | --- | ---: | ---: |
@@ -105,8 +151,8 @@ plus battery capacity and charger supply/net rate including permanent passives.
 Temporary effects from earlier attempts are excluded. Charger supply requires a
 nonempty reserve; modules start OFF, and empty slots consume no power. There is
 no power-budget restriction on launch. Ownership and arrangement survive results
-and replay; R keeps the active attempt's loadout. Quitting clears the campaign;
-disk persistence remains a later chunk.
+and replay; R keeps the active attempt's loadout. Ownership and arrangement save
+automatically and survive quitting.
 
 Native purchase/loadout fixture (synthetic funds and completion time, not balance evidence):
 
@@ -148,10 +194,9 @@ shield blocks. Charger reserve efficiency also covers power supplied to running
 modules, without changing battery drain or charger recovery.
 
 Purchases apply on the next launch and survive completed missions and R restarts
-within this application session. Temporary XP effects layer on top and clear on
+across application restarts. Temporary XP effects layer on top and clear on
 restart: a full battery tree plus Interceptor gives 150 capacity during that
-attempt, returning to 200 on restart. Quitting clears the campaign, including
-purchased ranks; disk saves remain a later chunk. All nine passives work without
+attempt, returning to 200 on restart. Purchased ranks save automatically. All nine passives work without
 requiring a particular equipped module.
 
 Native purchase/lifecycle check (synthetic funds, XP and outcome, not balance evidence):
@@ -292,11 +337,10 @@ Upgrade choices freeze attraction and collection, and terminal outcomes take
 precedence over collection in the same frame.
 
 Every completed attempt has one stable breakdown of collected, lost, bonus,
-banked, and resulting balances. Balances last until the application quits;
-saving is deferred to DRO-18. Entry and basic equipment remain free. Resource
+banked, and resulting balances. Settled results and balances save together;
+loading a campaign never credits a result again. Entry and basic equipment remain free. Resource
 math uses checked, atomic transactions; an arithmetic-limit failure leaves the
-bank unchanged and is shown in results. Shop/passive purchase screens remain
-DRO-15/DRO-16; the shared spending operation is tested without introducing a shop.
+bank unchanged and is shown in results.
 
 ### Mission lifecycle validation
 

@@ -1,6 +1,33 @@
-//! Session campaign topology. Mission identities are independent of encounter content.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+//! Campaign topology. Mission identities are independent of encounter content.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[serde(try_from = "u8", into = "u8")]
 pub(crate) struct MissionId(u8);
+
+impl TryFrom<u8> for MissionId {
+    type Error = &'static str;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Self::ALL
+            .get(value as usize)
+            .copied()
+            .ok_or("unknown mission ID")
+    }
+}
+impl From<MissionId> for u8 {
+    fn from(id: MissionId) -> Self {
+        id.0
+    }
+}
 
 impl MissionId {
     pub const ALL: [Self; 12] = [

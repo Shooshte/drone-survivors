@@ -1,4 +1,4 @@
-//! Session-only mission transitions and completion boundary.
+//! Mission transitions and completion boundary.
 use bevy::prelude::*;
 pub(crate) mod campaign;
 pub(crate) mod campaign_validation;
@@ -27,7 +27,7 @@ pub(crate) enum MissionAction {
     Launch,
     Hub,
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MissionResult {
     pub attempt: u64,
     pub mission: MissionId,
@@ -52,7 +52,7 @@ pub(crate) struct MissionSession {
     pub active_loadout: Option<crate::modules::Loadout>,
     pub selected_mission: MissionId,
     pub active_mission: Option<MissionId>,
-    next_attempt: u64,
+    pub(crate) next_attempt: u64,
     active_attempt: Option<u64>,
     armed: bool,
 }
@@ -80,7 +80,7 @@ impl Plugin for MissionPlugin {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn input(
+pub(crate) fn input(
     keys: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     buttons: Query<(&MissionAction, Ref<Interaction>)>,
@@ -91,6 +91,9 @@ fn input(
     mut clock: ResMut<Time<Virtual>>,
 ) {
     *boundary = default();
+    if *phase == GamePhase::CampaignMenu {
+        return;
+    }
     let restart = matches!(*phase, GamePhase::Playing | GamePhase::Choosing)
         && keys.just_pressed(KeyCode::KeyR);
     if restart {

@@ -76,6 +76,23 @@ pub(crate) enum PurchaseError {
     InsufficientFunds,
 }
 impl PassiveTree {
+    pub(crate) fn from_ranks(ranks: [u8; 9]) -> Result<Self, &'static str> {
+        let tree = Self { ranks };
+        for node in NodeId::ALL {
+            if tree.rank(node) > 5 {
+                return Err("passive rank exceeds five");
+            }
+            if tree.rank(node) > 0
+                && node
+                    .prerequisite()
+                    .is_some_and(|previous| tree.rank(previous) == 0)
+            {
+                return Err("passive prerequisite is missing");
+            }
+        }
+        Ok(tree)
+    }
+
     /// Called only on fresh copies of pristine tuning, before run-local modifiers.
     pub(crate) fn apply(
         &self,

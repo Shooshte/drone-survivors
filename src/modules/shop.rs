@@ -1,4 +1,4 @@
-//! Session-only module catalog, ownership, and editable launch loadout.
+//! Campaign module catalog, ownership, and editable launch loadout.
 use std::collections::BTreeSet;
 
 use crate::{
@@ -49,6 +49,25 @@ impl Default for ModuleInventory {
 }
 
 impl ModuleInventory {
+    pub(crate) fn from_saved(
+        owned: Vec<ModuleKind>,
+        slots: [Option<ModuleKind>; 4],
+    ) -> Result<Self, &'static str> {
+        let count = owned.len();
+        let owned: BTreeSet<_> = owned.into_iter().collect();
+        if owned.len() != count {
+            return Err("duplicate module ownership");
+        }
+        let inventory = Self {
+            owned,
+            loadout: Loadout::new(slots)?,
+        };
+        inventory
+            .validate()
+            .map_err(|_| "equipped module is not owned")?;
+        Ok(inventory)
+    }
+
     pub(crate) fn owns(&self, kind: ModuleKind) -> bool {
         self.owned.contains(&kind)
     }

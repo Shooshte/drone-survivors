@@ -8,7 +8,9 @@ pub(crate) const SLOT_KEYS: [KeyCode; 4] = [
     KeyCode::Digit4,
 ];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub(crate) enum ModuleKind {
     Overdrive,
     Shield,
