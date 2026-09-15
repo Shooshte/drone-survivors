@@ -1,6 +1,6 @@
 # DRO-20: Exploration, regions, and secrets
 
-Status: concrete proposal for user review; implementation has not started.
+Status: approved by the user on September 15, 2026, before implementation.
 
 ## Confirmed decisions
 
