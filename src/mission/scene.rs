@@ -275,7 +275,8 @@ fn present(
     chargers: Res<ChargerConfig>,
     mut panels: MenuVisibility,
     mut primary: Single<&mut MissionAction, With<PrimaryAction>>,
-    mut text: Query<(&MenuCopy, &mut Text, &mut TextColor)>,
+    window: Option<Single<&Window>>,
+    mut text: Query<(&MenuCopy, &mut Text, &mut TextColor, &mut TextFont)>,
 ) {
     let shown = matches!(
         *phase,
@@ -301,7 +302,22 @@ fn present(
     };
     let result = session.result.as_ref();
     let won = result.is_some_and(|result| result.succeeded);
-    for (part, mut text, mut color) in &mut text {
+    let compact = window.is_some_and(|window| window.height() < 600.);
+    for (part, mut text, mut color, mut font) in &mut text {
+        // Long cargo briefings need room for resource profiles and power previews
+        // at the supported 640x480 minimum. Restore full sizes after resizing.
+        let size = match (part, compact) {
+            (MenuCopy::Eyebrow, true) => 11.,
+            (MenuCopy::Eyebrow, false) => 12.,
+            (MenuCopy::Heading, true) => 26.,
+            (MenuCopy::Heading, false) => 30.,
+            (MenuCopy::Description, true) => 14.,
+            (MenuCopy::Description, false) => 15.,
+            (MenuCopy::Body | MenuCopy::Note, true) => 12.,
+            (MenuCopy::Body | MenuCopy::Note, false) => 13.,
+            (MenuCopy::PrimaryLabel, _) => 16.,
+        };
+        font.font_size = size.into();
         let value = match (part, *phase) {
             (MenuCopy::Eyebrow, GamePhase::Hub) => "DRONE SURVIVORS / OPERATIONS".into(),
             (MenuCopy::Eyebrow, GamePhase::Briefing) => session.selected_mission.title(),
