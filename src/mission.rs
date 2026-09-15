@@ -4,6 +4,8 @@ pub(crate) mod campaign;
 pub(crate) mod campaign_validation;
 #[cfg(test)]
 mod module_tests;
+pub(crate) mod objective_scene;
+pub(crate) mod objective_validation;
 pub(crate) mod objectives;
 use campaign::MissionId;
 pub(crate) mod scene;

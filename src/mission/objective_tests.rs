@@ -221,3 +221,58 @@ fn placeholder_sites_and_extraction_have_body_clearance_and_connected_routes() {
         }
     }
 }
+
+#[test]
+fn extraction_banks_loot_collected_on_the_same_frame() {
+    let mut app = objective_app(2);
+    let config = app.world().resource::<ObjectiveConfig>().clone();
+    for point in config.sites {
+        visit(&mut app, point);
+    }
+    app.world_mut().spawn((
+        crate::economy::runtime::Pickup {
+            amount: Amounts {
+                salvage: 4,
+                components: 0,
+            },
+            radius: 100.,
+            attracted: false,
+        },
+        Transform::from_translation(config.extraction),
+    ));
+    visit(&mut app, config.extraction);
+    assert_eq!(app.world().resource::<Campaign>().wallet.salvage, 14);
+}
+
+#[test]
+fn guidance_skips_visited_sites_and_routes_to_extraction_only_when_ready() {
+    let config = ObjectiveConfig::default();
+    let mut run = ObjectiveRun {
+        kind: ObjectiveKind::Reconnaissance,
+        ..default()
+    };
+    assert_eq!(run.next_target(&config, config.sites[0]).0, Some(0));
+    run.visited[0] = true;
+    assert_ne!(run.next_target(&config, config.sites[0]).0, Some(0));
+    assert!(
+        run.guidance(&config, config.extraction)
+            .contains("SCAN 1/3")
+    );
+    assert!(
+        !run.guidance(&config, config.extraction)
+            .contains("EXTRACT:")
+    );
+    run.visited = [true; 3];
+    assert_eq!(
+        run.next_target(&config, config.sites[0]),
+        (None, config.extraction)
+    );
+    assert!(
+        run.guidance(&config, config.sites[0])
+            .contains("EXTRACT: S")
+    );
+    assert!(
+        run.guidance(&config, config.extraction + Vec3::Y * 100.)
+            .contains("HERE")
+    );
+}

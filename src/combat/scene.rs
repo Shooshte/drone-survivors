@@ -142,12 +142,15 @@ fn update_hud(
     waves: Res<WaveConfig>,
     time: Res<Time>,
     cue: Res<DamageCue>,
+    objective: Option<Res<crate::mission::objectives::ObjectiveRun>>,
+    targets: Option<Res<crate::mission::objectives::ObjectiveConfig>>,
+    drone: Single<&Transform, With<crate::arena::Drone>>,
     enemies: Query<(), With<Enemy>>,
     warnings: Query<(), With<SpawnWarning>>,
     mut hud: Single<(&mut Text, &mut TextColor), With<CombatHud>>,
 ) {
     let count = enemies.iter().count();
-    let status = if *phase == GamePhase::Dead {
+    let mut status = if *phase == GamePhase::Dead {
         "DRONE DESTROYED | R to restart".to_string()
     } else if *phase == GamePhase::Survived {
         "SURVIVED | R to replay".to_string()
@@ -159,6 +162,18 @@ fn update_hud(
         format!("{} | AUTO FIRE", wave_phase.label)
     } else {
         "AUTO FIRE".to_string()
+    };
+    let survival = objective.as_ref().is_none_or(|o| o.survival());
+    if *phase == GamePhase::Playing
+        && !survival
+        && let (Some(objective), Some(targets)) = (&objective, &targets)
+    {
+        status = objective.guidance(targets, drone.translation);
+    }
+    let timer = if survival {
+        format!("TIME {:.0}", (waves.duration - run.elapsed).max(0.).ceil())
+    } else {
+        format!("ELAPSED {:.0}", run.elapsed.floor())
     };
     let protection =
         if *phase == GamePhase::Playing && time.elapsed_secs_f64() < health.invulnerable_until {
@@ -172,15 +187,8 @@ fn update_hud(
         String::new()
     };
     let value = format!(
-        "HULL {} / {} | TIME {:.0} | HOSTILES {} | KILLS {}\n{}{}{}",
-        health.current,
-        config.player_health,
-        (waves.duration - run.elapsed).max(0.).ceil(),
-        count,
-        run.kills,
-        status,
-        protection,
-        incoming
+        "HULL {} / {} | {} | HOSTILES {} | KILLS {}\n{}{}{}",
+        health.current, config.player_health, timer, count, run.kills, status, protection, incoming
     );
     let (text, color) = &mut *hud;
     if text.0 != value {

@@ -1,4 +1,4 @@
-//! All twelve campaign missions share the current survival encounter.
+//! Campaign prerequisites and objective metadata.
 use super::{Campaign, MissionAction, MissionSession, campaign::MissionId};
 use crate::game::{GamePhase, GameplaySet};
 use bevy::prelude::*;
@@ -60,7 +60,7 @@ fn setup(mut commands: Commands) {
                 flex_direction: FlexDirection::Column, row_gap: px(8), ..default() }, BackgroundColor(PANEL)))
                 .with_children(|panel| {
                     let id = label(panel, "", 22., SILVER); panel.commands().entity(id).insert(Copy::Progress);
-                    label(panel, "ALL MISSIONS / Survive 5:00. Increasing chaser waves; finite chargers.", 13., MUTED);
+                    label(panel, "SHARED ARENA / Increasing chaser waves; finite chargers.", 13., MUTED);
                     label(panel, "Win: collected loot +10 salvage, +1 component. Loss: keep 25% of loot. Replays pay the same.", 12., MUTED);
                     panel.spawn(Node { width: percent(100), column_gap: px(8), ..default() }).with_children(|row| {
                         for act in 0..3 {
@@ -118,7 +118,11 @@ fn present(
                     "Choose mission"
                 }
             ),
-            Copy::Selection => format!("SELECTED  {}", session.selected_mission.title()),
+            Copy::Selection => format!(
+                "SELECTED  {} / {}",
+                session.selected_mission.title(),
+                session.selected_mission.objective().label()
+            ),
             Copy::Feedback => {
                 if session.purchase_feedback.is_empty() {
                     "Win introduction, then both branches, then finale to unlock the next act. All 12 wins finish the campaign.".into()
@@ -127,11 +131,15 @@ fn present(
                 }
             }
             Copy::Card(id) => {
-                let role = match id.index() % 4 {
-                    0 => "Introduction",
-                    1 => "Branch A",
-                    2 => "Branch B",
-                    _ => "Finale",
+                let role = match id.index() {
+                    1 => "Reconnaissance",
+                    2 => "Extraction",
+                    _ => match id.index() % 4 {
+                        0 => "Introduction",
+                        1 => "Branch A",
+                        2 => "Branch B",
+                        _ => "Finale",
+                    },
                 };
                 let status = if campaign.progress.completed(*id) {
                     "COMPLETE / Replay".into()

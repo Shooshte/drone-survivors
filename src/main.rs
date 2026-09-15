@@ -54,6 +54,7 @@ fn main() {
     } else {
         app.add_plugins((
             mission::MissionPlugin,
+            mission::objective_scene::ObjectiveScenePlugin,
             mission::scene::MissionScenePlugin,
             economy::scene::EconomyScenePlugin,
             save::SavePlugin::default(),
