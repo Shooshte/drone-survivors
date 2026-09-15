@@ -212,3 +212,65 @@ fn module_edits_and_mission_selection_persist_without_launch() {
         crate::mission::campaign::MissionId::ALL[1]
     );
 }
+
+#[test]
+fn cargo_victory_saves_once_and_interrupted_replay_restores_fresh_objectives() {
+    use crate::arena::Drone;
+    use crate::mission::{
+        campaign::MissionId,
+        objectives::{ObjectiveConfig, ObjectiveRun},
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("campaign.json");
+    let mut app = self::app(&path);
+    key(&mut app, KeyCode::KeyN);
+    launch(&mut app);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
+    tick(&mut app, 0., &[]);
+    key(&mut app, KeyCode::Enter);
+    app.world_mut()
+        .resource_mut::<MissionSession>()
+        .selected_mission = MissionId::ALL[2];
+    launch(&mut app);
+    let config = app.world().resource::<ObjectiveConfig>().clone();
+    let visit = |app: &mut App, position| {
+        app.world_mut()
+            .query_filtered::<&mut Transform, With<Drone>>()
+            .single_mut(app.world_mut())
+            .unwrap()
+            .translation = position;
+        tick(app, 0., &[]);
+    };
+    for point in config.sites {
+        visit(&mut app, point);
+    }
+    visit(&mut app, config.extraction);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Survived);
+    let wallet = app.world().resource::<Campaign>().wallet;
+    assert_eq!(wallet.salvage, 20);
+    assert_eq!(wallet.components, 2);
+    key(&mut app, KeyCode::Enter);
+    launch(&mut app);
+    visit(&mut app, config.sites[0]);
+    assert_eq!(app.world().resource::<ObjectiveRun>().count(), 1);
+    drop(app);
+    let mut restored = self::app(&path);
+    key(&mut restored, KeyCode::Enter);
+    assert_eq!(restored.world().resource::<Campaign>().wallet, wallet);
+    assert_eq!(restored.world().resource::<Campaign>().history.len(), 2);
+    assert!(
+        restored
+            .world()
+            .resource::<Campaign>()
+            .progress
+            .completed(MissionId::ALL[2])
+    );
+    launch(&mut restored);
+    assert_eq!(restored.world().resource::<ObjectiveRun>().count(), 0);
+    visit(&mut restored, config.extraction);
+    assert_eq!(
+        *restored.world().resource::<GamePhase>(),
+        GamePhase::Playing
+    );
+    assert_eq!(restored.world().resource::<Campaign>().wallet, wallet);
+}

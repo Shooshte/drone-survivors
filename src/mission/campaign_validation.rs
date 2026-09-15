@@ -121,10 +121,11 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
         Step::Finish,
     ]);
     println!(
-        "CAMPAIGN FIXTURE: synthetic success timers and fatal hull; real menu/launch/reward rules. reverse={reverse}. Not combat balance evidence."
+        "CAMPAIGN FIXTURE: synthetic success timers/objective progress and fatal hull; real menu/launch/reward rules. reverse={reverse}. Not combat balance evidence."
     );
     app.add_plugins((
         super::MissionPlugin,
+        super::objective_scene::ObjectiveScenePlugin,
         super::scene::MissionScenePlugin,
         crate::economy::scene::EconomyScenePlugin,
     ))
@@ -158,6 +159,9 @@ fn drive(
     session: Res<MissionSession>,
     mut encounter: ResMut<Encounter>,
     mut health: ResMut<PlayerHealth>,
+    mut objective: ResMut<super::objectives::ObjectiveRun>,
+    targets: Res<super::objectives::ObjectiveConfig>,
+    mut drone: Single<&mut Transform, With<crate::arena::Drone>>,
     mut buttons: Query<(&MissionAction, &mut Interaction)>,
     text_nodes: Query<(&Text, &ComputedNode, &UiGlobalTransform)>,
     control_labels: Query<(&Text, &ComputedNode), With<super::selection_scene::ControlText>>,
@@ -211,7 +215,12 @@ fn drive(
         }
         Step::Win => {
             assert_eq!(*phase, GamePhase::Playing);
-            encounter.elapsed = 300.;
+            if objective.survival() {
+                encounter.elapsed = 300.;
+            } else {
+                objective.visited = [true; 3];
+                drone.translation = targets.extraction;
+            }
         }
         Step::Fail => {
             assert_eq!(*phase, GamePhase::Playing);

@@ -16,7 +16,7 @@ cargo dev
 
 Normal launch opens the campaign menu. Choose **New campaign** (N) or
 **Continue campaign** (Enter) to reach the operations hub. Choose **Mission briefing** (Enter),
-then **Launch mission** (Enter) to start the five-minute survival encounter.
+then **Launch mission** (Enter) to start the selected objective.
 **Choose mission** (C) opens the campaign selection screen.
 **Backspace** returns from briefing or selection to the hub. New campaigns start with four empty
 module slots. Buy and arrange modules in the hub before launch; module toggles
@@ -38,8 +38,9 @@ except the dedicated `missions`, `campaign`, `passives`, and `shop` menu fixture
 ## Campaign mission selection
 
 All **12 missions** are playable placeholders using the **same existing arena,
-five-minute survival objective, waves, chargers, hazards and rewards**. Each has
-its own completion record. Missions do not yet differ in maps or objectives.
+waves, chargers, hazards and rewards**. Each has its own completion record.
+Mission **02 is reconnaissance**, mission **03 is cargo extraction**; the other
+ten retain the five-minute survival objective.
 
 | Act | Introduction | Branches, either order | Finale |
 | --- | --- | --- | --- |
@@ -62,9 +63,9 @@ Enter launches. **Backspace** returns to the hub. The hub's Mission briefing
 shortcut uses the selection you last made. Briefings and results identify the
 mission; R restarts the active mission. Menus pause gameplay.
 
-Progress saves between missions and resumes in the hub. The identical
-placeholder missions total 60 minutes of successful active combat before pauses
-or retries; the roughly 90-minute campaign target awaits authored content.
+Progress saves between missions and resumes in the hub. The ten survival missions
+total 50 minutes before pauses/retries; reconnaissance and extraction have no
+time limit. The roughly 90-minute campaign target awaits authored content.
 
 ```sh
 DRONE_CAPTURE_DIR=/tmp/dro17-normal cargo dev -- --validate campaign
@@ -72,12 +73,50 @@ DRONE_CAPTURE_DIR=/tmp/dro17-compact DRONE_CAPTURE_MINIMUM=1 DRONE_CAMPAIGN_REVE
 ```
 
 This opt-in native fixture uses ordinary menu actions with **synthetic success
-timers and fatal hull** to exercise all 12 missions, locked selection, restart,
+timers/objective progress and fatal hull** to exercise all 12 missions, locked selection, restart,
 completion and replays. The second run reverses the branch order in every act.
 It checks text bounds at each captured screen and exits after about 65 seconds
 (default timeout 90). It grants no loot or funds; 13 synthetic wins yield 130
 salvage/13 components across 14 results. This validates campaign behavior and
 presentation, not combat balance. [DRO-17 evidence](docs/playtests/dro-17-campaign.md).
+
+## Reconnaissance and cargo extraction
+
+After completing mission 01, choose either branch from the mission screen:
+
+- **Mission 02:** visit all three cyan **SCAN** beacons, then reach extraction.
+- **Mission 03:** collect all three orange **CARGO** pickups, then reach extraction.
+  Cargo is objective progress, separate from salvage and components.
+
+Fly within **70 units in 3D** of each beacon/pickup, with clear line of sight.
+They sit at **height 90**, the default launch altitude. Proximity triggers
+collection/scanning automatically; there is no interaction key or dwell time.
+Sites can be visited in any order and count only once. Scanned sites turn green;
+collected cargo disappears. The HUD shows progress and the nearest remaining
+site's compass bearing, direct distance in world units and target height. North
+is toward the top of the arena; guidance points toward the destination, so use
+the existing passages/detours around walls.
+
+The extraction rings are gray and marked **LOCKED** until all three targets are
+complete, then turn green and **READY**. Reach within **95 units in 3D** to
+succeed. Visiting extraction early does nothing; return after completing the
+objective. The HUD then points toward extraction. Neither mission ends at the
+five-minute survival deadline: elapsed time continues. Both reuse the existing
+finite waves; after five minutes no new bursts arrive, but surviving enemies
+remain. Zero hull fails, including on the frame of extraction.
+
+Upgrade choices pause objective progress. R discards the attempt, resets all
+sites/cargo, and restores the same mission/loadout. Success/failure, rewards,
+unlocks and autosave use the shared lifecycle. Existing completed missions in
+version-1 saves remain completed, with the new objective used on replays.
+
+Native fixture (synthetic positions/death, mission 01 unlocked and spawning
+suppressed; validates rules and presentation, not difficulty):
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/dro19-normal cargo dev -- --validate objectives
+DRONE_CAPTURE_DIR=/tmp/dro19-compact DRONE_CAPTURE_MINIMUM=1 cargo dev -- --validate objectives
+```
 
 ## Campaign save and resume
 

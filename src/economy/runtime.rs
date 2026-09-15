@@ -186,7 +186,7 @@ type MovingPickups<'w, 's> = Query<
 >;
 
 #[allow(clippy::too_many_arguments)]
-fn collect(
+pub(crate) fn collect(
     mut commands: Commands,
     time: Res<Time>,
     phase: Res<GamePhase>,

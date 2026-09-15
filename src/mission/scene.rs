@@ -306,14 +306,14 @@ fn present(
             (MenuCopy::Eyebrow, GamePhase::Briefing) => session.selected_mission.title(),
             (MenuCopy::Eyebrow, _) => result.map(|r| r.mission.title()).unwrap_or_default(),
             (MenuCopy::Heading, GamePhase::Hub) => "Ready for deployment".into(),
-            (MenuCopy::Heading, GamePhase::Briefing) => "Hold out for five minutes".into(),
-            (MenuCopy::Heading, _) => if won { "Mission survived" } else { "Drone lost" }.into(),
+            (MenuCopy::Heading, GamePhase::Briefing) => session.selected_mission.objective().heading().into(),
+            (MenuCopy::Heading, _) => if won { "Mission complete" } else { "Drone lost" }.into(),
             (MenuCopy::Description, GamePhase::Hub) => "Choose an unlocked mission or launch the selected mission.".into(),
-            (MenuCopy::Description, GamePhase::Briefing) => "Survive for 5:00. Keep your hull above zero as enemy waves grow. Upgrade choices pause the clock.".into(),
+            (MenuCopy::Description, GamePhase::Briefing) => session.selected_mission.objective().briefing().into(),
             (MenuCopy::Description, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
                 "Reward transaction failed; your previous balances are unchanged."
             } else if won {
-                "Survival complete. Your rewards have been banked."
+                "Objective complete. Your rewards have been banked."
             } else {
                 "Hull depleted. A quarter of collected resources is kept."
             }.into(),
@@ -398,6 +398,30 @@ mod tests {
             .add_plugins(MissionScenePlugin);
         app.update();
         app
+    }
+
+    #[test]
+    fn briefings_explain_selected_objective_and_do_not_promise_survival_victory() {
+        let mut app = app();
+        for (index, needle) in [(1, "scan sites"), (2, "cargo pickups")] {
+            app.world_mut()
+                .resource_mut::<MissionSession>()
+                .selected_mission = super::super::campaign::MissionId::ALL[index];
+            *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Briefing;
+            app.update();
+            let text = app
+                .world_mut()
+                .query::<(&MenuCopy, &Text)>()
+                .iter(app.world())
+                .find(|(part, _)| matches!(part, MenuCopy::Description))
+                .unwrap()
+                .1
+                .0
+                .clone();
+            assert!(text.contains(needle), "{text}");
+            assert!(text.contains("extract"));
+            assert!(!text.contains("Survive for 5:00"));
+        }
     }
 
     #[test]

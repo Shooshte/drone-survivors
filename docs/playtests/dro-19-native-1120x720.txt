@@ -1,0 +1,17 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.78s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate objectives`
+OBJECTIVES FIXTURE: synthetic positions/fatal hull, mission 01 pre-unlocked, spawn bursts disabled. Real objective/lifecycle/reward rules; no save or balance claim.
+OBJECTIVES scan-briefing: phase=Briefing, progress=0, visible_labels=25
+OBJECTIVES scan-locked-exit: phase=Playing, progress=0, visible_labels=19
+OBJECTIVES scan-beacon: phase=Playing, progress=0, visible_labels=19
+OBJECTIVES scan-ready-exit: phase=Playing, progress=3, visible_labels=19
+OBJECTIVES scan-failure: phase=Dead, progress=3, visible_labels=23
+OBJECTIVES scan-success: phase=Survived, progress=3, visible_labels=23
+OBJECTIVES cargo-briefing: phase=Briefing, progress=3, visible_labels=25
+OBJECTIVES cargo-locked-exit: phase=Playing, progress=0, visible_labels=19
+OBJECTIVES cargo-beacon: phase=Playing, progress=0, visible_labels=19
+OBJECTIVES cargo-ready-exit: phase=Playing, progress=3, visible_labels=19
+OBJECTIVES cargo-failure: phase=Dead, progress=3, visible_labels=23
+OBJECTIVES cargo-success: phase=Survived, progress=3, visible_labels=23
+OBJECTIVES FIXTURE PASS: both types, premature exit, unique triggers, no deadline victory, clean restart, death at ready exit, success, 4 results and 20 salvage/2 components.
+2026-09-15T12:15:48.122415Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(39827358336)

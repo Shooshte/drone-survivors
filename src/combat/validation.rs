@@ -56,6 +56,7 @@ pub(crate) enum ValidationMode {
     Choices,
     Missions,
     Campaign,
+    Objectives,
     Passives,
     Shop,
 }
@@ -100,7 +101,7 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives|shop|campaign \
+                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives|shop|campaign|objectives \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
@@ -119,9 +120,10 @@ impl ValidationConfig {
                         "passives" => ValidationMode::Passives,
                         "shop" => ValidationMode::Shop,
                         "campaign" => ValidationMode::Campaign,
+                        "objectives" => ValidationMode::Objectives,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, shop, or campaign"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, shop, campaign, or objectives"
                                     .into(),
                             );
                         }
@@ -159,7 +161,7 @@ impl ValidationConfig {
             seconds: seconds.unwrap_or(match mode {
                 ValidationMode::Stress => 30.,
                 ValidationMode::Missions => 36.,
-                ValidationMode::Campaign => 90.,
+                ValidationMode::Campaign | ValidationMode::Objectives => 90.,
                 ValidationMode::Passives => 40.,
                 ValidationMode::Shop => 40.,
                 ValidationMode::Choices | ValidationMode::Chargers => 60.,
@@ -171,6 +173,11 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    if config.mode == ValidationMode::Objectives {
+        app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
+        crate::mission::objective_validation::install(app, config.seconds);
+        return;
+    }
     if config.mode == ValidationMode::Campaign {
         crate::mission::campaign_validation::install(app, config.seconds);
         return;
@@ -376,6 +383,7 @@ fn validation_choice_input(
         | ValidationMode::Manual
         | ValidationMode::Missions
         | ValidationMode::Campaign
+        | ValidationMode::Objectives
         | ValidationMode::Shop
         | ValidationMode::Passives => {
             unreachable!()

@@ -1,0 +1,18 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.54s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate campaign`
+CAMPAIGN FIXTURE: synthetic success timers/objective progress and fatal hull; real menu/launch/reward rules. reverse=false. Not combat balance evidence.
+CAMPAIGN FIXTURE hub: phase=Res(Hub) complete=0 history=0 selected=MissionId(0) visible_labels=29
+CAMPAIGN FIXTURE initial: phase=Res(MissionSelect) complete=0 history=0 selected=MissionId(0) visible_labels=38
+CAMPAIGN FIXTURE locked: phase=Res(MissionSelect) complete=0 history=0 selected=MissionId(0) visible_labels=38
+CAMPAIGN FIXTURE briefing: phase=Res(Briefing) complete=0 history=0 selected=MissionId(0) visible_labels=25
+CAMPAIGN FIXTURE branches: phase=Res(MissionSelect) complete=1 history=1 selected=MissionId(0) visible_labels=38
+CAMPAIGN FIXTURE act2-briefing: phase=Res(Briefing) complete=4 history=4 selected=MissionId(4) visible_labels=25
+CAMPAIGN FIXTURE act2-branches: phase=Res(MissionSelect) complete=5 history=5 selected=MissionId(4) visible_labels=38
+CAMPAIGN FIXTURE act3-briefing: phase=Res(Briefing) complete=8 history=8 selected=MissionId(8) visible_labels=25
+CAMPAIGN FIXTURE act3-branches: phase=Res(MissionSelect) complete=9 history=9 selected=MissionId(8) visible_labels=38
+CAMPAIGN FIXTURE complete-hub: phase=Res(Hub) complete=12 history=12 selected=MissionId(11) visible_labels=29
+CAMPAIGN FIXTURE complete-selection: phase=Res(MissionSelect) complete=12 history=12 selected=MissionId(11) visible_labels=38
+CAMPAIGN FIXTURE replay-failure: phase=Res(Dead) complete=12 history=13 selected=MissionId(1) visible_labels=23
+CAMPAIGN FIXTURE replay-success: phase=Res(Survived) complete=12 history=14 selected=MissionId(1) visible_labels=23
+CAMPAIGN FIXTURE PASS: 12 distinct missions, all acts, locked rejection, restart, complete campaign, failure and successful replays; 14 results, 130 salvage/13 components.
+2026-09-15T12:17:09.935808Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(37133795968)

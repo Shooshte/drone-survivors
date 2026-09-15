@@ -5,6 +5,14 @@ use super::{
 };
 
 fn win(app: &mut App) {
+    if !app
+        .world()
+        .resource::<super::objectives::ObjectiveRun>()
+        .survival()
+    {
+        super::objective_tests::finish_objective(app);
+        return;
+    }
     app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
     tick(app, 0., &[]);
 }
