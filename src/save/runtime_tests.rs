@@ -393,3 +393,6 @@ fn failed_choice_discovery_retry_returns_to_paused_choice() {
         .unwrap();
     assert_eq!(restored.progress.routes(), [true, false, false]);
 }
+
+#[path = "discovery_tests.rs"]
+mod discoveries;
