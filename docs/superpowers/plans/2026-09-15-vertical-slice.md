@@ -48,5 +48,10 @@ bounded catalog. No campaign schema change is expected.
 - [x] Review the full branch, address actionable findings, and record outcomes,
   loadout/route rationale, save checks and evidence limits in
   `docs/playtests/dro-21-vertical-slice.md` and `docs/playtests.md`.
-- [ ] Commit evidence, push the branch, open a PR against main and link it in Linear.
+- [x] Commit evidence, push the branch, open a PR against main and link it in Linear.
   Keep the deferred human checklist visibly pending.
+
+## Delivery
+
+PR: https://github.com/Shooshte/drone-survivors/pull/25 (base `main`).
+Human acceptance and content expansion remain pending as recorded in the playtest report.
