@@ -1563,3 +1563,26 @@ the new campaign probe passed separately, along with formatting and strict Clipp
 
 [Full comparison, failed strategies, logs, screenshots and deferred human checklist](playtests/dro-21-vertical-slice.md).
 The human gate and content-expansion restriction remain pending.
+
+
+## DRO-34 — Isolated catalog arena — 2026-09-15
+
+DRO-22 was split into eight child issues, DRO-34 through DRO-41. The user approved
+test-arena implementation while keeping campaign introduction gated on human
+playtests. This first PR adds an interactive scenario/loadout selector using the
+existing content and production gameplay systems, without campaign/save plugins.
+
+Run `cargo dev -- --validate catalog`. Select a scenario with Left/Right and cycle
+slots with 1-4 (or click the controls); Enter launches, R restarts, Tab returns.
+The default round is 60 active seconds. Launch/restart/return reset attempt state.
+
+Validation: 386 tests passed, 5 existing explicit probes ignored; formatting and
+strict Clippy passed. Native fixtures passed at 640x480 and 1120x720 with inspected
+screenshots and text viewport checks. They use synthetic keyboard input and 50 XP
+for an upgrade-panel preview, not human or balance evidence. The native pass found
+and fixed a Restart button overlapping the upgrade heading. An independent review
+of the implementation and follow-up found no actionable issues.
+
+[Detailed report and evidence](playtests/dro-34-catalog-arena.md).
+Remaining catalog content belongs to DRO-35–DRO-41 after the arena foundation merges.
+Human acceptance and campaign introduction remain pending.

@@ -2,6 +2,7 @@ use crate::game::{GamePhase, GameplaySet, is_playing};
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 
+mod catalog;
 mod collision;
 mod hazards;
 mod scene;
@@ -170,3 +171,6 @@ impl Plugin for CombatPlugin {
 
 #[cfg(test)]
 mod slice_tests;
+
+#[cfg(test)]
+mod catalog_tests;

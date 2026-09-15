@@ -568,3 +568,19 @@ fn campaign_validation_is_opt_in_and_rejects_stress_options() {
     assert!(parse(&["--validate", "campaign"]).is_ok());
     assert!(parse(&["--validate", "campaign", "--enemies", "20"]).is_err());
 }
+#[test]
+fn catalog_entry_is_opt_in_and_accepts_a_round_duration() {
+    use crate::combat::validation::ValidationConfig;
+    assert!(
+        ValidationConfig::parse(Vec::<String>::new())
+            .unwrap()
+            .is_none()
+    );
+    let result =
+        ValidationConfig::parse(["--validate", "catalog", "--seconds", "90"].map(str::to_owned));
+    assert!(
+        result.is_ok(),
+        "catalog entry should be accepted: {result:?}"
+    );
+    assert_eq!(result.unwrap().unwrap().seconds, 90.);
+}
