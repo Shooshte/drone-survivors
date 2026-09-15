@@ -7,6 +7,7 @@ use crate::{
 use bevy::prelude::*;
 
 mod scene;
+mod validation;
 
 #[derive(Resource)]
 struct CatalogArena {
@@ -71,6 +72,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
+    if std::env::var_os("DRONE_CATALOG_SMOKE").is_some() {
+        validation::install(app);
+    }
 }
 
 fn cycle_slot(arena: &mut CatalogArena, slot: usize) {

@@ -110,51 +110,53 @@ pub(super) fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
         });
 }
 
+type LayoutNodes<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static mut Node,
+        Option<&'static Selector>,
+        Option<&'static RoundControls>,
+        Option<&'static super::super::CombatHudRoot>,
+        Option<&'static CatalogAction>,
+    ),
+    Or<(
+        With<Selector>,
+        With<RoundControls>,
+        With<super::super::CombatHudRoot>,
+        With<CatalogAction>,
+    )>,
+>;
+
 pub(super) fn present(
     arena: Res<CatalogArena>,
-    mut selectors: Query<
-        &mut Node,
-        (
-            With<Selector>,
-            Without<RoundControls>,
-            Without<super::super::CombatHudRoot>,
-        ),
-    >,
-    mut round: Query<
-        &mut Node,
-        (
-            With<RoundControls>,
-            Without<Selector>,
-            Without<super::super::CombatHudRoot>,
-        ),
-    >,
-    mut hud: Query<
-        &mut Node,
-        (
-            With<super::super::CombatHudRoot>,
-            Without<Selector>,
-            Without<RoundControls>,
-        ),
-    >,
+    phase: Res<GamePhase>,
+    mut nodes: LayoutNodes,
     mut labels: Query<(&Copy, &mut Text)>,
     mut buttons: Query<(&Interaction, &mut BackgroundColor), With<CatalogAction>>,
 ) {
-    for mut node in &mut selectors {
-        node.display = if arena.selecting {
-            Display::Flex
-        } else {
-            Display::None
-        };
-    }
-    for mut node in &mut round {
-        node.display = if arena.selecting {
-            Display::None
-        } else {
-            Display::Flex
-        };
-    }
-    for mut node in &mut hud {
-        node.right = px(182);
+    for (mut node, selector, round, hud, action) in &mut nodes {
+        if selector.is_some() {
+            node.display = if arena.selecting {
+                Display::Flex
+            } else {
+                Display::None
+            };
+        } else if round.is_some() {
+            node.display = if arena.selecting {
+                Display::None
+            } else {
+                Display::Flex
+            };
+        } else if hud.is_some() {
+            node.right = px(182);
+        } else if action == Some(&CatalogAction::Restart) {
+            node.display = if *phase == GamePhase::Choosing {
+                Display::None
+            } else {
+                Display::Flex
+            };
+        }
     }
     for (copy, mut text) in &mut labels {
         let value = match copy {

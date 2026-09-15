@@ -232,3 +232,24 @@ fn catalog_held_controls_do_not_repeat_across_launch_or_return() {
         Some(ModuleKind::Overdrive)
     );
 }
+
+#[test]
+fn catalog_choice_keeps_return_but_hides_restart_button_clear_of_modal_heading() {
+    let mut app = app();
+    step(&mut app, &[KeyCode::Enter]);
+    app.world_mut().resource_mut::<UpgradeRun>().award(50);
+    step(&mut app, &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    for (action, node) in app
+        .world_mut()
+        .query::<(&catalog::CatalogAction, &Node)>()
+        .iter(app.world())
+    {
+        if *action == catalog::CatalogAction::Restart {
+            assert_eq!(node.display, Display::None);
+        }
+        if *action == catalog::CatalogAction::Return {
+            assert_eq!(node.display, Display::Flex);
+        }
+    }
+}
