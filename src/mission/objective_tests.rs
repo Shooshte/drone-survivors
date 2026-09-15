@@ -276,3 +276,58 @@ fn guidance_skips_visited_sites_and_routes_to_extraction_only_when_ready() {
             .contains("HERE")
     );
 }
+
+#[test]
+fn hitch_frame_records_crossed_sites_and_extraction_for_both_objectives() {
+    use crate::arena::DroneFlight;
+    for (index, frames) in [(1, 1), (2, 1), (1, 120), (2, 120)] {
+        let mut app = objective_app(index);
+        app.init_resource::<crate::world::PlayerPath>();
+        // The real movement system traverses both triggers in a single second.
+        let start = Vec3::new(-560., 90., -900.);
+        {
+            let mut config = app.world_mut().resource_mut::<ObjectiveConfig>();
+            config.sites = [
+                start + Vec3::X * 100.,
+                start + Vec3::X * 800.,
+                start + Vec3::X * 1000.,
+            ];
+            config.extraction = start + Vec3::X * 270.;
+        }
+        app.world_mut().resource_mut::<ObjectiveRun>().visited = [false, true, true];
+        let mut drone = app
+            .world_mut()
+            .query_filtered::<(&mut Transform, &mut DroneFlight), With<Drone>>();
+        let (mut transform, mut flight) = drone.single_mut(app.world_mut()).unwrap();
+        transform.translation = start;
+        flight.velocity = Vec3::X * 420.;
+        // Isolate continuous travel from drag/rotor acceleration.
+        app.world_mut()
+            .resource_mut::<crate::arena::FlightConfig>()
+            .horizontal_drag = 0.;
+        for _ in 0..frames {
+            tick(&mut app, 1. / frames as f64, &[]);
+        }
+        let end = app
+            .world_mut()
+            .query_filtered::<&Transform, With<Drone>>()
+            .single(app.world())
+            .unwrap()
+            .translation;
+        let config = app.world().resource::<ObjectiveConfig>();
+        if frames == 1 {
+            assert!(end.distance(config.sites[0]) > config.visit_radius);
+            assert!(end.distance(config.extraction) > config.extraction_radius);
+            assert!(
+                app.world()
+                    .resource::<crate::world::PlayerPath>()
+                    .segments
+                    .len()
+                    >= 120
+            );
+        }
+        assert_eq!(app.world().resource::<ObjectiveRun>().count(), 3);
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Survived);
+        assert_eq!(app.world().resource::<Campaign>().history.len(), 1);
+    }
+}

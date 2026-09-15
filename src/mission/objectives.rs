@@ -3,7 +3,7 @@ use super::{MissionSession, campaign::MissionId};
 use crate::{
     arena::Drone,
     game::{GamePhase, GameplaySet},
-    world::WorldGeometry,
+    world::{PlayerPath, WorldGeometry},
 };
 use bevy::prelude::*;
 
@@ -88,26 +88,106 @@ fn update(
     mut run: ResMut<ObjectiveRun>,
     drone: Single<&Transform, With<Drone>>,
     geometry: Option<Res<WorldGeometry>>,
+    path: Option<Res<PlayerPath>>,
     mut phase: ResMut<GamePhase>,
 ) {
     if run.survival() {
         return;
     }
-    let reached = |position: Vec3, radius: f32| {
-        drone.translation.distance(position) <= radius
-            && geometry
-                .as_ref()
-                .is_none_or(|g| g.line_clear(drone.translation, position))
-    };
-    for (index, position) in config.sites.iter().enumerate() {
-        if reached(*position, config.visit_radius) {
-            run.visited[index] = true;
+    // Movement records collision-adjusted substeps in travel order. Never join
+    // them into a chord, which could invent a crossing through solid terrain.
+    if let Some(path) = path {
+        for segment in &path.segments {
+            if traverse(
+                &config,
+                &mut run,
+                segment.start,
+                segment.end,
+                geometry.as_deref(),
+            ) {
+                *phase = GamePhase::Survived;
+                return;
+            }
         }
     }
-    if run.ready() && reached(config.extraction, config.extraction_radius) {
+    // Also supports stationary players and fixtures without a movement path.
+    if traverse(
+        &config,
+        &mut run,
+        drone.translation,
+        drone.translation,
+        geometry.as_deref(),
+    ) {
         *phase = GamePhase::Survived;
     }
 }
+
+fn traverse(
+    config: &ObjectiveConfig,
+    run: &mut ObjectiveRun,
+    start: Vec3,
+    end: Vec3,
+    geometry: Option<&WorldGeometry>,
+) -> bool {
+    let mut ready_at = 0_f32;
+    for (index, position) in config.sites.iter().enumerate() {
+        if !run.visited[index]
+            && let Some(at) = contact(start, end, *position, config.visit_radius, geometry)
+        {
+            run.visited[index] = true;
+            ready_at = ready_at.max(at);
+        }
+    }
+    // The exit is only eligible on the portion travelled after the last site.
+    // Crossing a locked exit earlier in this same frame is not retroactive.
+    run.ready()
+        && contact(
+            start.lerp(end, ready_at),
+            end,
+            config.extraction,
+            config.extraction_radius,
+            geometry,
+        )
+        .is_some()
+}
+
+/// Earliest visible candidate within the segment's sphere intersection. Use
+/// center proximity (not the swept hull envelope) to retain the trigger radius.
+fn contact(
+    start: Vec3,
+    end: Vec3,
+    center: Vec3,
+    radius: f32,
+    geometry: Option<&WorldGeometry>,
+) -> Option<f32> {
+    let delta = end - start;
+    let length_squared = delta.length_squared();
+    let visible = |at| geometry.is_none_or(|g| g.line_clear(start.lerp(end, at), center));
+    if length_squared == 0. {
+        return (start.distance_squared(center) <= radius * radius && visible(0.)).then_some(0.);
+    }
+    let closest = (center - start).dot(delta) / length_squared;
+    let distance_squared = (start + delta * closest).distance_squared(center);
+    let remaining = radius * radius - distance_squared;
+    if remaining < 0. {
+        return None;
+    }
+    let half_span = (remaining / length_squared).sqrt();
+    let enter = (closest - half_span).max(0.);
+    let exit = (closest + half_span).min(1.);
+    if enter > exit {
+        return None;
+    }
+    // A wall can obscure entry while the substep moves into view. Check the
+    // nearest point and exit as well; never borrow LOS from the frame endpoint.
+    [enter, closest.clamp(enter, exit), exit]
+        .into_iter()
+        .find(|&at| visible(at))
+}
+
+#[cfg(test)]
+#[path = "objective_sweep_tests.rs"]
+mod sweep_tests;
 
 impl ObjectiveKind {
     pub fn label(self) -> &'static str {

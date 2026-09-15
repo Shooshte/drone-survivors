@@ -94,3 +94,30 @@ passages/detours remain necessary. Natural completion time, difficulty and
 loadout comparisons belong to the downstream vertical-slice playtests. Existing
 Bevy shutdown logs emit a skipped-window-destroy event warning after successful
 exit; no assertion, save or gameplay failure accompanied it.
+
+## Review follow-up — swept objective crossings
+
+The endpoint-only trigger review was valid. A regression using the real movement
+system at 420 units/second crossed both the remaining site and extraction in a
+one-second frame but stayed at 2/3 progress before the fix.
+
+Objectives now inspect the recorded collision-adjusted movement segments. Sphere
+intersection retains the original center-based 3D radii and checks line of sight
+at contact candidates. Segments are consumed in travel order; extraction only
+uses the part after the last required visit. A locked exit crossed earlier in
+the frame does not become a retroactive success. Stationary/legacy fixtures keep
+the endpoint fallback; death, pause and reset gates remain in place.
+
+The same route now succeeds for reconnaissance and cargo extraction with one
+one-second frame or 120 smaller frames. Additional tests cover bent paths versus
+false frame chords, altitude near misses, no hull-radius inflation, tangent and
+stationary contact, LOS at crossing, and final-site/extraction ordering.
+
+Verification: 361 tests passed, four existing diagnostics ignored; fmt and strict
+all-target Clippy passed. Independent review found no blocking issue. The compact
+native objective fixture was rerun successfully. LOS uses entry/nearest/exit
+samples within each 120 Hz motion substep; future custom occluders may require
+more detailed visibility intervals. Default objective neighborhoods are clear.
+
+[Follow-up tests](dro-19-sweep-tests.txt), [Clippy](dro-19-sweep-clippy.txt),
+and [native fixture](dro-19-sweep-native.txt).

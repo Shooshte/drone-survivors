@@ -1511,3 +1511,9 @@ Independent review findings about same-frame loot ordering and invisible world
 labels were fixed and verified. No known blocking defect.
 
 [Full evidence, logs, captures and remaining playtest work](playtests/dro-19-objectives.md).
+
+DRO-19 review follow-up: fixed missed objective crossings during hitch frames by
+using the recorded swept path, with chronological extraction and contact LOS.
+361 tests passed (four ignored), formatting/strict Clippy passed, and the compact
+native objective fixture passed again. Details and regression evidence are in
+the [DRO-19 report](playtests/dro-19-objectives.md#review-follow-up--swept-objective-crossings).
