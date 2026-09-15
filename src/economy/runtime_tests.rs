@@ -148,6 +148,7 @@ fn pickups_do_not_expire_and_freeze_during_choices_or_terminal_frames() {
         GamePhase::Survived,
         GamePhase::Hub,
         GamePhase::Briefing,
+        GamePhase::MissionSelect,
     ] {
         *app.world_mut().resource_mut::<GamePhase>() = phase;
         run(&mut app);

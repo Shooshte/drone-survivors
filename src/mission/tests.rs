@@ -110,7 +110,11 @@ fn terminal_results_are_stable_deduplicated_and_campaign_retains_success() {
     tick(&mut app, 0., &[]);
     let campaign = app.world().resource::<Campaign>();
     assert_eq!(campaign.history.len(), 2);
-    assert!(campaign.mission_succeeded);
+    assert!(
+        campaign
+            .progress
+            .completed(super::campaign::MissionId::ALL[0])
+    );
     assert_ne!(campaign.history[0].attempt, campaign.history[1].attempt);
     assert!(!campaign.history[1].succeeded);
 }

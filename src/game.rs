@@ -6,6 +6,7 @@ pub(crate) enum GamePhase {
     Playing,
     Hub,
     Briefing,
+    MissionSelect,
     Passives,
     ModuleShop,
     Choosing,

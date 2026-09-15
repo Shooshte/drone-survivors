@@ -55,6 +55,7 @@ pub(crate) enum ValidationMode {
     Armored,
     Choices,
     Missions,
+    Campaign,
     Passives,
     Shop,
 }
@@ -99,7 +100,7 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives \
+                "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives|shop|campaign \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
@@ -117,9 +118,10 @@ impl ValidationConfig {
                         "missions" => ValidationMode::Missions,
                         "passives" => ValidationMode::Passives,
                         "shop" => ValidationMode::Shop,
+                        "campaign" => ValidationMode::Campaign,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, or shop"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, shop, or campaign"
                                     .into(),
                             );
                         }
@@ -157,6 +159,7 @@ impl ValidationConfig {
             seconds: seconds.unwrap_or(match mode {
                 ValidationMode::Stress => 30.,
                 ValidationMode::Missions => 36.,
+                ValidationMode::Campaign => 90.,
                 ValidationMode::Passives => 40.,
                 ValidationMode::Shop => 40.,
                 ValidationMode::Choices | ValidationMode::Chargers => 60.,
@@ -168,6 +171,10 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    if config.mode == ValidationMode::Campaign {
+        crate::mission::campaign_validation::install(app, config.seconds);
+        return;
+    }
     if config.mode == ValidationMode::Shop {
         crate::modules::shop_validation::install(app, config.seconds);
         return;
@@ -368,6 +375,7 @@ fn validation_choice_input(
         ValidationMode::Choices
         | ValidationMode::Manual
         | ValidationMode::Missions
+        | ValidationMode::Campaign
         | ValidationMode::Shop
         | ValidationMode::Passives => {
             unreachable!()

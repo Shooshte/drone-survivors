@@ -44,6 +44,7 @@ impl Plugin for MissionScenePlugin {
             .init_resource::<ChargerConfig>()
             .add_plugins((
                 crate::passives::scene::PassiveScenePlugin,
+                super::selection_scene::SelectionScenePlugin,
                 crate::modules::shop_scene::ModuleShopScenePlugin,
             ))
             .add_systems(Startup, setup)
@@ -118,6 +119,28 @@ fn setup(mut commands: Commands) {
                             copy(button, MenuCopy::PrimaryLabel, 16., SILVER);
                             button.spawn((
                                 Text::new("ENTER"),
+                                TextFont::from_font_size(12.),
+                                TextColor(CYAN),
+                            ));
+                        });
+                    panel
+                        .spawn((
+                            Button,
+                            ShopAction,
+                            MissionAction::MissionSelect,
+                            Name::new("Choose mission"),
+                            button_node(34.),
+                            BackgroundColor(PANEL),
+                            BorderColor::all(CYAN),
+                        ))
+                        .with_children(|button| {
+                            button.spawn((
+                                Text::new("Choose mission"),
+                                TextFont::from_font_size(14.),
+                                TextColor(SILVER),
+                            ));
+                            button.spawn((
+                                Text::new("C"),
                                 TextFont::from_font_size(12.),
                                 TextColor(CYAN),
                             ));
@@ -280,12 +303,12 @@ fn present(
     for (part, mut text, mut color) in &mut text {
         let value = match (part, *phase) {
             (MenuCopy::Eyebrow, GamePhase::Hub) => "DRONE SURVIVORS / OPERATIONS".into(),
-            (MenuCopy::Eyebrow, GamePhase::Briefing) => "MISSION BRIEFING / SURVIVAL".into(),
-            (MenuCopy::Eyebrow, _) => "MISSION RESULTS / SURVIVAL".into(),
+            (MenuCopy::Eyebrow, GamePhase::Briefing) => session.selected_mission.title(),
+            (MenuCopy::Eyebrow, _) => result.map(|r| r.mission.title()).unwrap_or_default(),
             (MenuCopy::Heading, GamePhase::Hub) => "Ready for deployment".into(),
             (MenuCopy::Heading, GamePhase::Briefing) => "Hold out for five minutes".into(),
             (MenuCopy::Heading, _) => if won { "Mission survived" } else { "Drone lost" }.into(),
-            (MenuCopy::Description, GamePhase::Hub) => "The Scout is ready. Review the mission, then launch into the arena.".into(),
+            (MenuCopy::Description, GamePhase::Hub) => "Choose an unlocked mission or launch the selected mission.".into(),
             (MenuCopy::Description, GamePhase::Briefing) => "Survive for 5:00. Keep your hull above zero as enemy waves grow. Upgrade choices pause the clock.".into(),
             (MenuCopy::Description, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
                 "Reward transaction failed; your previous balances are unchanged."
@@ -297,8 +320,8 @@ fn present(
             (MenuCopy::Body, GamePhase::Hub) => {
                 let count = campaign.history.len();
                 let noun = if count == 1 { "attempt" } else { "attempts" };
-                let status = if campaign.mission_succeeded { "Survival achieved" } else { "Survival not yet achieved" };
-                format!("SURVIVAL / 5:00\n{count} completed {noun} this session / {status}\nBANK  Salvage {}  |  Components {}", campaign.wallet.salvage, campaign.wallet.components)
+                let status = if campaign.progress.finished() { "Campaign complete" } else { "Campaign in progress" };
+                format!("{}\n{}/12 complete / {status} / {count} completed {noun}\nBANK  Salvage {}  |  Components {}", session.selected_mission.title(), campaign.progress.count(), campaign.wallet.salvage, campaign.wallet.components)
             },
             (MenuCopy::Body, GamePhase::Briefing) => {
                 let (_, modules) = baseline.launch_power(&campaign);
@@ -315,7 +338,7 @@ fn present(
                     r.rewards.collected.salvage, r.rewards.lost.salvage, r.rewards.bonus.salvage, r.rewards.credited.salvage, r.rewards.balance.salvage,
                     r.rewards.collected.components, r.rewards.lost.components, r.rewards.bonus.components, r.rewards.credited.components, r.rewards.balance.components)
             }).unwrap_or_default(),
-            (MenuCopy::Note, GamePhase::Hub) => "Launches and loadout changes are free. Purchased modules and replays persist this session.\nBalances, permanent upgrades and history last until you quit.".into(),
+            (MenuCopy::Note, GamePhase::Hub) => "Free replays. Progress, purchases and balances last until you quit.".into(),
             (MenuCopy::Note, GamePhase::Briefing) => {
                 let instructions = "Fly close to collect loot. Success +10 salvage, +1 component; failure keeps 25%.\n1-4 toggle modules; R discards loot and restarts.";
                 if session.purchase_feedback.is_empty() {
@@ -385,6 +408,12 @@ mod tests {
             for (phase, action, visible, back) in [
                 (GamePhase::Hub, MissionAction::Briefing, true, false),
                 (GamePhase::Briefing, MissionAction::Launch, true, true),
+                (
+                    GamePhase::MissionSelect,
+                    MissionAction::Launch,
+                    false,
+                    false,
+                ),
                 (GamePhase::Playing, MissionAction::Launch, false, false),
                 (GamePhase::Choosing, MissionAction::Launch, false, false),
                 (GamePhase::Dead, MissionAction::Hub, true, false),
@@ -416,7 +445,7 @@ mod tests {
     }
 
     #[test]
-    fn both_hub_shop_actions_hide_outside_the_hub() {
+    fn hub_secondary_actions_hide_outside_the_hub() {
         let mut app = app();
         for (phase, shown) in [
             (GamePhase::Hub, true),
@@ -431,7 +460,7 @@ mod tests {
                 .query_filtered::<&Node, With<ShopAction>>()
                 .iter(world)
                 .collect::<Vec<_>>();
-            assert_eq!(actions.len(), 2);
+            assert_eq!(actions.len(), 3);
             assert!(
                 actions
                     .iter()
@@ -446,6 +475,7 @@ mod tests {
         let result = super::super::MissionResult {
             rewards: default(),
             attempt: 7,
+            mission: default(),
             succeeded: true,
             elapsed: 300.,
             kills: 123,
@@ -454,7 +484,10 @@ mod tests {
             .resource_mut::<Campaign>()
             .history
             .push(result.clone());
-        app.world_mut().resource_mut::<Campaign>().mission_succeeded = true;
+        app.world_mut()
+            .resource_mut::<Campaign>()
+            .progress
+            .complete(super::super::campaign::MissionId::ALL[0]);
         app.world_mut().resource_mut::<MissionSession>().result = Some(result);
         *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Survived;
         app.update();
@@ -476,7 +509,7 @@ mod tests {
         *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Hub;
         app.update();
         assert!(body(&mut app).contains("1 completed attempt"));
-        assert!(body(&mut app).contains("Survival achieved"));
+        assert!(body(&mut app).contains("1/12 complete"));
     }
     #[test]
     fn economy_menus_show_bank_and_stable_reward_breakdown() {
@@ -497,6 +530,7 @@ mod tests {
         app.world_mut().resource_mut::<MissionSession>().result =
             Some(super::super::MissionResult {
                 attempt: 1,
+                mission: default(),
                 succeeded: false,
                 elapsed: 37.,
                 kills: 18,

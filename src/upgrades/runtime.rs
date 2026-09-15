@@ -149,6 +149,7 @@ fn earn(
                 | GamePhase::Hub
                 | GamePhase::Passives
                 | GamePhase::ModuleShop
+                | GamePhase::MissionSelect
                 | GamePhase::Briefing
         )
     {

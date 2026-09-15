@@ -1,8 +1,12 @@
 //! Session-only mission transitions and completion boundary.
 use bevy::prelude::*;
+pub(crate) mod campaign;
+pub(crate) mod campaign_validation;
 #[cfg(test)]
 mod module_tests;
+use campaign::MissionId;
 pub(crate) mod scene;
+pub(crate) mod selection_scene;
 pub(crate) mod validation;
 use crate::{
     combat::Encounter,
@@ -10,6 +14,8 @@ use crate::{
 };
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum MissionAction {
+    MissionSelect,
+    SelectMission(MissionId),
     ModuleShop,
     SelectModule(crate::modules::ModuleKind),
     BuyModule,
@@ -24,6 +30,7 @@ pub(crate) enum MissionAction {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct MissionResult {
     pub attempt: u64,
+    pub mission: MissionId,
     pub succeeded: bool,
     pub elapsed: f64,
     pub kills: u32,
@@ -32,7 +39,7 @@ pub(crate) struct MissionResult {
 #[derive(Resource, Default)]
 pub(crate) struct Campaign {
     pub history: Vec<MissionResult>,
-    pub mission_succeeded: bool,
+    pub progress: campaign::Progress,
     pub wallet: crate::economy::Amounts,
     pub passives: crate::passives::PassiveTree,
     pub inventory: crate::modules::shop::ModuleInventory,
@@ -43,6 +50,8 @@ pub(crate) struct MissionSession {
     pub purchase_feedback: String,
     pub selected_module: usize,
     pub active_loadout: Option<crate::modules::Loadout>,
+    pub selected_mission: MissionId,
+    pub active_mission: Option<MissionId>,
     next_attempt: u64,
     active_attempt: Option<u64>,
     armed: bool,
@@ -94,8 +103,16 @@ fn input(
             KeyCode::Backspace,
             KeyCode::KeyU,
             KeyCode::KeyM,
-        ]) && !(*phase == GamePhase::ModuleShop
-            && keys.any_pressed(crate::modules::shop_input::ACTION_KEYS))
+            KeyCode::KeyC,
+        ]) && !(*phase == GamePhase::MissionSelect
+            && keys.any_pressed([
+                KeyCode::ArrowUp,
+                KeyCode::ArrowDown,
+                KeyCode::ArrowLeft,
+                KeyCode::ArrowRight,
+            ]))
+            && !(*phase == GamePhase::ModuleShop
+                && keys.any_pressed(crate::modules::shop_input::ACTION_KEYS))
             && !keys.any_pressed(crate::passives::PURCHASE_KEYS)
             && !mouse.pressed(MouseButton::Left)
             && !buttons
@@ -107,13 +124,15 @@ fn input(
         return;
     }
     let primary = match *phase {
-        GamePhase::Hub => Some(MissionAction::Briefing),
+        GamePhase::Hub | GamePhase::MissionSelect => Some(MissionAction::Briefing),
         GamePhase::Briefing => Some(MissionAction::Launch),
         GamePhase::Dead | GamePhase::Survived => Some(MissionAction::Hub),
         _ => None,
     };
     let action = if keys.just_pressed(KeyCode::Enter) {
         primary
+    } else if keys.just_pressed(KeyCode::KeyC) && *phase == GamePhase::Hub {
+        Some(MissionAction::MissionSelect)
     } else if keys.just_pressed(KeyCode::KeyU) && *phase == GamePhase::Hub {
         Some(MissionAction::Passives)
     } else if keys.just_pressed(KeyCode::KeyM) && *phase == GamePhase::Hub {
@@ -121,7 +140,10 @@ fn input(
     } else if keys.just_pressed(KeyCode::Backspace)
         && matches!(
             *phase,
-            GamePhase::Briefing | GamePhase::Passives | GamePhase::ModuleShop
+            GamePhase::Briefing
+                | GamePhase::Passives
+                | GamePhase::ModuleShop
+                | GamePhase::MissionSelect
         )
     {
         Some(MissionAction::Hub)
@@ -134,7 +156,24 @@ fn input(
                     .map(|index| MissionAction::Purchase(crate::passives::NodeId::ALL[index]))
             })
             .flatten();
-        purchase_key
+        let selection_key = if *phase == GamePhase::MissionSelect {
+            let reverse = keys.any_just_pressed([KeyCode::ArrowUp, KeyCode::ArrowLeft]);
+            let forward = keys.any_just_pressed([KeyCode::ArrowDown, KeyCode::ArrowRight]);
+            (reverse || forward).then(|| {
+                let current = session.selected_mission.index();
+                let id = (1..=12)
+                    .map(|offset| {
+                        MissionId::ALL[(current + if reverse { 12 - offset } else { offset }) % 12]
+                    })
+                    .find(|id| campaign.progress.unlocked(*id))
+                    .unwrap_or_default();
+                MissionAction::SelectMission(id)
+            })
+        } else {
+            None
+        };
+        selection_key
+            .or(purchase_key)
             .or_else(|| {
                 (*phase == GamePhase::ModuleShop)
                     .then(|| crate::modules::shop_input::keyboard(&keys, session.selected_module))
@@ -151,6 +190,24 @@ fn input(
             })
     };
     match (*phase, action) {
+        (GamePhase::Hub, Some(MissionAction::MissionSelect)) => {
+            *phase = GamePhase::MissionSelect;
+            session.armed = false;
+            session.purchase_feedback.clear();
+        }
+        (GamePhase::MissionSelect, Some(MissionAction::SelectMission(id))) => {
+            if campaign.progress.unlocked(id) {
+                session.selected_mission = id;
+                session.purchase_feedback.clear();
+            } else {
+                session.purchase_feedback = format!(
+                    "Mission {:02} locked. {}.",
+                    id.index() + 1,
+                    id.requirement()
+                );
+            }
+            session.armed = false;
+        }
         (GamePhase::Hub, Some(MissionAction::ModuleShop)) => {
             *phase = GamePhase::ModuleShop;
             session.armed = false;
@@ -187,24 +244,38 @@ fn input(
             };
             session.armed = false;
         }
-        (GamePhase::Hub, Some(MissionAction::Briefing)) => {
+        (GamePhase::Hub | GamePhase::MissionSelect, Some(MissionAction::Briefing)) => {
+            if !campaign.progress.unlocked(session.selected_mission) {
+                session.purchase_feedback = session.selected_mission.requirement();
+                session.armed = false;
+                return;
+            }
             *phase = GamePhase::Briefing;
             session.armed = false;
             session.purchase_feedback.clear();
         }
-        (GamePhase::Briefing, Some(MissionAction::Launch)) => match campaign.inventory.validate() {
-            Ok(()) => {
-                session.active_loadout = Some(campaign.inventory.loadout().clone());
-                launch(&mut session, &mut boundary, &mut phase, &mut clock);
-            }
-            Err(_) => {
-                session.purchase_feedback =
-                    "Invalid loadout. Return to the hub and equip owned modules only.".into();
+        (GamePhase::Briefing, Some(MissionAction::Launch)) => {
+            if !campaign.progress.unlocked(session.selected_mission) {
+                session.purchase_feedback = session.selected_mission.requirement();
                 session.armed = false;
+                return;
             }
-        },
+            match campaign.inventory.validate() {
+                Ok(()) => {
+                    session.active_loadout = Some(campaign.inventory.loadout().clone());
+                    session.active_mission = Some(session.selected_mission);
+                    launch(&mut session, &mut boundary, &mut phase, &mut clock);
+                }
+                Err(_) => {
+                    session.purchase_feedback =
+                        "Invalid loadout. Return to the hub and equip owned modules only.".into();
+                    session.armed = false;
+                }
+            }
+        }
         (
             GamePhase::Briefing
+            | GamePhase::MissionSelect
             | GamePhase::Passives
             | GamePhase::ModuleShop
             | GamePhase::Dead
@@ -254,6 +325,9 @@ fn finalize(
     };
     let result = MissionResult {
         attempt,
+        mission: session
+            .active_mission
+            .expect("launched attempts have a mission"),
         succeeded: *phase == GamePhase::Survived,
         elapsed: encounter.elapsed,
         kills: encounter.kills,
@@ -263,7 +337,9 @@ fn finalize(
             &mut campaign.wallet,
         ),
     };
-    campaign.mission_succeeded |= result.succeeded;
+    if result.succeeded {
+        campaign.progress.complete(result.mission);
+    }
     campaign.history.push(result.clone());
     session.result = Some(result);
     session.armed = false;
@@ -274,3 +350,6 @@ fn reset_resources(mut resources: ResMut<crate::economy::AttemptResources>) {
 }
 #[cfg(test)]
 pub(crate) mod tests;
+
+#[cfg(test)]
+mod campaign_tests;

@@ -1461,3 +1461,22 @@ fire/XP progression and empty-loadout restart. Prices remain provisional for
 later balance playtesting; disk persistence remains DRO-18.
 
 [Full evidence, captures and limitations](playtests/dro-16-module-shop.md).
+
+
+## DRO-17 — Mission selection and campaign unlocks (September 15)
+
+Added 12 identical playable survival placeholders with three-act prerequisites,
+individual completion, freely rewarded replay and a paused mission catalog.
+The user's explicit shared-arena scope supersedes different-demand missions.
+Results snapshot active mission identity; failure/restart cannot unlock content.
+
+All 330 tests, formatting and strict all-target Clippy pass; four existing
+opt-in diagnostics remain ignored. Native campaign fixtures pass at 640×480 and
+1120×720 in opposite branch orders, including all 12 missions, locked selection,
+restart, final completion, and failed/successful replays. Native screenshot review
+found and resolved collapsed labels; all 14 control labels and viewport bounds
+are now checked. Ordinary physical mouse/keyboard navigation, launch, live combat
+and restart were verified. Independent review findings were addressed.
+
+Fixture outcomes are synthetic; all missions deliberately share existing combat.
+Progress is session-only. [Full evidence, logs and captures](playtests/dro-17-campaign.md).
