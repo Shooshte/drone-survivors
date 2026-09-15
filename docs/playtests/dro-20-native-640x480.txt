@@ -1,0 +1,64 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.68s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate exploration`
+EXPLORATION FIXTURE: no SavePlugin/user-save access. Authored waves disabled; NW blueprint reached by production keyboard flight. All actual collection, XP, UI purchase, mission transitions, capacity, region settings, and finale selection use production systems.
+EXPLORATION CAPTURE battery-locked: phase=Passives, expected="LOCKED", visible_text_bounds=35, viewport=640x480
+EXPLORATION PROFILE act=1 briefing=Scrapyard / Salvage: 50% per chaser / 3 caches: 1 component(s) each / 6 chargers: 200 energy each
+EXPLORATION CAPTURE scrapyard-briefing: phase=Briefing, expected="Scrapyard", visible_text_bounds=25, viewport=640x480
+EXPLORATION LAUNCH act=1 chaser=50%, cache=1 components, charger=200 energy
+EXPLORATION FLIGHT: NW cache collected by keyboard, origin=Vec3(0.0, 90.0, 0.0) finish=Vec3(-780.11426, 59.57204, -1475.7928) duration=10.13s
+EXPLORATION CACHE site=0 components=1 XP=30 notice="Reserve battery blueprint unlocked / +30 XP"
+EXPLORATION CAPTURE northwest-blueprint: phase=Playing, expected="Reserve battery blueprint unlocked", visible_text_bounds=18, viewport=640x480
+EXPLORATION OVERRIDE: synthetic elapsed=301s to settle survival mission success without five-minute native wait.
+EXPLORATION RESULT mission=01 success=true banked=Amounts { salvage: 10, components: 2 } wallet=Amounts { salvage: 10, components: 2 }
+EXPLORATION CAPTURE battery-unlocked-unaffordable: phase=Passives, expected="Need 20 salvage", visible_text_bounds=35, viewport=640x480
+EXPLORATION OVERRIDE: synthetic wallet 30 salvage/3 components to exercise actual B shop debit (20/1); no earned-balance claim.
+EXPLORATION CAPTURE battery-unlocked-affordable: phase=Passives, expected="BUY: 20 salvage", visible_text_bounds=35, viewport=640x480
+EXPLORATION BATTERY blueprint=true active=true
+EXPLORATION SHOP DEBIT verified balance=10 salvage/2 components
+EXPLORATION CAPTURE battery-active: phase=Passives, expected="ACTIVE", visible_text_bounds=35, viewport=640x480
+EXPLORATION CAPTURE battery-briefing-active: phase=Briefing, expected="Reserve battery", visible_text_bounds=25, viewport=640x480
+EXPLORATION CAPACITY actual=125
+EXPLORATION OVERRIDE: synthetic elapsed=301s to settle survival mission success without five-minute native wait.
+EXPLORATION RESULT mission=01 success=true banked=Amounts { salvage: 10, components: 1 } wallet=Amounts { salvage: 20, components: 3 }
+EXPLORATION BATTERY blueprint=true active=true
+EXPLORATION CAPTURE battery-success-retained: phase=Survived, expected="Reserve battery retained", visible_text_bounds=23, viewport=640x480
+EXPLORATION CAPACITY actual=125
+EXPLORATION RESTART: real R key; purchased bonus should be forfeited before new baseline.
+EXPLORATION BATTERY blueprint=true active=false
+EXPLORATION CAPACITY actual=100
+EXPLORATION OVERRIDE: synthetic fatal hull=0 to settle native defeat; no combat difficulty claim.
+EXPLORATION RESULT mission=01 success=false banked=Amounts { salvage: 0, components: 0 } wallet=Amounts { salvage: 20, components: 3 }
+EXPLORATION BATTERY blueprint=true active=false
+EXPLORATION CAPTURE battery-defeat-forfeited: phase=Dead, expected="Reserve battery forfeited", visible_text_bounds=23, viewport=640x480
+EXPLORATION CAPTURE battery-repurchase: phase=Passives, expected="BUY: 20 salvage", visible_text_bounds=35, viewport=640x480
+EXPLORATION BATTERY blueprint=true active=true
+EXPLORATION SHOP DEBIT verified balance=0 salvage/2 components
+EXPLORATION CAPACITY actual=125
+EXPLORATION OVERRIDE: synthetic fatal hull=0 to settle native defeat; no combat difficulty claim.
+EXPLORATION RESULT mission=01 success=false banked=Amounts { salvage: 0, components: 0 } wallet=Amounts { salvage: 0, components: 2 }
+EXPLORATION BATTERY blueprint=true active=false
+EXPLORATION OVERRIDE: synthetic prior Act 1 victories unlock next introduction; campaign count=4 (not earned attempts)
+EXPLORATION PROFILE act=2 briefing=Ruins / Salvage: 25% per chaser / 3 caches: 2 component(s) each / 6 chargers: 200 energy each
+EXPLORATION CAPTURE ruins-briefing: phase=Briefing, expected="Ruins", visible_text_bounds=25, viewport=640x480
+EXPLORATION LAUNCH act=2 chaser=25%, cache=2 components, charger=200 energy
+EXPLORATION OVERRIDE: synthetic position at cache 2 for later-act native proximity, LOS, XP and presentation; NW was physical.
+EXPLORATION CACHE site=2 components=2 XP=30 notice="Cache recovered / +30 XP"
+EXPLORATION CAPTURE ruins-central-cache: phase=Playing, expected="Cache recovered", visible_text_bounds=19, viewport=640x480
+EXPLORATION OVERRIDE: synthetic fatal hull=0 to settle native defeat; no combat difficulty claim.
+EXPLORATION RESULT mission=05 success=false banked=Amounts { salvage: 0, components: 0 } wallet=Amounts { salvage: 0, components: 2 }
+EXPLORATION OVERRIDE: synthetic prior Act 2 victories unlock next introduction; campaign count=8 (not earned attempts)
+EXPLORATION PROFILE act=3 briefing=Power station / Salvage: 25% per chaser / 3 caches: 1 component(s) each / 6 chargers: 300 energy each
+EXPLORATION CAPTURE power-station-briefing: phase=Briefing, expected="Power station", visible_text_bounds=25, viewport=640x480
+EXPLORATION LAUNCH act=3 chaser=25%, cache=1 components, charger=300 energy
+EXPLORATION OVERRIDE: synthetic position at cache 1 for later-act native proximity, LOS, XP and presentation; NW was physical.
+EXPLORATION CACHE site=1 components=1 XP=30 notice="Secret route: mission 12 unlocked / +30 XP"
+EXPLORATION CAPTURE southeast-secret-route: phase=Playing, expected="Secret route: mission 12 unlocked", visible_text_bounds=18, viewport=640x480
+EXPLORATION OVERRIDE: synthetic position at cache 2 for later-act native proximity, LOS, XP and presentation; NW was physical.
+EXPLORATION CACHE site=2 components=2 XP=60 notice="Cache recovered / +30 XP"
+EXPLORATION CHOICE: keyboard Backspace Skip, total XP=60
+EXPLORATION CAPTURE power-station-earned-choice: phase=Playing, expected="Cache recovered", visible_text_bounds=19, viewport=640x480
+EXPLORATION OVERRIDE: synthetic fatal hull=0 to settle native defeat; no combat difficulty claim.
+EXPLORATION RESULT mission=09 success=false banked=Amounts { salvage: 0, components: 0 } wallet=Amounts { salvage: 0, components: 2 }
+EXPLORATION CAPTURE secret-finale-selection: phase=MissionSelect, expected="AVAILABLE / Secret route", visible_text_bounds=38, viewport=640x480
+EXPLORATION FIXTURE PASS: three region briefings and launch profiles, keyboard NW cache, unlocked/paid/retained/forfeited reserve battery, actual B and Skip keys, central and SE caches, defeat-persistent secret finale selection; skips=1. Capture size=640x480. No user save access.
+2026-09-15T18:53:05.291513Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(51206898304)

@@ -66,17 +66,17 @@ if resources.collected.try_credit(pickup.amount).is_ok() {
 
 Files: `src/passives/scene.rs`, `src/mission/scene.rs`, `src/mission/selection_scene.rs`, `src/economy/scene.rs`; new native fixture alongside `src/mission/objective_validation.rs`, registered through `src/main.rs` and combat validation configuration.
 
-- [ ] Show region summaries from launch data, discovered route status, and battery purchase/active/loss wording.
-- [ ] Add compact battery purchase button to upgrades and a brief discovery notice in the resource HUD.
-- [ ] Validate text/layout with native runs at 1120x720 and 640x480; inspect captured images.
-- [ ] Exercise physical navigation to caches using cargo dev; disclose synthetic fixture inputs separately.
-- [ ] Record checks and limitations in README and `docs/playtests.md` plus a dedicated evidence file.
-- [ ] Commit completed presentation and evidence.
+- [x] Show region summaries from launch data, discovered route status, and battery purchase/active/loss wording.
+- [x] Add compact battery purchase button to upgrades and a brief discovery notice in the resource HUD.
+- [x] Validate text/layout with native runs at 1120x720 and 640x480; inspect captured images.
+- [x] Exercise physical navigation to caches using cargo dev; disclose synthetic fixture inputs separately.
+- [x] Record checks and limitations in README and `docs/playtests.md` plus a dedicated evidence file.
+- [x] Commit completed presentation and evidence.
 
 ## Task 4: Review and delivery
 
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`.
-- [ ] Dispatch an independent whole-branch review; fix and verify actionable findings.
+- [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`.
+- [x] Dispatch an independent whole-branch review; fix and verify actionable findings.
 - [ ] Push `codex/dro-20-exploration` and open PR against `main`, linking DRO-20 and evidence.
 - [ ] Update Linear to In Review with the PR and validation summary.
 
@@ -87,3 +87,5 @@ Files: `src/passives/scene.rs`, `src/mission/scene.rs`, `src/mission/selection_s
 
 - Task 1 complete: 3814d84, independent review found no actionable issues.
 - Task 2 complete: 727fe5f; 11 economy tests and actual cache-to-disk integration passed.
+
+- Task 3 complete: 0de882b and ac2ab4d. Native exploration and compact objective flows passed; full tests378/0,4ignored, fmt and strict Clippy clean.
