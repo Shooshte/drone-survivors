@@ -1,6 +1,7 @@
 //! Session-only mission transitions and completion boundary.
 use bevy::prelude::*;
 pub(crate) mod campaign;
+pub(crate) mod campaign_validation;
 #[cfg(test)]
 mod module_tests;
 use campaign::MissionId;

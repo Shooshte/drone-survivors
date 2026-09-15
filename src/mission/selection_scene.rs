@@ -13,6 +13,8 @@ pub(crate) struct SelectionScenePlugin;
 #[derive(Component)]
 struct Overlay;
 #[derive(Component)]
+pub(super) struct ControlText;
+#[derive(Component)]
 struct Card(MissionId);
 #[derive(Component)]
 enum Copy {
@@ -42,6 +44,7 @@ fn label(
             TextLayout::new(Justify::Left, LineBreak::WordBoundary),
             Node {
                 min_width: px(0),
+                width: percent(100),
                 ..default()
             },
         ))
@@ -69,7 +72,7 @@ fn setup(mut commands: Commands) {
                                         BackgroundColor(PANEL), BorderColor::all(MUTED)))
                                         .with_children(|button| {
                                             let entity = label(button, "", 12., SILVER);
-                                            button.commands().entity(entity).insert(Copy::Card(*id));
+                                            button.commands().entity(entity).insert((Copy::Card(*id), ControlText));
                                         });
                                 }
                             });
@@ -80,7 +83,8 @@ fn setup(mut commands: Commands) {
                     panel.spawn(Node { width: percent(100), column_gap: px(8), ..default() }).with_children(|row| {
                         for (action, text) in [(MissionAction::Briefing, "ENTER  Mission briefing"), (MissionAction::Hub, "BACKSPACE  Hub")] {
                             row.spawn((Button, action, Node { min_height: px(34), flex_grow: 1., padding: UiRect::all(px(8)), border: UiRect::all(px(1)), ..default() }, BackgroundColor(INK), BorderColor::all(CYAN)))
-                                .with_children(|button| { label(button, text, 13., SILVER); });
+                                .with_children(|button| { let id = label(button, text, 13., SILVER);
+                                    button.commands().entity(id).insert(ControlText); });
                         }
                     });
                     label(panel, "ARROWS  Select unlocked mission   /   Click a card to select   /   ESC  Quit", 11., MUTED);
@@ -117,7 +121,7 @@ fn present(
             Copy::Selection => format!("SELECTED  {}", session.selected_mission.title()),
             Copy::Feedback => {
                 if session.purchase_feedback.is_empty() {
-                    "Introduction → both branches → finale → next act. All 12 wins complete the campaign.".into()
+                    "Win introduction, then both branches, then finale to unlock the next act. All 12 wins finish the campaign.".into()
                 } else {
                     session.purchase_feedback.clone()
                 }

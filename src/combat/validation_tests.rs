@@ -561,3 +561,10 @@ fn charger_preview_reaches_all_six_fields_with_ordinary_flight() {
     assert_eq!(app.world().resource::<PlayerHealth>().current, 100);
     assert_eq!(count::<Enemy>(&mut app), 0);
 }
+
+#[test]
+fn campaign_validation_is_opt_in_and_rejects_stress_options() {
+    let parse = |args: &[&str]| ValidationConfig::parse(args.iter().map(|s| s.to_string()));
+    assert!(parse(&["--validate", "campaign"]).is_ok());
+    assert!(parse(&["--validate", "campaign", "--enemies", "20"]).is_err());
+}

@@ -16,22 +16,67 @@ cargo dev
 
 Normal launch opens the operations hub. Choose **Mission briefing** (Enter),
 then **Launch mission** (Enter) to start the five-minute survival encounter.
-**Backspace** returns from briefing to the hub. New campaigns start with four empty
+**Choose mission** (C) opens the campaign selection screen.
+**Backspace** returns from briefing or selection to the hub. New campaigns start with four empty
 module slots. Buy and arrange modules in the hub before launch; module toggles
 and temporary upgrades work in combat. Basic shooting, flight, and mission entry
 are free, including with an empty loadout.
 Hub and briefing story text is provisional.
 
 Success or failure opens results showing active time, kills, and resource rewards. Choose
-**Return to hub** (Enter) to launch again. Completed attempts and prior success
+**Return to hub** (Enter) to launch again. Completed attempts and individual mission victories
 remain in memory for this application session; quitting clears this history.
 Each launch restores the Scout, battery, chargers, hazard cycle and encounter,
 including all temporary upgrades and pending choices. A restart during combat
-or an upgrade choice starts a fresh attempt with the same loadout without recording
-a result for the interrupted attempt. R does nothing in the hub, either shop, briefing or results.
+or an upgrade choice starts a fresh attempt with the same mission and loadout without recording
+a result for the interrupted attempt. R does nothing in the hub, either shop, mission selection, briefing or results.
 
 The existing `--validate` modes still enter their combat fixtures directly,
-except the dedicated `missions`, `passives`, and `shop` menu fixtures.
+except the dedicated `missions`, `campaign`, `passives`, and `shop` menu fixtures.
+
+## Campaign mission selection
+
+All **12 missions** are playable placeholders using the **same existing arena,
+five-minute survival objective, waves, chargers, hazards and rewards**. Each has
+its own completion record. Missions do not yet differ in maps or objectives.
+
+| Act | Introduction | Branches, either order | Finale |
+| --- | --- | --- | --- |
+| 1 | 01 | 02 and 03 | 04 |
+| 2 | 05 | 06 and 07 | 08 |
+| 3 | 09 | 10 and 11 | 12 |
+
+Only mission 01 starts unlocked. Win the introduction to unlock both branches;
+win both branches to unlock the finale; win the finale to unlock the next act.
+All 12 distinct victories complete the campaign. Failure or R restart never
+unlocks missions or erases prior completion. Every unlocked mission can be
+replayed for free, even after campaign completion, earning the same rewards:
+collected loot plus 10 salvage and 1 component on success, or 25% of collected
+loot rounded down on failure. Replays do not increase distinct completion count.
+
+Press **C** in the hub to see all missions and prerequisites. **Arrow keys** cycle
+unlocked missions; clicking an unlocked card selects it. Locked cards explain
+their prerequisites. **Enter** opens the selected mission's briefing, and a fresh
+Enter launches. **Backspace** returns to the hub. The hub's Mission briefing
+shortcut uses the selection you last made. Briefings and results identify the
+mission; R restarts the active mission. Menus pause gameplay.
+
+Progress lasts until the app quits; save/resume belongs to DRO-18. The identical
+placeholder missions total 60 minutes of successful active combat before pauses
+or retries; the roughly 90-minute campaign target awaits authored content.
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/dro17-normal cargo dev -- --validate campaign
+DRONE_CAPTURE_DIR=/tmp/dro17-compact DRONE_CAPTURE_MINIMUM=1 DRONE_CAMPAIGN_REVERSE=1 cargo dev -- --validate campaign
+```
+
+This opt-in native fixture uses ordinary menu actions with **synthetic success
+timers and fatal hull** to exercise all 12 missions, locked selection, restart,
+completion and replays. The second run reverses the branch order in every act.
+It checks text bounds at each captured screen and exits after about 65 seconds
+(default timeout 90). It grants no loot or funds; 13 synthetic wins yield 130
+salvage/13 components across 14 results. This validates campaign behavior and
+presentation, not combat balance. [DRO-17 evidence](docs/playtests/dro-17-campaign.md).
 
 ## Module shop and loadout
 
