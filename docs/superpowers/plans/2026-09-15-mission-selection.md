@@ -30,4 +30,6 @@ All missions reuse the current 300-second encounter and rewards unchanged. Three
 - [x] Add opt-in campaign validation using normal menu actions and explicitly synthetic terminal outcomes. Exercise all acts in both branch orders, replay/failure/restart, campaign completion, and capture selection, briefing, results and final hub at both supported sizes.
 - [x] Run cargo fmt --check, cargo test --locked and cargo clippy --all-targets --locked -- -D warnings. Use cargo dev for native fixture and ordinary keyboard/mouse smoke checks; inspect screenshots and bounds.
 - [x] Request independent code review, address actionable findings, and update README.md and docs/playtests.md with test results and limitations. Commit evidence.
-- [ ] Push codex/dro-17-mission-selection, open PR against main, and update DRO-17 with delivery/evidence links.
+- [x] Push codex/dro-17-mission-selection, open PR against main, and update DRO-17 with delivery/evidence links.
+
+Delivery: [PR #21 against main](https://github.com/Shooshte/drone-survivors/pull/21). DRO-17 moved to In Review with evidence and the agreed identical-mission scope.
