@@ -1,0 +1,10 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.67s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
+CATALOG UI FIXTURE: synthetic keyboard input and XP=50 for choice preview; no campaign/save plugins. Not human or balance evidence.
+CATALOG UI FIXTURE selector: phase=Res(Hub) hull=100 time=0.00
+CATALOG UI FIXTURE loadout: phase=Res(Hub) hull=100 time=0.00
+CATALOG UI FIXTURE round: phase=Res(Playing) hull=100 time=0.99
+CATALOG UI FIXTURE choice: phase=Res(Choosing) hull=100 time=2.00
+CATALOG UI FIXTURE returned: phase=Res(Hub) hull=100 time=0.00
+CATALOG UI FIXTURE PASS: selector, slot edits, launch, paused choice return and restart at 1120x720
+2026-09-15T20:16:36.555593Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(48259285632)

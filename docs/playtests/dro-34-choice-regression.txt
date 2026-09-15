@@ -1,0 +1,21 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-34-catalog-arena)
+    Finished `test` profile [optimized + debuginfo] target(s) in 24.97s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 1 test
+
+thread 'combat::catalog_tests::catalog_choice_keeps_return_but_hides_restart_button_clear_of_modal_heading' (466094) panicked at src/combat/catalog_tests.rs:244:57:
+assertion `left == right` failed
+  left: Flex
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test combat::catalog_tests::catalog_choice_keeps_return_but_hides_restart_button_clear_of_modal_heading ... FAILED
+
+failures:
+
+failures:
+    combat::catalog_tests::catalog_choice_keeps_return_but_hides_restart_button_clear_of_modal_heading
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 390 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin drone-survivors`
