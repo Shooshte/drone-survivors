@@ -293,6 +293,7 @@ pub(super) fn update(
         GamePhase::Hub
             | GamePhase::Passives
             | GamePhase::ModuleShop
+            | GamePhase::MissionSelect
             | GamePhase::Briefing
             | GamePhase::Choosing
     ) {

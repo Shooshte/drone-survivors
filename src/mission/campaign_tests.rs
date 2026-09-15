@@ -123,3 +123,127 @@ fn restart_and_results_use_active_identity_and_replays_keep_progress_and_rewards
     assert_eq!(campaign.history[2].mission, MissionId::ALL[1]);
     assert_eq!(campaign.wallet.salvage, 20);
 }
+
+#[test]
+fn selection_navigation_skips_locks_releases_input_and_freezes_gameplay() {
+    let mut app = app();
+    tick(&mut app, 0., &[KeyCode::KeyC]);
+    assert_eq!(
+        *app.world().resource::<GamePhase>(),
+        GamePhase::MissionSelect
+    );
+    tick(&mut app, 100., &[KeyCode::KeyC, KeyCode::Enter]);
+    assert_eq!(
+        *app.world().resource::<GamePhase>(),
+        GamePhase::MissionSelect
+    );
+    assert_eq!(app.world().resource::<Encounter>().elapsed, 0.);
+    assert_eq!(app.world().resource::<Encounter>().next_burst, 0);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::ArrowRight]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[0]
+    );
+    app.world_mut()
+        .resource_mut::<Campaign>()
+        .progress
+        .complete(MissionId::ALL[0]);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::ArrowDown]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[1]
+    );
+    tick(&mut app, 0., &[KeyCode::ArrowDown]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[1]
+    );
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::ArrowRight]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[2]
+    );
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::ArrowRight]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[0]
+    );
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::ArrowLeft]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[2]
+    );
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Enter]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Briefing);
+    tick(&mut app, 0., &[KeyCode::Enter]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Briefing);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Backspace]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Hub);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[2]
+    );
+}
+
+#[test]
+fn locked_click_does_not_select_and_multiple_actions_choose_only_one() {
+    let mut app = app();
+    tick(&mut app, 0., &[KeyCode::KeyC]);
+    tick(&mut app, 0., &[]);
+    let button = app
+        .world_mut()
+        .spawn((
+            MissionAction::SelectMission(MissionId::ALL[3]),
+            Interaction::Pressed,
+        ))
+        .id();
+    tick(&mut app, 0., &[]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[0]
+    );
+    assert!(
+        app.world()
+            .resource::<MissionSession>()
+            .purchase_feedback
+            .contains("02 + 03")
+    );
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::None;
+    tick(&mut app, 0., &[]);
+    app.world_mut()
+        .resource_mut::<Campaign>()
+        .progress
+        .complete(MissionId::ALL[0]);
+    *app.world_mut().get_mut::<MissionAction>(button).unwrap() =
+        MissionAction::SelectMission(MissionId::ALL[2]);
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::Pressed;
+    tick(&mut app, 0., &[]);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[2]
+    );
+    assert_eq!(
+        *app.world().resource::<GamePhase>(),
+        GamePhase::MissionSelect
+    );
+    tick(&mut app, 0., &[KeyCode::Enter]);
+    assert_eq!(
+        *app.world().resource::<GamePhase>(),
+        GamePhase::MissionSelect
+    );
+    *app.world_mut().get_mut::<Interaction>(button).unwrap() = Interaction::None;
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Enter, KeyCode::ArrowLeft]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Briefing);
+    assert_eq!(
+        app.world().resource::<MissionSession>().selected_mission,
+        MissionId::ALL[2]
+    );
+}
