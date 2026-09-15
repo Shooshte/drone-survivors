@@ -1494,3 +1494,20 @@ used for the native economy setup; reward deduplication is covered by ECS tests.
 [Detailed evidence and screenshots](playtests/dro-18-save-resume.md).
 No known blocking defect. Future work: schema migrations/cloud or multiple slots
 only when product scope calls for them; mid-mission saves remain out of scope.
+
+## DRO-19 — Reusable mission objectives (2026-09-15)
+
+Mission 02 now visits three scan sites then extracts; mission 03 collects three
+separate cargo then extracts. Both use the shared combat/lifecycle/reward/save
+flow, with automatic proximity triggers, clean restart, death precedence and
+visible beacons/extraction guidance. Other missions retain survival.
+
+354 tests passed, four existing diagnostics ignored; formatting and strict
+Clippy passed. Objective native fixtures passed at 640×480 and 1120×720, and the
+updated all-twelve campaign fixture passed at 640×480. Keyboard/mouse checks
+verified selection, briefing, ordinary enemy spawning and restart. Native
+completion fixtures use synthetic positions/death and do not establish balance.
+Independent review findings about same-frame loot ordering and invisible world
+labels were fixed and verified. No known blocking defect.
+
+[Full evidence, logs, captures and remaining playtest work](playtests/dro-19-objectives.md).
