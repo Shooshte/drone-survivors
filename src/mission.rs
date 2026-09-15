@@ -7,6 +7,7 @@ mod module_tests;
 pub(crate) mod objective_scene;
 pub(crate) mod objective_validation;
 pub(crate) mod objectives;
+pub(crate) mod secrets;
 use campaign::MissionId;
 pub(crate) mod scene;
 pub(crate) mod selection_scene;
@@ -26,6 +27,7 @@ pub(crate) enum MissionAction {
     RemoveModule(usize),
     Passives,
     Purchase(crate::passives::NodeId),
+    BuyReserveBattery,
     Briefing,
     Launch,
     Hub,
@@ -46,6 +48,7 @@ pub(crate) struct Campaign {
     pub wallet: crate::economy::Amounts,
     pub passives: crate::passives::PassiveTree,
     pub inventory: crate::modules::shop::ModuleInventory,
+    pub secrets: secrets::Secrets,
 }
 #[derive(Resource, Default)]
 pub(crate) struct MissionSession {
@@ -101,6 +104,7 @@ pub(crate) fn input(
     let restart = matches!(*phase, GamePhase::Playing | GamePhase::Choosing)
         && keys.just_pressed(KeyCode::KeyR);
     if restart {
+        campaign.secrets.lose_battery();
         launch(&mut session, &mut boundary, &mut phase, &mut clock);
         return;
     }
@@ -111,6 +115,7 @@ pub(crate) fn input(
             KeyCode::KeyU,
             KeyCode::KeyM,
             KeyCode::KeyC,
+            KeyCode::KeyB,
         ]) && !(*phase == GamePhase::MissionSelect
             && keys.any_pressed([
                 KeyCode::ArrowUp,
@@ -144,6 +149,8 @@ pub(crate) fn input(
         Some(MissionAction::Passives)
     } else if keys.just_pressed(KeyCode::KeyM) && *phase == GamePhase::Hub {
         Some(MissionAction::ModuleShop)
+    } else if keys.just_pressed(KeyCode::KeyB) && *phase == GamePhase::Passives {
+        Some(MissionAction::BuyReserveBattery)
     } else if keys.just_pressed(KeyCode::Backspace)
         && matches!(
             *phase,
@@ -251,6 +258,18 @@ pub(crate) fn input(
             };
             session.armed = false;
         }
+        (GamePhase::Passives, Some(MissionAction::BuyReserveBattery)) => {
+            let Campaign {
+                secrets, wallet, ..
+            } = &mut *campaign;
+            session.purchase_feedback = match secrets.purchase(wallet) {
+                Ok(()) => {
+                    "Reserve battery purchased. +25 capacity; lost on defeat or restart.".into()
+                }
+                Err(reason) => reason.into(),
+            };
+            session.armed = false;
+        }
         (GamePhase::Hub | GamePhase::MissionSelect, Some(MissionAction::Briefing)) => {
             if !campaign.progress.unlocked(session.selected_mission) {
                 session.purchase_feedback = session.selected_mission.requirement();
@@ -346,6 +365,8 @@ fn finalize(
     };
     if result.succeeded {
         campaign.progress.complete(result.mission);
+    } else {
+        campaign.secrets.lose_battery();
     }
     campaign.history.push(result.clone());
     session.result = Some(result);

@@ -274,3 +274,122 @@ fn cargo_victory_saves_once_and_interrupted_replay_restores_fresh_objectives() {
     );
     assert_eq!(restored.world().resource::<Campaign>().wallet, wallet);
 }
+
+#[test]
+fn discoveries_and_restart_loss_write_during_play_without_banking_active_loot() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("campaign.json");
+    let mut app = app(&path);
+    key(&mut app, KeyCode::KeyN);
+    {
+        let mut campaign = app.world_mut().resource_mut::<Campaign>();
+        campaign.wallet.salvage = 20;
+        campaign.wallet.components = 1;
+        campaign.secrets.discover_blueprint();
+        let Campaign {
+            secrets, wallet, ..
+        } = &mut *campaign;
+        secrets.purchase(wallet).unwrap();
+    }
+    tick(&mut app, 0., &[]);
+    launch(&mut app);
+    app.world_mut()
+        .resource_mut::<crate::economy::AttemptResources>()
+        .collected
+        .salvage = 900;
+    {
+        let mut campaign = app.world_mut().resource_mut::<Campaign>();
+        assert!(campaign.progress.discover_route(0));
+    }
+    tick(&mut app, 0., &[]);
+    let (saved, _) = Snapshot::decode(&std::fs::read(&path).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert_eq!(saved.progress.routes(), [true, false, false]);
+    assert!(saved.secrets.reserve_battery);
+    assert_eq!(saved.wallet.salvage, 0);
+    key(&mut app, KeyCode::KeyR);
+    assert!(!app.world().resource::<Campaign>().secrets.reserve_battery);
+    assert!(app.world().resource::<Campaign>().secrets.blueprint);
+    let (saved, _) = Snapshot::decode(&std::fs::read(&path).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert!(!saved.secrets.reserve_battery);
+    assert_eq!(saved.progress.routes(), [true, false, false]);
+    assert_eq!(saved.wallet.salvage, 0);
+    assert!(saved.history.is_empty());
+}
+
+#[test]
+fn in_flight_discovery_save_failure_retries_and_resumes_previous_clock() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("campaign.json");
+    let mut app = app(&path);
+    key(&mut app, KeyCode::KeyN);
+    launch(&mut app);
+    std::fs::create_dir(path.with_extension("previous.json")).unwrap();
+    app.world_mut()
+        .resource_mut::<Campaign>()
+        .secrets
+        .discover_blueprint();
+    tick(&mut app, 0., &[]);
+    assert_eq!(
+        *app.world().resource::<GamePhase>(),
+        GamePhase::CampaignMenu
+    );
+    assert!(matches!(
+        app.world().resource::<SaveState>().mode,
+        Mode::Failed(GamePhase::Playing)
+    ));
+    assert!(app.world().resource::<Time<Virtual>>().is_paused());
+    let elapsed = app.world().resource::<Encounter>().elapsed;
+    tick(&mut app, 30., &[]);
+    assert_eq!(app.world().resource::<Encounter>().elapsed, elapsed);
+    std::fs::remove_dir(path.with_extension("previous.json")).unwrap();
+    key(&mut app, KeyCode::KeyR);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+    assert!(!app.world().resource::<Time<Virtual>>().is_paused());
+    tick(&mut app, 0.1, &[]);
+    assert!(app.world().resource::<Encounter>().elapsed > elapsed);
+    let (restored, _) = Snapshot::decode(&std::fs::read(&path).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert!(restored.secrets.blueprint);
+}
+
+#[test]
+fn failed_choice_discovery_retry_returns_to_paused_choice() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("campaign.json");
+    let mut app = app(&path);
+    key(&mut app, KeyCode::KeyN);
+    launch(&mut app);
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Choosing;
+    app.world_mut().resource_mut::<Time<Virtual>>().pause();
+    std::fs::create_dir(path.with_extension("previous.json")).unwrap();
+    app.world_mut()
+        .resource_mut::<Campaign>()
+        .progress
+        .discover_route(0);
+    tick(&mut app, 0., &[]);
+    assert_eq!(
+        *app.world().resource::<GamePhase>(),
+        GamePhase::CampaignMenu
+    );
+    assert!(matches!(
+        app.world().resource::<SaveState>().mode,
+        Mode::Failed(GamePhase::Choosing)
+    ));
+    std::fs::remove_dir(path.with_extension("previous.json")).unwrap();
+    key(&mut app, KeyCode::KeyR);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    assert!(app.world().resource::<Time<Virtual>>().is_paused());
+    let (restored, _) = Snapshot::decode(&std::fs::read(&path).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert_eq!(restored.progress.routes(), [true, false, false]);
+}

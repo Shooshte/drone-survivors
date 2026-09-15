@@ -3,6 +3,7 @@ use crate::{
     mission::{
         Campaign, MissionResult, MissionSession,
         campaign::{MissionId, Progress},
+        secrets::Secrets,
     },
     modules::{ModuleKind, shop::ModuleInventory},
     passives::{NodeId, PassiveTree},
@@ -19,6 +20,10 @@ pub(super) struct Snapshot {
     owned: Vec<ModuleKind>,
     slots: [Option<ModuleKind>; 4],
     completed: [bool; 12],
+    #[serde(default)]
+    routes: [bool; 3],
+    #[serde(default)]
+    secrets: Secrets,
     selected_mission: MissionId,
     next_attempt: u64,
     history: Vec<MissionResult>,
@@ -36,6 +41,8 @@ impl Snapshot {
                 .collect(),
             slots: *campaign.inventory.loadout().slots(),
             completed: MissionId::ALL.map(|id| campaign.progress.completed(id)),
+            routes: campaign.progress.routes(),
+            secrets: campaign.secrets,
             selected_mission: session.selected_mission,
             next_attempt: session.next_attempt,
             history: campaign.history.clone(),
@@ -58,8 +65,25 @@ impl Snapshot {
         let invalid = |reason| format!("Invalid save: {reason}");
         let passives = PassiveTree::from_ranks(self.ranks).map_err(invalid)?;
         let inventory = ModuleInventory::from_saved(self.owned, self.slots).map_err(invalid)?;
+        if self.secrets.reserve_battery && !self.secrets.blueprint {
+            return Err(invalid("active reserve battery has no blueprint"));
+        }
         let mut progress = Progress::default();
+        for act in 0..3 {
+            if self.routes[act] && act > 0 && !self.completed[act * 4 - 1] {
+                return Err(invalid("route is inaccessible"));
+            }
+        }
+        if self.routes[0] {
+            progress.discover_route(0);
+        }
         for id in MissionId::ALL {
+            if id.index() % 4 == 0 && id.index() != 0 {
+                let act = id.index() / 4;
+                if self.routes[act] && !progress.discover_route(act) {
+                    return Err(invalid("route is inaccessible"));
+                }
+            }
             if self.completed[id.index()] {
                 if !progress.unlocked(id) {
                     return Err(invalid("mission prerequisites are incomplete"));
@@ -92,6 +116,7 @@ impl Snapshot {
             inventory,
             progress,
             history: self.history,
+            secrets: self.secrets,
         };
         let mut session = MissionSession::default();
         session.selected_mission = self.selected_mission;

@@ -126,6 +126,7 @@ fn input(
     mut campaign: ResMut<Campaign>,
     mut session: ResMut<MissionSession>,
     mut boundary: ResMut<MissionBoundary>,
+    mut clock: ResMut<Time<Virtual>>,
 ) {
     if !state.armed {
         if !keys.any_pressed([
@@ -225,6 +226,9 @@ fn input(
             if state.write(&snapshot, false) {
                 state.mode = Mode::Active;
                 *phase = previous;
+                if previous == GamePhase::Playing {
+                    clock.unpause();
+                }
             }
         }
         _ => {}
@@ -257,12 +261,12 @@ fn autosave(
     session: Res<MissionSession>,
     mut clock: ResMut<Time<Virtual>>,
 ) {
-    if state.mode != Mode::Active
-        || matches!(
-            *phase,
-            GamePhase::Playing | GamePhase::Choosing | GamePhase::CampaignMenu
-        )
-    {
+    if state.mode != Mode::Active || *phase == GamePhase::CampaignMenu {
+        return;
+    }
+    // In-flight snapshots exclude attempt loot and temporary powers. Only
+    // campaign changes warrant an immediate write while an attempt is active.
+    if matches!(*phase, GamePhase::Playing | GamePhase::Choosing) && !campaign.is_changed() {
         return;
     }
     let snapshot = Snapshot::capture(&campaign, &session);
