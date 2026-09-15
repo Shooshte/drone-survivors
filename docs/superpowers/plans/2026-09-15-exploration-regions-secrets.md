@@ -77,8 +77,8 @@ Files: `src/passives/scene.rs`, `src/mission/scene.rs`, `src/mission/selection_s
 
 - [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`.
 - [x] Dispatch an independent whole-branch review; fix and verify actionable findings.
-- [ ] Push `codex/dro-20-exploration` and open PR against `main`, linking DRO-20 and evidence.
-- [ ] Update Linear to In Review with the PR and validation summary.
+- [x] Push `codex/dro-20-exploration` and open PR against `main`, linking DRO-20 and evidence.
+- [x] Update Linear to In Review with the PR and validation summary.
 
 ## Progress
 
@@ -89,3 +89,5 @@ Files: `src/passives/scene.rs`, `src/mission/scene.rs`, `src/mission/selection_s
 - Task 2 complete: 727fe5f; 11 economy tests and actual cache-to-disk integration passed.
 
 - Task 3 complete: 0de882b and ac2ab4d. Native exploration and compact objective flows passed; full tests378/0,4ignored, fmt and strict Clippy clean.
+
+- Task 4 complete: PR https://github.com/Shooshte/drone-survivors/pull/24 targets main; Linear DRO-20 is In Review. Worktree retained for PR follow-up.
