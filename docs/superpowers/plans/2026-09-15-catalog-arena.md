@@ -20,7 +20,7 @@ and gameplay plugins; a separate selector UI module and focused integration test
 - [x] Extend `ValidationMode`/parser/install in `src/combat/validation.rs`, with
   catalog duration defaulting to 60 seconds and an early-return installer.
 - [x] Implement `CatalogArena` (scenario index, loadout, selecting flag, duration),
-  `CatalogAction` (Previous, Next, CycleSlot(usize), Launch, Return), and
+  `CatalogAction` (Previous, Next, CycleSlot(usize), Launch, Return, Restart), and
   the opt-in `install(app, duration)` function. Use Transition for controls/boundary flags, Reset completion for
   selector phase, and production WaveConfig for the three scenario definitions.
 - [x] Run focused tests with `cargo test --locked catalog`; verify full reset,
@@ -44,6 +44,12 @@ and gameplay plugins; a separate selector UI module and focused integration test
 - [x] Run `cargo fmt --check`, `cargo test --locked`, and
   `cargo clippy --all-targets --locked -- -D warnings`.
 - [x] Review the branch against the spec, fix actionable findings and commit.
-- [ ] Push and open PR against main; link it from DRO-34 and keep DRO-22 pending.
+- [x] Push and open PR against main; link it from DRO-34 and keep DRO-22 pending.
   Dependent child PRs follow the arena merge rather than duplicating its changes
   in every PR against main.
+
+## Delivery
+
+PR: https://github.com/Shooshte/drone-survivors/pull/26 (base main).
+DRO-34 is ready for review. DRO-22 and DRO-35–DRO-41 remain pending; campaign
+introduction still requires the separately deferred human gate.
