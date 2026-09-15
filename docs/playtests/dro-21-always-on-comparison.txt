@@ -1,0 +1,51 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-21-vertical-slice)
+    Finished `test` profile [optimized + debuginfo] target(s) in 3.22s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 1 test
+SLICE trace t=0.0 position=Vec3(0.0, 90.0, 0.0) speed=0.0 hull=100 kills=0
+SLICE trace t=30.0 position=Vec3(-191.4025, 61.66632, 1364.1465) speed=265.7 hull=100 kills=12
+SLICE trace t=60.0 position=Vec3(-189.97737, 61.66632, 624.1587) speed=265.8 hull=100 kills=38
+SLICE trace t=90.0 position=Vec3(491.09384, 61.66632, 1218.5085) speed=223.0 hull=150 kills=65
+SLICE trace t=120.0 position=Vec3(-569.28595, 61.66632, 1061.2802) speed=228.0 hull=150 kills=88
+SLICE trace t=150.0 position=Vec3(345.01358, 61.66632, 692.3221) speed=258.6 hull=130 kills=131
+SLICE trace t=180.0 position=Vec3(24.261993, 61.66632, 1392.1329) speed=271.2 hull=120 kills=167
+SLICE trace t=210.0 position=Vec3(-374.45975, 61.66632, 691.78864) speed=245.5 hull=110 kills=219
+SLICE trace t=240.0 position=Vec3(571.6743, 61.66632, 1068.6844) speed=213.9 hull=100 kills=268
+SLICE trace t=270.0 position=Vec3(-471.2371, 61.66632, 1215.9178) speed=248.1 hull=70 kills=325
+SLICE trace t=300.0 position=Vec3(143.5812, 61.66632, 622.63934) speed=272.5 hull=40 kills=385
+SLICE recon=false waypoint=0 sampled_enabled_seconds=0.00 shield_blocks=0 hull=40 upgrades=[HeavyRounds, HeavyArmor, Interceptor] result=Some(MissionResult { attempt: 1, mission: MissionId(0), succeeded: true, elapsed: 300.0, kills: 385, rewards: RewardReceipt { collected: Amounts { salvage: 48, components: 0 }, lost: Amounts { salvage: 0, components: 0 }, bonus: Amounts { salvage: 10, components: 1 }, credited: Amounts { salvage: 58, components: 1 }, balance: Amounts { salvage: 58, components: 1 }, error: None } })
+SLICE resumed module=None bank=Amounts { salvage: 58, components: 1 }
+SLICE recon=true waypoint=5 sampled_enabled_seconds=0.00 shield_blocks=0 hull=70 upgrades=[] result=Some(MissionResult { attempt: 2, mission: MissionId(1), succeeded: true, elapsed: 27.799999722000518, kills: 9, rewards: RewardReceipt { collected: Amounts { salvage: 1, components: 0 }, lost: Amounts { salvage: 0, components: 0 }, bonus: Amounts { salvage: 10, components: 1 }, credited: Amounts { salvage: 11, components: 1 }, balance: Amounts { salvage: 69, components: 2 }, error: None } })
+SLICE trace t=0.0 position=Vec3(0.0, 90.0, 0.0) speed=0.0 hull=100 kills=0
+SLICE trace t=30.0 position=Vec3(-191.4025, 61.66632, 1364.1465) speed=265.7 hull=100 kills=12
+SLICE trace t=60.0 position=Vec3(-189.97737, 61.66632, 624.1587) speed=265.8 hull=100 kills=38
+SLICE trace t=90.0 position=Vec3(491.09384, 61.66632, 1218.5085) speed=223.0 hull=150 kills=65
+SLICE trace t=120.0 position=Vec3(-569.28595, 61.66632, 1061.2802) speed=228.0 hull=150 kills=88
+SLICE trace t=150.0 position=Vec3(345.01358, 61.66632, 692.3221) speed=258.6 hull=130 kills=131
+SLICE trace t=180.0 position=Vec3(24.261993, 61.66632, 1392.1329) speed=271.2 hull=120 kills=167
+SLICE trace t=210.0 position=Vec3(-374.45975, 61.66632, 691.78864) speed=245.5 hull=110 kills=219
+SLICE trace t=240.0 position=Vec3(571.6743, 61.66632, 1068.6844) speed=213.9 hull=100 kills=268
+SLICE trace t=270.0 position=Vec3(-471.2371, 61.66632, 1215.9178) speed=248.1 hull=70 kills=325
+SLICE trace t=300.0 position=Vec3(143.5812, 61.66632, 622.63934) speed=272.5 hull=40 kills=385
+SLICE recon=false waypoint=0 sampled_enabled_seconds=0.00 shield_blocks=0 hull=40 upgrades=[HeavyRounds, HeavyArmor, Interceptor] result=Some(MissionResult { attempt: 1, mission: MissionId(0), succeeded: true, elapsed: 300.0, kills: 385, rewards: RewardReceipt { collected: Amounts { salvage: 48, components: 0 }, lost: Amounts { salvage: 0, components: 0 }, bonus: Amounts { salvage: 10, components: 1 }, credited: Amounts { salvage: 58, components: 1 }, balance: Amounts { salvage: 58, components: 1 }, error: None } })
+SLICE resumed module=Some(Overdrive) bank=Amounts { salvage: 48, components: 1 }
+SLICE recon=true waypoint=5 sampled_enabled_seconds=13.60 shield_blocks=0 hull=80 upgrades=[] result=Some(MissionResult { attempt: 2, mission: MissionId(1), succeeded: true, elapsed: 27.799999722000518, kills: 10, rewards: RewardReceipt { collected: Amounts { salvage: 1, components: 0 }, lost: Amounts { salvage: 0, components: 0 }, bonus: Amounts { salvage: 10, components: 1 }, credited: Amounts { salvage: 11, components: 1 }, balance: Amounts { salvage: 59, components: 2 }, error: None } })
+SLICE trace t=0.0 position=Vec3(0.0, 90.0, 0.0) speed=0.0 hull=100 kills=0
+SLICE trace t=30.0 position=Vec3(-191.4025, 61.66632, 1364.1465) speed=265.7 hull=100 kills=12
+SLICE trace t=60.0 position=Vec3(-189.97737, 61.66632, 624.1587) speed=265.8 hull=100 kills=38
+SLICE trace t=90.0 position=Vec3(491.09384, 61.66632, 1218.5085) speed=223.0 hull=150 kills=65
+SLICE trace t=120.0 position=Vec3(-569.28595, 61.66632, 1061.2802) speed=228.0 hull=150 kills=88
+SLICE trace t=150.0 position=Vec3(345.01358, 61.66632, 692.3221) speed=258.6 hull=130 kills=131
+SLICE trace t=180.0 position=Vec3(24.261993, 61.66632, 1392.1329) speed=271.2 hull=120 kills=167
+SLICE trace t=210.0 position=Vec3(-374.45975, 61.66632, 691.78864) speed=245.5 hull=110 kills=219
+SLICE trace t=240.0 position=Vec3(571.6743, 61.66632, 1068.6844) speed=213.9 hull=100 kills=268
+SLICE trace t=270.0 position=Vec3(-471.2371, 61.66632, 1215.9178) speed=248.1 hull=70 kills=325
+SLICE trace t=300.0 position=Vec3(143.5812, 61.66632, 622.63934) speed=272.5 hull=40 kills=385
+SLICE recon=false waypoint=0 sampled_enabled_seconds=0.00 shield_blocks=0 hull=40 upgrades=[HeavyRounds, HeavyArmor, Interceptor] result=Some(MissionResult { attempt: 1, mission: MissionId(0), succeeded: true, elapsed: 300.0, kills: 385, rewards: RewardReceipt { collected: Amounts { salvage: 48, components: 0 }, lost: Amounts { salvage: 0, components: 0 }, bonus: Amounts { salvage: 10, components: 1 }, credited: Amounts { salvage: 58, components: 1 }, balance: Amounts { salvage: 58, components: 1 }, error: None } })
+SLICE resumed module=Some(Shield) bank=Amounts { salvage: 43, components: 1 }
+SLICE recon=true waypoint=5 sampled_enabled_seconds=17.03 shield_blocks=0 hull=70 upgrades=[] result=Some(MissionResult { attempt: 2, mission: MissionId(1), succeeded: true, elapsed: 27.799999722000518, kills: 9, rewards: RewardReceipt { collected: Amounts { salvage: 1, components: 0 }, lost: Amounts { salvage: 0, components: 0 }, bonus: Amounts { salvage: 10, components: 1 }, credited: Amounts { salvage: 11, components: 1 }, balance: Amounts { salvage: 54, components: 2 }, error: None } })
+test combat::slice_tests::vertical_slice_probe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 383 filtered out; finished in 4.81s
+

@@ -1,0 +1,102 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-21-vertical-slice)
+    Finished `test` profile [optimized + debuginfo] target(s) in 23.48s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 1 test
+
+thread 'mission::scene::tests::completed_selection_is_marked_as_replay_and_points_to_unfinished_branches' (414821) panicked at src/mission/scene.rs:436:9:
+ENTER
+Choose mission
+C
+Permanent upgrades
+U
+Module shop / loadout
+M
+Back to hub
+BACKSPACE
+ESC  Quit
+SHARED ARENA / Increasing chaser waves; finite chargers.
+Win: collected loot +10 salvage, +1 component. Loss: keep 25% of loot. Replays pay the same.
+ACT 1 / Scrapyard
+ACT 2 / Ruins
+ACT 3 / Power station
+ARROWS  Select unlocked mission   /   Click a card to select   /   ESC  Quit
+DRONE SURVIVORS / MODULE BAY
+Loadout manifest
+Upgrades
+Permanent passives: 5 ranks each. Rank 1 unlocks the next node.
+OFFENSE
+RESILIENCE
+ENERGY EFFICIENCY
+Back to hub
+BACKSPACE
+1-9 or click: buy one rank. Applies next launch. Saved between missions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ENTER  Mission briefing
+BACKSPACE  Hub
+
+
+
+
+BUY SELECTED MODULE
+B
+
+REMOVE SHIFT+1
+
+REMOVE SHIFT+2
+
+REMOVE SHIFT+3
+
+REMOVE SHIFT+4
+Back to operations
+BACKSPACE
+
+
+
+Mission briefing
+DRONE SURVIVORS / OPERATIONS
+Ready for deployment
+Choose an unlocked mission or launch the selected mission.
+Mission 01 / Act 1 / Introduction
+1/12 complete / Campaign in progress / 0 completed attempts
+BANK  Salvage 0  |  Components 0
+Explore optional caches for XP, blueprints and secret routes.
+Discoveries save immediately. Free mission replays.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test mission::scene::tests::completed_selection_is_marked_as_replay_and_points_to_unfinished_branches ... FAILED
+
+failures:
+
+failures:
+    mission::scene::tests::completed_selection_is_marked_as_replay_and_points_to_unfinished_branches
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 383 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin drone-survivors`

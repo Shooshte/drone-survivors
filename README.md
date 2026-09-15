@@ -82,6 +82,26 @@ It checks text bounds at each captured screen and exits after about 65 seconds
 salvage/13 components across 14 results. This validates campaign behavior and
 presentation, not combat balance. [DRO-17 evidence](docs/playtests/dro-17-campaign.md).
 
+## Two-mission vertical slice
+
+After a win, the hub lists unlocked unfinished missions. A completed selection's
+Enter action is labeled **Replay mission briefing**. Use **Module shop (M)** to
+buy a module: **Up/Down** selects, **B** buys, and **1-4** equips it in a slot.
+Then return to the hub and **Choose mission (C)**. Completing mission 01 unlocks
+mission 02 reconnaissance and mission 03 cargo; branch choice remains yours.
+
+```sh
+cargo test --locked vertical_slice_probe -- --ignored --nocapture
+```
+
+This opt-in agent probe completes fresh mission 01 → reward → purchase/equip →
+save/reload → mission 02 loops with Overdrive and Shield, plus an empty-loadout
+control. It runs production gameplay at fixed 30 Hz without rendering, using
+scripted keyboard steering and isolated temporary saves. No wins, funds, health,
+XP or objective progress are granted. It is an accelerated agent check; **human
+validation is deferred**, and content expansion remains behind that later gate.
+[Results, comparison, native screenshots and human checklist](docs/playtests/dro-21-vertical-slice.md).
+
 ## Reconnaissance and cargo extraction
 
 After completing mission 01, choose either branch from the mission screen:

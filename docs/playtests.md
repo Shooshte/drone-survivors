@@ -1544,3 +1544,22 @@ actionable issues.
 [Detailed checks, fixture disclosures, logs and screenshots](playtests/dro-20-exploration.md).
 Numeric balance remains provisional for the upcoming vertical-slice playtest;
 native fixture overrides are documented and never touch the user's campaign save.
+
+## DRO-21 — Two-mission vertical slice (September 15)
+
+Human validation was explicitly deferred by the user and the Linear ticket was
+updated before implementation. The agent implementation pass demonstrates two
+fresh mission 01 → reward → module purchase/equip → save/reload → mission 02
+loops, plus an empty-loadout control, with production gameplay and no granted
+wins, health, funds, XP or objective progress. Fixed 30 Hz scripted steering runs
+headlessly; this is not a human usability or rendering-performance claim.
+
+The largest concrete progression issue found was the silent replay path after a
+first win. Hub guidance now lists available unfinished missions, marks the
+selected completed mission as a replay, and points to purchases/equipping. Results
+and module shop controls explain the next steps. Native fixtures passed at
+640×480 and 1120×720. The regular suite passed 379 tests (5 explicit probes ignored);
+the new campaign probe passed separately, along with formatting and strict Clippy.
+
+[Full comparison, failed strategies, logs, screenshots and deferred human checklist](playtests/dro-21-vertical-slice.md).
+The human gate and content-expansion restriction remain pending.
