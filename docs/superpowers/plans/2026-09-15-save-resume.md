@@ -15,18 +15,18 @@ not touch real saves. Worktree `.worktrees/dro-18-save-resume`, branch
 
 ## Tasks
 
-- [ ] Storage: add failing round-trip, malformed/version/invariant and atomic
+- [x] Storage: add failing round-trip, malformed/version/invariant and atomic
   replacement/conflict tests in `src/save/tests.rs`; run `cargo test save`.
   Implement `Snapshot::capture`, `Snapshot::restore`, `Store::read` and
   `Store::write` in `src/save/{snapshot,storage}.rs`. Add narrow validated restore
   constructors to passive tree/module inventory. Run tests and commit.
-- [ ] Runtime/UI: add failing ECS tests in `src/save/runtime_tests.rs` using the
+- [x] Runtime/UI: add failing ECS tests in `src/save/runtime_tests.rs` using the
   existing mission test harness. Implement startup Continue/New/confirm/retry
   states and autosave after `GameplaySet::Completion`, before presentation.
   Block further mission input on save errors. Preserve the source phase on retry.
   Add a separate overlay in `src/save/scene.rs`, normal-launch installation in
   `src/main.rs`, and hub shortcut. Run tests and commit.
-- [ ] Verify: exercise real native UI with an isolated `DRONE_SAVE_PATH`, restart
+- [x] Verify: exercise real native UI with an isolated `DRONE_SAVE_PATH`, restart
   the executable, inspect restored values and recovery/cancel at 640x480.
   Run `cargo fmt --check`, `cargo test`, `cargo clippy --all-targets`.
   Obtain independent code review, address actionable findings, update README and

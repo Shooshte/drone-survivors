@@ -1480,3 +1480,17 @@ and restart were verified. Independent review findings were addressed.
 
 Fixture outcomes are synthetic; all missions deliberately share existing combat.
 Progress is session-only. [Full evidence, logs and captures](playtests/dro-17-campaign.md).
+
+## DRO-18 — Campaign save and resume (2026-09-15)
+
+Implemented one local versioned save, Continue/New Campaign, confirmed archived
+replacement, validated recovery and atomic autosaves for purchases/loadout,
+mission selection and settled results. 343 tests passed (four existing ignored);
+formatting and strict Clippy passed. Native mouse/keyboard checks verified actual
+restart restoration, compact 640×480 menus, write failure/retry without duplicate
+charges, cancel and incompatible-file preservation. Synthetic bank/progress was
+used for the native economy setup; reward deduplication is covered by ECS tests.
+
+[Detailed evidence and screenshots](playtests/dro-18-save-resume.md).
+No known blocking defect. Future work: schema migrations/cloud or multiple slots
+only when product scope calls for them; mid-mission saves remain out of scope.
