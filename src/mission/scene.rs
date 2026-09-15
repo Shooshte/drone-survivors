@@ -280,8 +280,8 @@ fn present(
     for (part, mut text, mut color) in &mut text {
         let value = match (part, *phase) {
             (MenuCopy::Eyebrow, GamePhase::Hub) => "DRONE SURVIVORS / OPERATIONS".into(),
-            (MenuCopy::Eyebrow, GamePhase::Briefing) => "MISSION BRIEFING / SURVIVAL".into(),
-            (MenuCopy::Eyebrow, _) => "MISSION RESULTS / SURVIVAL".into(),
+            (MenuCopy::Eyebrow, GamePhase::Briefing) => session.selected_mission.title(),
+            (MenuCopy::Eyebrow, _) => result.map(|r| r.mission.title()).unwrap_or_default(),
             (MenuCopy::Heading, GamePhase::Hub) => "Ready for deployment".into(),
             (MenuCopy::Heading, GamePhase::Briefing) => "Hold out for five minutes".into(),
             (MenuCopy::Heading, _) => if won { "Mission survived" } else { "Drone lost" }.into(),
@@ -297,8 +297,8 @@ fn present(
             (MenuCopy::Body, GamePhase::Hub) => {
                 let count = campaign.history.len();
                 let noun = if count == 1 { "attempt" } else { "attempts" };
-                let status = if campaign.mission_succeeded { "Survival achieved" } else { "Survival not yet achieved" };
-                format!("SURVIVAL / 5:00\n{count} completed {noun} this session / {status}\nBANK  Salvage {}  |  Components {}", campaign.wallet.salvage, campaign.wallet.components)
+                let status = if campaign.progress.finished() { "Campaign complete" } else { "Campaign in progress" };
+                format!("{}\n{}/12 complete / {status} / {count} completed {noun}\nBANK  Salvage {}  |  Components {}", session.selected_mission.title(), campaign.progress.count(), campaign.wallet.salvage, campaign.wallet.components)
             },
             (MenuCopy::Body, GamePhase::Briefing) => {
                 let (_, modules) = baseline.launch_power(&campaign);
@@ -446,6 +446,7 @@ mod tests {
         let result = super::super::MissionResult {
             rewards: default(),
             attempt: 7,
+            mission: default(),
             succeeded: true,
             elapsed: 300.,
             kills: 123,
@@ -454,7 +455,10 @@ mod tests {
             .resource_mut::<Campaign>()
             .history
             .push(result.clone());
-        app.world_mut().resource_mut::<Campaign>().mission_succeeded = true;
+        app.world_mut()
+            .resource_mut::<Campaign>()
+            .progress
+            .complete(super::super::campaign::MissionId::ALL[0]);
         app.world_mut().resource_mut::<MissionSession>().result = Some(result);
         *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Survived;
         app.update();
@@ -476,7 +480,7 @@ mod tests {
         *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Hub;
         app.update();
         assert!(body(&mut app).contains("1 completed attempt"));
-        assert!(body(&mut app).contains("Survival achieved"));
+        assert!(body(&mut app).contains("1/12 complete"));
     }
     #[test]
     fn economy_menus_show_bank_and_stable_reward_breakdown() {
@@ -497,6 +501,7 @@ mod tests {
         app.world_mut().resource_mut::<MissionSession>().result =
             Some(super::super::MissionResult {
                 attempt: 1,
+                mission: default(),
                 succeeded: false,
                 elapsed: 37.,
                 kills: 18,

@@ -145,7 +145,11 @@ fn drive(
         }
         32 => {
             assert_eq!(campaign.history.len(), 2);
-            assert!(campaign.mission_succeeded);
+            assert!(
+                campaign
+                    .progress
+                    .completed(super::campaign::MissionId::ALL[0])
+            );
             assert!(campaign.history[0].succeeded);
             assert!(!campaign.history[1].succeeded);
             assert!(session.result.is_none());

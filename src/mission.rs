@@ -1,7 +1,9 @@
 //! Session-only mission transitions and completion boundary.
 use bevy::prelude::*;
+pub(crate) mod campaign;
 #[cfg(test)]
 mod module_tests;
+use campaign::MissionId;
 pub(crate) mod scene;
 pub(crate) mod validation;
 use crate::{
@@ -24,6 +26,7 @@ pub(crate) enum MissionAction {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct MissionResult {
     pub attempt: u64,
+    pub mission: MissionId,
     pub succeeded: bool,
     pub elapsed: f64,
     pub kills: u32,
@@ -32,7 +35,7 @@ pub(crate) struct MissionResult {
 #[derive(Resource, Default)]
 pub(crate) struct Campaign {
     pub history: Vec<MissionResult>,
-    pub mission_succeeded: bool,
+    pub progress: campaign::Progress,
     pub wallet: crate::economy::Amounts,
     pub passives: crate::passives::PassiveTree,
     pub inventory: crate::modules::shop::ModuleInventory,
@@ -43,6 +46,8 @@ pub(crate) struct MissionSession {
     pub purchase_feedback: String,
     pub selected_module: usize,
     pub active_loadout: Option<crate::modules::Loadout>,
+    pub selected_mission: MissionId,
+    pub active_mission: Option<MissionId>,
     next_attempt: u64,
     active_attempt: Option<u64>,
     armed: bool,
@@ -188,21 +193,34 @@ fn input(
             session.armed = false;
         }
         (GamePhase::Hub, Some(MissionAction::Briefing)) => {
+            if !campaign.progress.unlocked(session.selected_mission) {
+                session.purchase_feedback = session.selected_mission.requirement();
+                session.armed = false;
+                return;
+            }
             *phase = GamePhase::Briefing;
             session.armed = false;
             session.purchase_feedback.clear();
         }
-        (GamePhase::Briefing, Some(MissionAction::Launch)) => match campaign.inventory.validate() {
-            Ok(()) => {
-                session.active_loadout = Some(campaign.inventory.loadout().clone());
-                launch(&mut session, &mut boundary, &mut phase, &mut clock);
-            }
-            Err(_) => {
-                session.purchase_feedback =
-                    "Invalid loadout. Return to the hub and equip owned modules only.".into();
+        (GamePhase::Briefing, Some(MissionAction::Launch)) => {
+            if !campaign.progress.unlocked(session.selected_mission) {
+                session.purchase_feedback = session.selected_mission.requirement();
                 session.armed = false;
+                return;
             }
-        },
+            match campaign.inventory.validate() {
+                Ok(()) => {
+                    session.active_loadout = Some(campaign.inventory.loadout().clone());
+                    session.active_mission = Some(session.selected_mission);
+                    launch(&mut session, &mut boundary, &mut phase, &mut clock);
+                }
+                Err(_) => {
+                    session.purchase_feedback =
+                        "Invalid loadout. Return to the hub and equip owned modules only.".into();
+                    session.armed = false;
+                }
+            }
+        }
         (
             GamePhase::Briefing
             | GamePhase::Passives
@@ -254,6 +272,9 @@ fn finalize(
     };
     let result = MissionResult {
         attempt,
+        mission: session
+            .active_mission
+            .expect("launched attempts have a mission"),
         succeeded: *phase == GamePhase::Survived,
         elapsed: encounter.elapsed,
         kills: encounter.kills,
@@ -263,7 +284,9 @@ fn finalize(
             &mut campaign.wallet,
         ),
     };
-    campaign.mission_succeeded |= result.succeeded;
+    if result.succeeded {
+        campaign.progress.complete(result.mission);
+    }
     campaign.history.push(result.clone());
     session.result = Some(result);
     session.armed = false;
@@ -274,3 +297,6 @@ fn reset_resources(mut resources: ResMut<crate::economy::AttemptResources>) {
 }
 #[cfg(test)]
 pub(crate) mod tests;
+
+#[cfg(test)]
+mod campaign_tests;
