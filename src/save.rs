@@ -27,7 +27,7 @@ impl Default for SavePlugin {
 }
 impl SavePlugin {
     #[cfg(test)]
-    fn at(path: std::path::PathBuf) -> Self {
+    pub(crate) fn at(path: std::path::PathBuf) -> Self {
         Self { path: Ok(path) }
     }
 }

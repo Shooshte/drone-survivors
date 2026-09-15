@@ -1,0 +1,21 @@
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.57s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 1 test
+SLICE recon=false waypoint=0 powered_seconds=0.00 hull=0 upgrades=[HeavyRounds, HeavyArmor, AgileFrame] result=Some(MissionResult { attempt: 1, mission: MissionId(0), succeeded: false, elapsed: 239.36666427301085, kills: 270, rewards: RewardReceipt { collected: Amounts { salvage: 2, components: 0 }, lost: Amounts { salvage: 2, components: 0 }, bonus: Amounts { salvage: 0, components: 0 }, credited: Amounts { salvage: 0, components: 0 }, balance: Amounts { salvage: 0, components: 0 }, error: None } })
+
+thread 'combat::slice_tests::vertical_slice_probe' (415187) panicked at src/combat/slice_tests.rs:71:5:
+assertion `left == right` failed
+  left: Dead
+ right: Survived
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test combat::slice_tests::vertical_slice_probe ... FAILED
+
+failures:
+
+failures:
+    combat::slice_tests::vertical_slice_probe
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 383 filtered out; finished in 1.19s
+
+error: test failed, to rerun pass `--bin drone-survivors`

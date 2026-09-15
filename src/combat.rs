@@ -167,3 +167,6 @@ impl Plugin for CombatPlugin {
             );
     }
 }
+
+#[cfg(test)]
+mod slice_tests;

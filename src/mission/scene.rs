@@ -302,6 +302,7 @@ fn present(
     };
     let result = session.result.as_ref();
     let won = result.is_some_and(|result| result.succeeded);
+    let next = next_missions(&campaign);
     let compact = window.is_some_and(|window| window.height() < 600.);
     for (part, mut text, mut color, mut font) in &mut text {
         // Long cargo briefings need room for resource profiles and power previews
@@ -325,7 +326,7 @@ fn present(
             (MenuCopy::Heading, GamePhase::Hub) => "Ready for deployment".into(),
             (MenuCopy::Heading, GamePhase::Briefing) => session.selected_mission.objective().heading().into(),
             (MenuCopy::Heading, _) => if won { "Mission complete" } else { "Drone lost" }.into(),
-            (MenuCopy::Description, GamePhase::Hub) => "Choose an unlocked mission or launch the selected mission.".into(),
+            (MenuCopy::Description, GamePhase::Hub) => next.clone(),
             (MenuCopy::Description, GamePhase::Briefing) => session.selected_mission.objective().briefing().into(),
             (MenuCopy::Description, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
                 "Reward transaction failed; your previous balances are unchanged."
@@ -376,10 +377,10 @@ fn present(
             (MenuCopy::Note, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
                 "Balance limit reached: reward could not be banked.\nThe result retains the collection and bonus amounts."
             } else {
-                if won { "Banked once. Reserve battery retained if purchased.\nNext launch restores the Scout and resets run upgrades." }
+                if won { "Next: return to hub; Module shop (M) to buy, then equip with 1-4.\nChoose mission (C) for the next objective. Run upgrades reset." }
                 else { "Banked once. Reserve battery forfeited; blueprint retained.\nRepurchase in Upgrades. Ordinary passives remain permanent." }
             }.into(),
-            (MenuCopy::PrimaryLabel, GamePhase::Hub) => "Mission briefing".into(),
+            (MenuCopy::PrimaryLabel, GamePhase::Hub) => if campaign.progress.completed(session.selected_mission) { "Replay mission briefing" } else { "Mission briefing" }.into(),
             (MenuCopy::PrimaryLabel, GamePhase::Briefing) => "Launch mission".into(),
             (MenuCopy::PrimaryLabel, _) => "Return to hub".into(),
         };
@@ -393,6 +394,23 @@ fn present(
                 SILVER
             };
         }
+    }
+}
+
+/// Point toward unfinished content without silently changing the player's selection.
+fn next_missions(campaign: &Campaign) -> String {
+    let missions = super::campaign::MissionId::ALL
+        .into_iter()
+        .filter(|id| campaign.progress.unlocked(*id) && !campaign.progress.completed(*id))
+        .map(|id| format!("{:02}", id.index() + 1))
+        .collect::<Vec<_>>();
+    if missions.is_empty() {
+        "Campaign complete. Choose mission (C) to replay any mission.".into()
+    } else {
+        format!(
+            "Choose mission (C): {} unfinished. Module shop (M): buy and equip.",
+            missions.join(", ")
+        )
     }
 }
 
@@ -425,6 +443,44 @@ mod tests {
             .add_plugins(MissionScenePlugin);
         app.update();
         app
+    }
+
+    #[test]
+    fn completed_selection_is_marked_as_replay_and_points_to_unfinished_branches() {
+        let mut app = app();
+        app.world_mut()
+            .resource_mut::<Campaign>()
+            .progress
+            .complete(super::super::campaign::MissionId::ALL[0]);
+        app.update();
+        let text = app
+            .world_mut()
+            .query::<&Text>()
+            .iter(app.world())
+            .map(|t| t.0.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(text.contains("Replay mission briefing"), "{text}");
+        assert!(text.contains("Choose mission (C): 02, 03"), "{text}");
+        assert_eq!(
+            app.world()
+                .resource::<MissionSession>()
+                .selected_mission
+                .index(),
+            0
+        );
+        app.world_mut()
+            .resource_mut::<MissionSession>()
+            .selected_mission = super::super::campaign::MissionId::ALL[1];
+        app.update();
+        let text = app
+            .world_mut()
+            .query::<&Text>()
+            .iter(app.world())
+            .map(|t| t.0.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(!text.contains("Replay mission briefing"));
     }
 
     #[test]

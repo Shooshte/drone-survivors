@@ -142,6 +142,12 @@ fn setup(mut commands: Commands) {
                 .with_children(|panel| {
                     label(panel, "DRONE SURVIVORS / MODULE BAY", 11., CYAN);
                     label(panel, "Loadout manifest", 24., SILVER);
+                    label(
+                        panel,
+                        "Up/Down select   B buy   1-4 equip selected",
+                        11.,
+                        MUTED,
+                    );
                     panel.spawn((
                         Copy::Bank,
                         Text::default(),

@@ -75,12 +75,20 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
             if id == MissionId::ALL[0] {
                 steps.extend([Step::Key(KeyCode::KeyR), Step::Phase(GamePhase::Playing)]);
             }
-            steps.extend([
-                Step::Win,
-                Step::Result(id, true),
-                Step::Key(KeyCode::Enter),
-                Step::Phase(GamePhase::Hub),
-            ]);
+            steps.extend([Step::Win, Step::Result(id, true)]);
+            if id == MissionId::ALL[0] {
+                steps.push(Step::Capture("first-win-result"));
+            }
+            steps.extend([Step::Key(KeyCode::Enter), Step::Phase(GamePhase::Hub)]);
+            if id == MissionId::ALL[0] {
+                steps.extend([
+                    Step::Capture("first-win-hub"),
+                    Step::Key(KeyCode::KeyM),
+                    Step::Phase(GamePhase::ModuleShop),
+                    Step::Capture("first-win-shop"),
+                    Step::Key(KeyCode::Backspace),
+                ]);
+            }
             if offset == 0 {
                 steps.extend([
                     Step::Key(KeyCode::KeyC),
@@ -170,6 +178,7 @@ fn drive(
 ) {
     for key in [
         KeyCode::KeyC,
+        KeyCode::KeyM,
         KeyCode::Enter,
         KeyCode::Backspace,
         KeyCode::KeyR,
