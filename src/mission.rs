@@ -27,7 +27,7 @@ pub(crate) enum MissionAction {
     Launch,
     Hub,
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MissionResult {
     pub attempt: u64,
     pub mission: MissionId,
@@ -52,7 +52,7 @@ pub(crate) struct MissionSession {
     pub active_loadout: Option<crate::modules::Loadout>,
     pub selected_mission: MissionId,
     pub active_mission: Option<MissionId>,
-    next_attempt: u64,
+    pub(crate) next_attempt: u64,
     active_attempt: Option<u64>,
     armed: bool,
 }

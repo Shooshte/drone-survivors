@@ -6,6 +6,7 @@ mod game;
 mod mission;
 mod modules;
 mod passives;
+mod save;
 mod upgrades;
 mod world;
 
