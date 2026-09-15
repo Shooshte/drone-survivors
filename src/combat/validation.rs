@@ -45,6 +45,7 @@ const ARMORED_PRIORITIES: [UpgradeKind; 3] = [
 
 #[derive(Resource, Clone, Copy, Debug, PartialEq)]
 pub(crate) enum ValidationMode {
+    Catalog,
     Manual,
     Survival,
     Stress,
@@ -102,12 +103,13 @@ impl ValidationConfig {
         let mut enemies = None;
         while let Some(flag) = args.next() {
             let value = args.next().ok_or(
-            "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives|shop|campaign|objectives|exploration \
+            "Expected --validate manual|survival|stress|idle|routes|chargers|mobile|armored|choices|missions|passives|shop|campaign|objectives|exploration|catalog \
                  [--seconds 1..600] [--enemies 1..500 (stress only)]",
             )?;
             match flag.as_str() {
                 "--validate" if mode.is_none() => {
                     mode = Some(match value.as_str() {
+                        "catalog" => ValidationMode::Catalog,
                         "manual" => ValidationMode::Manual,
                         "survival" => ValidationMode::Survival,
                         "stress" => ValidationMode::Stress,
@@ -125,7 +127,7 @@ impl ValidationConfig {
                         "exploration" => ValidationMode::Exploration,
                         _ => {
                             return Err(
-                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, shop, campaign, objectives, or exploration"
+                                "Validation mode must be manual, survival, stress, idle, routes, chargers, mobile, armored, choices, missions, passives, shop, campaign, objectives, exploration, or catalog"
                                     .into(),
                             );
                         }
@@ -161,6 +163,7 @@ impl ValidationConfig {
         Ok(Some(Self {
             mode,
             seconds: seconds.unwrap_or(match mode {
+                ValidationMode::Catalog => 60.,
                 ValidationMode::Stress => 30.,
                 ValidationMode::Missions => 36.,
                 ValidationMode::Campaign | ValidationMode::Objectives => 90.,
@@ -176,6 +179,10 @@ impl ValidationConfig {
 }
 
 pub(crate) fn install(app: &mut App, config: ValidationConfig) {
+    if config.mode == ValidationMode::Catalog {
+        super::catalog::install(app, config.seconds);
+        return;
+    }
     if config.mode == ValidationMode::Exploration {
         app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
         crate::exploration_validation::install(app, config.seconds);
@@ -387,7 +394,8 @@ fn validation_choice_input(
         | ValidationMode::Idle
         | ValidationMode::Routes
         | ValidationMode::Chargers => &[],
-        ValidationMode::Choices
+        ValidationMode::Catalog
+        | ValidationMode::Choices
         | ValidationMode::Manual
         | ValidationMode::Missions
         | ValidationMode::Campaign
