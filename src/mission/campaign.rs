@@ -1,4 +1,4 @@
-//! Session campaign topology. Mission identities are independent of encounter content.
+//! Campaign topology. Mission identities are independent of encounter content.
 #[derive(
     Clone,
     Copy,

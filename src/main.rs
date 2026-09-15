@@ -56,6 +56,8 @@ fn main() {
             mission::MissionPlugin,
             mission::scene::MissionScenePlugin,
             economy::scene::EconomyScenePlugin,
+            save::SavePlugin::default(),
+            save::scene::SaveScenePlugin,
         ));
     }
     app.run();

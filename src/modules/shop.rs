@@ -1,4 +1,4 @@
-//! Session-only module catalog, ownership, and editable launch loadout.
+//! Campaign module catalog, ownership, and editable launch loadout.
 use std::collections::BTreeSet;
 
 use crate::{

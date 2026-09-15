@@ -1,4 +1,4 @@
-//! Session-only mission transitions and completion boundary.
+//! Mission transitions and completion boundary.
 use bevy::prelude::*;
 pub(crate) mod campaign;
 pub(crate) mod campaign_validation;
@@ -80,7 +80,7 @@ impl Plugin for MissionPlugin {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn input(
+pub(crate) fn input(
     keys: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     buttons: Query<(&MissionAction, Ref<Interaction>)>,
@@ -91,6 +91,9 @@ fn input(
     mut clock: ResMut<Time<Virtual>>,
 ) {
     *boundary = default();
+    if *phase == GamePhase::CampaignMenu {
+        return;
+    }
     let restart = matches!(*phase, GamePhase::Playing | GamePhase::Choosing)
         && keys.just_pressed(KeyCode::KeyR);
     if restart {

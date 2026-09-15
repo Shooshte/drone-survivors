@@ -133,3 +133,64 @@ fn failed_replacement_leaves_original_intact() {
     assert!(store.write(&fresh, false).is_err());
     assert_eq!(std::fs::read(&path).unwrap(), original);
 }
+
+#[test]
+fn all_unlocks_and_maxed_purchases_survive_round_trip() {
+    let mut campaign = Campaign::default();
+    campaign.wallet.salvage = 10_000;
+    campaign.wallet.components = 1_000;
+    for node in NodeId::ALL {
+        for _ in 0..5 {
+            campaign
+                .passives
+                .purchase(node, &mut campaign.wallet)
+                .unwrap();
+        }
+    }
+    for (slot, kind) in ModuleKind::ALL.into_iter().enumerate() {
+        campaign
+            .inventory
+            .purchase(kind, &mut campaign.wallet)
+            .unwrap();
+        campaign.inventory.assign(slot, Some(kind)).unwrap();
+    }
+    for id in MissionId::ALL {
+        campaign.progress.complete(id);
+    }
+    let mut session = MissionSession::default();
+    session.selected_mission = MissionId::ALL[11];
+    let first = Snapshot::capture(&campaign, &session);
+    let (restored, resumed) = Snapshot::decode(&serde_json::to_vec(&first).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert!(restored.progress.finished());
+    assert_eq!(first, Snapshot::capture(&restored, &resumed));
+}
+
+#[test]
+fn busy_lock_and_stale_missing_reader_cannot_overwrite_campaign() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("campaign.json");
+    let mut first = Store::new(path.clone());
+    let mut second = Store::new(path.clone());
+    first.read().unwrap();
+    second.read().unwrap();
+    let snapshot = Snapshot::capture(&Campaign::default(), &MissionSession::default());
+    first.write(&snapshot, false).unwrap();
+    assert!(
+        second
+            .write(&snapshot, false)
+            .unwrap_err()
+            .contains("changed in another app")
+    );
+    let original = std::fs::read(&path).unwrap();
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path.with_extension("lock"))
+        .unwrap();
+    lock.try_lock().unwrap();
+    assert!(first.write(&snapshot, false).unwrap_err().contains("busy"));
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+}

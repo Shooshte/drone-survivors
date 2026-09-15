@@ -5,6 +5,7 @@ pub(crate) enum GamePhase {
     #[default]
     Playing,
     Hub,
+    CampaignMenu,
     Briefing,
     MissionSelect,
     Passives,

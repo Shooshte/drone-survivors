@@ -338,7 +338,7 @@ fn present(
                     r.rewards.collected.salvage, r.rewards.lost.salvage, r.rewards.bonus.salvage, r.rewards.credited.salvage, r.rewards.balance.salvage,
                     r.rewards.collected.components, r.rewards.lost.components, r.rewards.bonus.components, r.rewards.credited.components, r.rewards.balance.components)
             }).unwrap_or_default(),
-            (MenuCopy::Note, GamePhase::Hub) => "Free replays. Progress, purchases and balances last until you quit.".into(),
+            (MenuCopy::Note, GamePhase::Hub) => "Free replays. Progress saves automatically between missions.".into(),
             (MenuCopy::Note, GamePhase::Briefing) => {
                 let instructions = "Fly close to collect loot. Success +10 salvage, +1 component; failure keeps 25%.\n1-4 toggle modules; R discards loot and restarts.";
                 if session.purchase_feedback.is_empty() {

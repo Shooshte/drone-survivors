@@ -179,7 +179,7 @@ fn setup(mut commands: Commands) {
                         });
                     text(
                         panel,
-                        "1-9 or click: buy one rank. Applies next launch. Lasts until you quit.",
+                        "1-9 or click: buy one rank. Applies next launch. Saved between missions.",
                         12.,
                         MUTED,
                     );
