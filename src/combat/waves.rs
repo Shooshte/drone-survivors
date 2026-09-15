@@ -148,19 +148,31 @@ pub(crate) struct SpawnWarning {
     pub cancelled: bool,
 }
 
-pub(super) fn advance_clock(time: Res<Time>, config: Res<WaveConfig>, mut run: ResMut<Encounter>) {
-    run.elapsed = (run.elapsed + time.delta_secs_f64()).min(config.duration);
+pub(super) fn advance_clock(
+    time: Res<Time>,
+    config: Res<WaveConfig>,
+    mut run: ResMut<Encounter>,
+    objective: Option<Res<crate::mission::objectives::ObjectiveRun>>,
+) {
+    run.elapsed += time.delta_secs_f64();
+    if objective.is_none_or(|o| o.survival()) {
+        run.elapsed = run.elapsed.min(config.duration);
+    }
 }
 
 pub(super) fn finish(
     config: Res<WaveConfig>,
     run: Res<Encounter>,
     health: Res<super::PlayerHealth>,
+    objective: Option<Res<crate::mission::objectives::ObjectiveRun>>,
     mut phase: ResMut<GamePhase>,
 ) {
     if *phase == GamePhase::Playing && health.current == 0 {
         *phase = GamePhase::Dead;
-    } else if *phase == GamePhase::Playing && run.elapsed + 1e-7 >= config.duration {
+    } else if *phase == GamePhase::Playing
+        && objective.is_none_or(|o| o.survival())
+        && run.elapsed + 1e-7 >= config.duration
+    {
         *phase = GamePhase::Survived;
     }
 }

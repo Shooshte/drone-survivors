@@ -4,6 +4,7 @@ pub(crate) mod campaign;
 pub(crate) mod campaign_validation;
 #[cfg(test)]
 mod module_tests;
+pub(crate) mod objectives;
 use campaign::MissionId;
 pub(crate) mod scene;
 pub(crate) mod selection_scene;
@@ -59,6 +60,7 @@ pub(crate) struct MissionSession {
 pub(crate) struct MissionPlugin;
 impl Plugin for MissionPlugin {
     fn build(&self, app: &mut App) {
+        objectives::install(app);
         app.add_plugins(crate::economy::runtime::EconomyPlugin)
             .init_resource::<Campaign>()
             .init_resource::<MissionSession>()
@@ -356,3 +358,6 @@ pub(crate) mod tests;
 
 #[cfg(test)]
 mod campaign_tests;
+
+#[cfg(test)]
+mod objective_tests;
