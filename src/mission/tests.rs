@@ -202,3 +202,90 @@ fn zero_hull_is_terminal_before_pending_choice() {
 
 #[path = "economy_tests.rs"]
 mod economy_tests;
+
+#[test]
+fn purchased_secret_survives_success_but_restart_and_failure_forfeit_it() {
+    let mut app = app();
+    {
+        let mut campaign = app.world_mut().resource_mut::<Campaign>();
+        campaign.wallet.salvage = 60;
+        campaign.wallet.components = 3;
+        assert!(campaign.secrets.discover_blueprint());
+    }
+    tick(&mut app, 0., &[KeyCode::KeyU]);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::KeyB]);
+    assert!(app.world().resource::<Campaign>().secrets.reserve_battery);
+    assert_eq!(app.world().resource::<Campaign>().wallet.salvage, 40);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Backspace]);
+    launch(&mut app);
+    assert_eq!(
+        app.world()
+            .resource::<crate::energy::EnergyConfig>()
+            .capacity,
+        125.
+    );
+    app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
+    tick(&mut app, 0., &[]);
+    assert!(app.world().resource::<Campaign>().secrets.reserve_battery);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Enter]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Hub);
+    launch(&mut app);
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert!(!app.world().resource::<Campaign>().secrets.reserve_battery);
+    assert_eq!(
+        app.world()
+            .resource::<crate::energy::EnergyConfig>()
+            .capacity,
+        100.
+    );
+    assert!(app.world().resource::<Campaign>().secrets.blueprint);
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+    tick(&mut app, 0., &[]);
+    assert!(!app.world().resource::<Campaign>().secrets.reserve_battery);
+}
+
+#[test]
+fn death_forfeits_active_secret_and_blueprint_supports_repurchase_with_passive_bonus() {
+    let mut app = app();
+    {
+        let mut campaign = app.world_mut().resource_mut::<Campaign>();
+        campaign.wallet.salvage = 100;
+        campaign.wallet.components = 3;
+        let Campaign {
+            passives, wallet, ..
+        } = &mut *campaign;
+        passives
+            .purchase(crate::passives::NodeId::Battery, wallet)
+            .unwrap();
+        campaign.secrets.discover_blueprint();
+        let Campaign {
+            secrets, wallet, ..
+        } = &mut *campaign;
+        secrets.purchase(wallet).unwrap();
+    }
+    launch(&mut app);
+    assert_eq!(
+        app.world()
+            .resource::<crate::energy::EnergyConfig>()
+            .capacity,
+        145.
+    );
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+    tick(&mut app, 0., &[]);
+    assert!(!app.world().resource::<Campaign>().secrets.reserve_battery);
+    assert!(app.world().resource::<Campaign>().secrets.blueprint);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Enter]);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::KeyU]);
+    tick(&mut app, 0., &[]);
+    let before = app.world().resource::<Campaign>().wallet;
+    tick(&mut app, 0., &[KeyCode::KeyB]);
+    let after = app.world().resource::<Campaign>();
+    assert!(after.secrets.reserve_battery);
+    assert_eq!(after.wallet.salvage, before.salvage - 20);
+    assert_eq!(after.wallet.components, before.components - 1);
+}

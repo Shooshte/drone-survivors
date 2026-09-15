@@ -25,6 +25,7 @@ enum Copy {
     Bank,
     Feedback,
     Card(NodeId),
+    ReserveBattery,
 }
 
 impl Plugin for PassiveScenePlugin {
@@ -68,13 +69,13 @@ fn setup(mut commands: Commands) {
                         max_width: px(940),
                         padding: UiRect::all(px(12)),
                         flex_direction: FlexDirection::Column,
-                        row_gap: px(6),
+                        row_gap: px(4),
                         ..default()
                     },
                     BackgroundColor(PANEL),
                 ))
                 .with_children(|panel| {
-                    text(panel, "Permanent upgrades", 24., SILVER);
+                    text(panel, "Upgrades", 22., SILVER);
                     panel.spawn((
                         Copy::Bank,
                         Text::default(),
@@ -83,7 +84,7 @@ fn setup(mut commands: Commands) {
                     ));
                     text(
                         panel,
-                        "Each node has 5 ranks. Rank 1 unlocks the next node below.",
+                        "Permanent passives: 5 ranks each. Rank 1 unlocks the next node.",
                         12.,
                         MUTED,
                     );
@@ -118,7 +119,7 @@ fn setup(mut commands: Commands) {
                                                     Name::new(node.name()),
                                                     Node {
                                                         width: percent(100),
-                                                        min_height: px(82),
+                                                        min_height: px(74),
                                                         padding: UiRect::all(px(6)),
                                                         border: UiRect::left(px(2)),
                                                         ..default()
@@ -148,6 +149,35 @@ fn setup(mut commands: Commands) {
                                         }
                                     });
                             }
+                        });
+                    panel
+                        .spawn((
+                            Button,
+                            MissionAction::BuyReserveBattery,
+                            Name::new("Reserve battery purchase"),
+                            Node {
+                                width: percent(100),
+                                min_height: px(42),
+                                padding: UiRect::all(px(6)),
+                                border: UiRect::left(px(2)),
+                                ..default()
+                            },
+                            BackgroundColor(INK),
+                            BorderColor::all(CYAN),
+                        ))
+                        .with_children(|button| {
+                            button.spawn((
+                                Copy::ReserveBattery,
+                                Text::default(),
+                                TextFont::from_font_size(12.),
+                                TextColor(CYAN),
+                                TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+                                Node {
+                                    width: percent(100),
+                                    min_width: px(0),
+                                    ..default()
+                                },
+                            ));
                         });
                     panel.spawn((
                         Copy::Feedback,
@@ -250,6 +280,20 @@ fn present(
             ),
             Copy::Feedback => session.purchase_feedback.clone(),
             Copy::Card(node) => card_copy(*node, &campaign),
+            Copy::ReserveBattery => {
+                let state = if campaign.secrets.reserve_battery {
+                    "ACTIVE"
+                } else if !campaign.secrets.blueprint {
+                    "LOCKED / Find blueprint in a cache"
+                } else if campaign.wallet.salvage < 20 || campaign.wallet.components < 1 {
+                    "Need 20 salvage + 1 component"
+                } else {
+                    "BUY: 20 salvage + 1 component"
+                };
+                format!(
+                    "B  Reserve battery (+25 capacity) / {state}\nLost on defeat or restart. Blueprint stays unlocked."
+                )
+            }
         };
         if text.0 != next {
             text.0 = next;

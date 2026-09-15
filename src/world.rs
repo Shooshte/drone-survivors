@@ -1,8 +1,11 @@
 use bevy::prelude::*;
+mod contact;
 mod geometry;
+pub(crate) use contact::proximity_contact;
 pub(crate) mod hazard;
 pub(crate) mod layout;
 pub(crate) mod navigation;
+pub(crate) mod regions;
 pub(crate) mod scene;
 pub(crate) use geometry::{Solid, WorldGeometry};
 #[derive(Resource, Default)]

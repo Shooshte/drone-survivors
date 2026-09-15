@@ -91,6 +91,7 @@ impl MissionId {
 #[derive(Default)]
 pub(crate) struct Progress {
     completed: [bool; 12],
+    routes: [bool; 3],
 }
 impl Progress {
     pub fn completed(&self, mission: MissionId) -> bool {
@@ -98,6 +99,19 @@ impl Progress {
     }
     pub fn unlocked(&self, mission: MissionId) -> bool {
         mission.prerequisites().iter().all(|id| self.completed(*id))
+            || (mission.index() % 4 == 3
+                && self.routes[mission.index() / 4]
+                && self.unlocked(MissionId::ALL[mission.index() - 3]))
+    }
+    pub fn discover_route(&mut self, act: usize) -> bool {
+        if act >= 3 || self.routes[act] || !self.unlocked(MissionId::ALL[act * 4]) {
+            return false;
+        }
+        self.routes[act] = true;
+        true
+    }
+    pub fn routes(&self) -> [bool; 3] {
+        self.routes
     }
     pub fn complete(&mut self, mission: MissionId) {
         if self.unlocked(mission) {
@@ -109,5 +123,37 @@ impl Progress {
     }
     pub fn finished(&self) -> bool {
         self.count() == MissionId::ALL.len()
+    }
+}
+
+#[cfg(test)]
+mod secret_tests {
+    use super::*;
+
+    #[test]
+    fn route_unlocks_current_finale_without_completing_branches_and_normal_path_survives() {
+        let mut progress = Progress::default();
+        assert!(!progress.unlocked(MissionId::ALL[3]));
+        assert!(progress.discover_route(0));
+        assert!(progress.unlocked(MissionId::ALL[3]));
+        assert_eq!(progress.count(), 0);
+        assert!(!progress.discover_route(0));
+        assert!(!progress.discover_route(1));
+        assert!(!progress.unlocked(MissionId::ALL[7]));
+        progress.complete(MissionId::ALL[0]);
+        assert!(progress.unlocked(MissionId::ALL[1]));
+        assert!(progress.unlocked(MissionId::ALL[2]));
+    }
+
+    #[test]
+    fn later_act_route_requires_current_act_access() {
+        let mut progress = Progress::default();
+        assert!(!progress.discover_route(1));
+        assert!(!progress.discover_route(3));
+        for mission in MissionId::ALL.into_iter().take(4) {
+            progress.complete(mission);
+        }
+        assert!(progress.discover_route(1));
+        assert_eq!(progress.routes(), [false, true, false]);
     }
 }

@@ -1,5 +1,6 @@
 //! Session menus over the reusable arena scene.
 use super::{Campaign, MissionAction, MissionSession};
+use crate::world::regions::RegionProfile;
 use crate::{
     energy::ChargerConfig,
     game::{GamePhase, GameplaySet},
@@ -274,7 +275,8 @@ fn present(
     chargers: Res<ChargerConfig>,
     mut panels: MenuVisibility,
     mut primary: Single<&mut MissionAction, With<PrimaryAction>>,
-    mut text: Query<(&MenuCopy, &mut Text, &mut TextColor)>,
+    window: Option<Single<&Window>>,
+    mut text: Query<(&MenuCopy, &mut Text, &mut TextColor, &mut TextFont)>,
 ) {
     let shown = matches!(
         *phase,
@@ -300,7 +302,22 @@ fn present(
     };
     let result = session.result.as_ref();
     let won = result.is_some_and(|result| result.succeeded);
-    for (part, mut text, mut color) in &mut text {
+    let compact = window.is_some_and(|window| window.height() < 600.);
+    for (part, mut text, mut color, mut font) in &mut text {
+        // Long cargo briefings need room for resource profiles and power previews
+        // at the supported 640x480 minimum. Restore full sizes after resizing.
+        let size = match (part, compact) {
+            (MenuCopy::Eyebrow, true) => 11.,
+            (MenuCopy::Eyebrow, false) => 12.,
+            (MenuCopy::Heading, true) => 26.,
+            (MenuCopy::Heading, false) => 30.,
+            (MenuCopy::Description, true) => 14.,
+            (MenuCopy::Description, false) => 15.,
+            (MenuCopy::Body | MenuCopy::Note, true) => 12.,
+            (MenuCopy::Body | MenuCopy::Note, false) => 13.,
+            (MenuCopy::PrimaryLabel, _) => 16.,
+        };
+        font.font_size = size.into();
         let value = match (part, *phase) {
             (MenuCopy::Eyebrow, GamePhase::Hub) => "DRONE SURVIVORS / OPERATIONS".into(),
             (MenuCopy::Eyebrow, GamePhase::Briefing) => session.selected_mission.title(),
@@ -325,10 +342,14 @@ fn present(
             },
             (MenuCopy::Body, GamePhase::Briefing) => {
                 let (_, modules) = baseline.launch_power(&campaign);
+                let profile = RegionProfile::for_mission(session.selected_mission);
+                let mut preview_chargers = chargers.clone();
+                preview_chargers.capacity = profile.charger_capacity;
                 format!(
-                    "LOADOUT / SCOUT\n{}\n\n{}",
+                    "{}\nLOADOUT / SCOUT\n{}\n{}",
+                    profile.summary(),
                     loadout_lines(campaign.inventory.loadout(), &modules),
-                    potential_power(&baseline, &campaign, &chargers).display(),
+                    potential_power(&baseline, &campaign, &preview_chargers).display(),
                 )
             }
             (MenuCopy::Body, _) => result.map(|r| {
@@ -338,9 +359,14 @@ fn present(
                     r.rewards.collected.salvage, r.rewards.lost.salvage, r.rewards.bonus.salvage, r.rewards.credited.salvage, r.rewards.balance.salvage,
                     r.rewards.collected.components, r.rewards.lost.components, r.rewards.bonus.components, r.rewards.credited.components, r.rewards.balance.components)
             }).unwrap_or_default(),
-            (MenuCopy::Note, GamePhase::Hub) => "Free replays. Progress saves automatically between missions.".into(),
+            (MenuCopy::Note, GamePhase::Hub) => {
+                let battery = if campaign.secrets.reserve_battery { "Reserve battery active (+25 capacity); lost on defeat/restart." }
+                    else if campaign.secrets.blueprint { "Reserve battery blueprint unlocked. Purchase in Upgrades (U)." }
+                    else { "Explore optional caches for XP, blueprints and secret routes." };
+                format!("{battery}\nDiscoveries save immediately. Free mission replays.")
+            },
             (MenuCopy::Note, GamePhase::Briefing) => {
-                let instructions = "Fly close to collect loot. Success +10 salvage, +1 component; failure keeps 25%.\n1-4 toggle modules; R discards loot and restarts.";
+                let instructions = "Caches: fly within 50u for loot +30 XP; secrets save immediately.\nWin: +10 salvage/+1 component. Loss: keep 25% loot.\nDefeat or R restart forfeits Reserve battery; R also discards loot.";
                 if session.purchase_feedback.is_empty() {
                     instructions.into()
                 } else {
@@ -350,7 +376,8 @@ fn present(
             (MenuCopy::Note, _) => if result.is_some_and(|r| r.rewards.error.is_some()) {
                 "Balance limit reached: reward could not be banked.\nThe result retains the collection and bonus amounts."
             } else {
-                "Banked once. Uncollected pickups award nothing.\nYour next launch restores the Scout and resets temporary upgrades."
+                if won { "Banked once. Reserve battery retained if purchased.\nNext launch restores the Scout and resets run upgrades." }
+                else { "Banked once. Reserve battery forfeited; blueprint retained.\nRepurchase in Upgrades. Ordinary passives remain permanent." }
             }.into(),
             (MenuCopy::PrimaryLabel, GamePhase::Hub) => "Mission briefing".into(),
             (MenuCopy::PrimaryLabel, GamePhase::Briefing) => "Launch mission".into(),

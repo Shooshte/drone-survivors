@@ -194,3 +194,39 @@ fn busy_lock_and_stale_missing_reader_cannot_overwrite_campaign() {
     assert!(first.write(&snapshot, false).unwrap_err().contains("busy"));
     assert_eq!(std::fs::read(&path).unwrap(), original);
 }
+
+#[test]
+fn snapshot_secret_defaults_routes_and_purchase_validation() {
+    let (mut campaign, mut session) = populated();
+    let legacy = serde_json::to_value(Snapshot::capture(&campaign, &session)).unwrap();
+    let mut legacy = legacy.as_object().unwrap().clone();
+    legacy.remove("secrets");
+    legacy.remove("routes");
+    let (restored, _) = Snapshot::decode(&serde_json::to_vec(&legacy).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert!(!restored.secrets.blueprint);
+    assert!(!restored.secrets.reserve_battery);
+    assert_eq!(restored.progress.routes(), [false; 3]);
+
+    let mut invalid = serde_json::to_value(Snapshot::capture(&campaign, &session)).unwrap();
+    invalid["secrets"] = serde_json::json!({"blueprint": false, "reserve_battery": true});
+    assert!(Snapshot::decode(&serde_json::to_vec(&invalid).unwrap()).is_err());
+    invalid["secrets"] = serde_json::json!({"blueprint": true, "reserve_battery": true});
+    invalid["routes"] = serde_json::json!([false, true, false]);
+    assert!(Snapshot::decode(&serde_json::to_vec(&invalid).unwrap()).is_err());
+
+    campaign.secrets.discover_blueprint();
+    campaign.secrets.purchase(&mut campaign.wallet).unwrap();
+    campaign.progress.discover_route(0);
+    session.selected_mission = MissionId::ALL[3];
+    let snap = Snapshot::capture(&campaign, &session);
+    let (restored, resumed) = Snapshot::decode(&serde_json::to_vec(&snap).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert!(restored.secrets.reserve_battery);
+    assert!(restored.progress.unlocked(resumed.selected_mission));
+    assert_eq!(restored.progress.count(), 1);
+}

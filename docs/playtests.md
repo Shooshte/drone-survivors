@@ -1517,3 +1517,30 @@ using the recorded swept path, with chronological extraction and contact LOS.
 361 tests passed (four ignored), formatting/strict Clippy passed, and the compact
 native objective fixture passed again. Details and regression evidence are in
 the [DRO-19 report](playtests/dro-19-objectives.md#review-follow-up--swept-objective-crossings).
+
+
+## DRO-20 — Exploration, regions, and secrets (September 15)
+
+Kept the placeholder arena layout and assembled its charger/cache content from
+reusable pieces. The three acts now differ in salvage chance, cache components,
+and charger reserves, with matching briefing and shop previews. Optional caches
+award 30 XP per attempt and immediately save the Reserve battery blueprint or
+an alternate route to the current act finale. Secret access does not complete
+missions or replace normal progression.
+
+Reserve battery costs 20 salvage + 1 component, adds 25 capacity, survives wins,
+and is forfeited on defeat or R restart. The blueprint persists for repurchase;
+ordinary passives and modules retain their behavior. Legacy saves remain loadable.
+
+Validation: 378 tests passed, 4 existing ignored probes; formatting and strict
+all-target Clippy passed. Native exploration fixtures passed at 1120x720 and
+640x480, including physical keyboard flight to the northwest cache, actual
+purchase/Skip input, region resource checks, battery retention/loss, and secret
+finale access after defeat. The compact objective fixture caught a long cargo
+briefing overflow; responsive menu text fixed it and both objective types passed
+on rerun. Durable-state, whole-branch and follow-up source reviews found no
+actionable issues.
+
+[Detailed checks, fixture disclosures, logs and screenshots](playtests/dro-20-exploration.md).
+Numeric balance remains provisional for the upcoming vertical-slice playtest;
+native fixture overrides are documented and never touch the user's campaign save.

@@ -240,6 +240,11 @@ fn authored_caches_are_reachable_and_reset_without_accumulation() {
                 .unwrap()
                 .translation = position + Vec3::Y * 20.;
             crate::mission::tests::tick(&mut app, 0., &[]);
+            if *app.world().resource::<GamePhase>() == GamePhase::Choosing {
+                crate::mission::tests::tick(&mut app, 0., &[]);
+                crate::mission::tests::tick(&mut app, 0., &[KeyCode::Backspace]);
+                crate::mission::tests::tick(&mut app, 0., &[]);
+            }
         }
         assert_eq!(
             app.world()
@@ -293,3 +298,6 @@ fn seeded_loot_sequence_repeats_after_restart_and_duplicate_facts_do_not_shift_i
     }
     assert_eq!(sequences[0], sequences[1]);
 }
+
+#[path = "discovery_tests.rs"]
+mod discoveries;

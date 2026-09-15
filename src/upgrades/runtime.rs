@@ -32,6 +32,9 @@ impl Baseline {
             campaign
                 .passives
                 .apply(&mut effective.combat, &mut effective.energy);
+            if campaign.secrets.reserve_battery {
+                effective.energy.capacity += 25.;
+            }
         }
         effective
     }

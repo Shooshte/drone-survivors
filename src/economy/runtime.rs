@@ -32,6 +32,7 @@ impl DropRule {
 pub(crate) struct EconomyConfig {
     pub chaser: DropRule,
     pub caches: [Vec3; 3],
+    pub cache_components: u64,
 }
 impl Default for EconomyConfig {
     fn default() -> Self {
@@ -40,11 +41,8 @@ impl Default for EconomyConfig {
                 chance_percent: 25,
                 amount: 1,
             },
-            caches: [
-                Vec3::new(-780., 10., -1480.),
-                Vec3::new(780., 10., 1480.),
-                Vec3::new(120., 10., 0.),
-            ],
+            caches: crate::world::layout::cache_sites(),
+            cache_components: 1,
         }
     }
 }
@@ -76,12 +74,22 @@ pub(crate) struct Pickup {
 }
 #[derive(Component)]
 pub(crate) struct ComponentCache;
+#[derive(Component)]
+pub(crate) struct DiscoverySite(pub usize);
+#[derive(Resource, Default)]
+pub(crate) struct DiscoveryNotice {
+    pub text: String,
+    pub remaining: f32,
+}
 
 pub(crate) struct EconomyPlugin;
 impl Plugin for EconomyPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<EconomyConfig>()
+        crate::world::regions::install(app);
+        app.init_resource::<crate::energy::ChargerConfig>()
+            .init_resource::<EconomyConfig>()
             .init_resource::<LootState>()
+            .init_resource::<DiscoveryNotice>()
             .add_systems(
                 Update,
                 reset
@@ -102,19 +110,24 @@ fn reset(
     config: Res<EconomyConfig>,
     mut loot: ResMut<LootState>,
     pickups: Query<Entity, With<Pickup>>,
+    notice: Option<ResMut<DiscoveryNotice>>,
 ) {
     for entity in &pickups {
         commands.entity(entity).despawn();
     }
     *loot = default();
-    for position in config.caches {
+    if let Some(mut notice) = notice {
+        *notice = default();
+    }
+    for (index, position) in config.caches.into_iter().enumerate() {
         commands.spawn((
             Name::new("Component cache"),
             ComponentCache,
+            DiscoverySite(index),
             Pickup {
                 amount: Amounts {
                     salvage: 0,
-                    components: 1,
+                    components: config.cache_components,
                 },
                 radius: 50.,
                 attracted: false,
@@ -181,6 +194,7 @@ type MovingPickups<'w, 's> = Query<
         &'static mut Pickup,
         &'static mut Transform,
         Option<&'static ComponentCache>,
+        Option<&'static DiscoverySite>,
     ),
     Without<Drone>,
 >;
@@ -195,20 +209,49 @@ pub(crate) fn collect(
     drone: Single<&Transform, With<Drone>>,
     mut pickups: MovingPickups,
     mut resources: ResMut<AttemptResources>,
+    path: Option<Res<crate::world::PlayerPath>>,
+    mut run: Option<ResMut<crate::upgrades::UpgradeRun>>,
+    mut campaign: Option<ResMut<crate::mission::Campaign>>,
+    session: Option<Res<crate::mission::MissionSession>>,
+    mut notice: Option<ResMut<DiscoveryNotice>>,
 ) {
     if *phase != GamePhase::Playing || boundary.reset || boundary.cleanup {
         return;
     }
-    for (entity, mut pickup, mut transform, cache) in &mut pickups {
+    if let Some(notice) = notice.as_deref_mut() {
+        notice.remaining = (notice.remaining - time.delta_secs()).max(0.);
+    }
+    for (entity, mut pickup, mut transform, cache, discovery) in &mut pickups {
         let distance = transform.translation.distance(drone.translation);
-        if !world
-            .as_ref()
-            .is_none_or(|w| w.line_clear(transform.translation, drone.translation))
-        {
-            continue;
-        }
-        if distance <= pickup.radius {
-            pickup.attracted = true;
+        if cache.is_some() {
+            let contact = |start, end| {
+                crate::world::proximity_contact(
+                    start,
+                    end,
+                    transform.translation,
+                    pickup.radius,
+                    world.as_deref(),
+                )
+                .is_some()
+            };
+            // Test actual movement substeps, never a chord across a wall or LOS
+            // borrowed from the final frame position.
+            pickup.attracted = contact(drone.translation, drone.translation)
+                || path.as_ref().is_some_and(|path| {
+                    path.segments
+                        .iter()
+                        .any(|segment| contact(segment.start, segment.end))
+                });
+        } else {
+            if !world
+                .as_ref()
+                .is_none_or(|w| w.line_clear(transform.translation, drone.translation))
+            {
+                continue;
+            }
+            if distance <= pickup.radius {
+                pickup.attracted = true;
+            }
         }
         if !pickup.attracted {
             continue;
@@ -217,6 +260,37 @@ pub(crate) fn collect(
         if cache.is_some() || distance <= step.max(8.) {
             // If the counter is full, keep the pickup instead of losing it or partially crediting.
             if resources.collected.try_credit(pickup.amount).is_ok() {
+                if let Some(site) = discovery {
+                    if let Some(run) = run.as_deref_mut() {
+                        run.award(30);
+                    }
+                    let mut reward = "Cache recovered".to_string();
+                    if let Some(campaign) = campaign.as_deref_mut() {
+                        match site.0 {
+                            0 if campaign.secrets.discover_blueprint() => {
+                                reward = "Reserve battery blueprint unlocked".into();
+                            }
+                            1 => {
+                                if let Some(mission) =
+                                    session.as_ref().and_then(|s| s.active_mission)
+                                {
+                                    let act = mission.index() / 4;
+                                    if campaign.progress.discover_route(act) {
+                                        reward = format!(
+                                            "Secret route: mission {:02} unlocked",
+                                            act * 4 + 4
+                                        );
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    if let Some(notice) = notice.as_deref_mut() {
+                        notice.text = format!("{reward} / +30 XP");
+                        notice.remaining = 8.;
+                    }
+                }
                 commands.entity(entity).despawn();
             }
         } else {

@@ -87,6 +87,7 @@ fn visuals(
 fn hud(
     resources: Res<AttemptResources>,
     phase: Res<GamePhase>,
+    notice: Option<Res<super::runtime::DiscoveryNotice>>,
     mut hud: Single<(&mut Text, &mut Node), With<ResourceHud>>,
 ) {
     let (text, node) = &mut *hud;
@@ -95,10 +96,14 @@ fn hud(
     } else {
         Display::None
     };
-    let value = format!(
+    let mut value = format!(
         "UNBANKED  Salvage {}  |  Components {}",
         resources.collected.salvage, resources.collected.components
     );
+    if let Some(notice) = notice.filter(|notice| notice.remaining > 0.) {
+        value.push('\n');
+        value.push_str(&notice.text);
+    }
     if text.0 != value {
         text.0 = value;
     }
