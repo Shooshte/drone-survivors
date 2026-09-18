@@ -61,11 +61,16 @@ pub(super) fn reset(mut repair: ResMut<RepairState>) {
 
 pub(super) fn cleanup(
     phase: Res<GamePhase>,
+    config: Res<CombatConfig>,
+    health: Res<PlayerHealth>,
     boundary: Option<Res<MissionBoundary>>,
     mut repair: ResMut<RepairState>,
     mut power: ResMut<PowerFrame>,
 ) {
-    if matches!(*phase, GamePhase::Dead | GamePhase::Survived)
+    // Collection and progression can also restore hull after powered repair.
+    // Discard credit at the end of that update, before future damage can spend it.
+    if health.current >= config.player_health
+        || matches!(*phase, GamePhase::Dead | GamePhase::Survived)
         || boundary.is_some_and(|b| b.cleanup || b.reset)
     {
         *repair = default();

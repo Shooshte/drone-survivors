@@ -312,3 +312,39 @@ fn environment_is_not_installed_by_normal_combat() {
             .contains_resource::<crate::world::environment::Environment>()
     );
 }
+
+#[test]
+fn environment_full_hull_repair_discards_paid_module_credit_before_next_damage() {
+    use crate::combat::support::RepairState;
+    let mut app = environment_app();
+    app.world_mut().resource_mut::<Modules>().loadout =
+        crate::modules::Loadout::new([Some(ModuleKind::Repair), None, None, None]).unwrap();
+    app.world_mut().resource_mut::<Modules>().enabled[0] = true;
+    app.world_mut().resource_mut::<PlayerHealth>().current = 70;
+    place_at(&mut app, Vec3::new(-420., 90., -400.));
+    app.insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_secs_f64(
+        0.1,
+    )));
+    step(&mut app, &[]);
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 70);
+    assert!((app.world().resource::<RepairState>().credit - 0.6).abs() < 1e-6);
+
+    // Site collection runs after powered module repair in this same update.
+    place_at(&mut app, crate::world::environment::REPAIR_CENTER);
+    app.insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_secs_f64(
+        0.05,
+    )));
+    step(&mut app, &[]);
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 100);
+    assert!(
+        !app.world()
+            .resource::<crate::world::environment::Environment>()
+            .repair_ready
+    );
+    assert_eq!(app.world().resource::<RepairState>().credit, 0.);
+
+    app.world_mut().resource_mut::<PlayerHealth>().current = 80;
+    step(&mut app, &[]);
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 80);
+    assert!((app.world().resource::<RepairState>().credit - 0.3).abs() < 1e-6);
+}
