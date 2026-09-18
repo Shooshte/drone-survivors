@@ -403,3 +403,47 @@ fn catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots() {
 
 #[path = "catalog/upgrade_tests.rs"]
 mod upgrade_tests;
+
+#[test]
+fn combined_catalog_launches_all_kinds_with_environment_and_resets_to_setup() {
+    use crate::{economy::runtime::EnemyKind, world::environment::Environment};
+    let mut app = app();
+    for _ in 0..14 {
+        step(&mut app, &[KeyCode::ArrowRight]);
+    }
+    assert!(
+        app.world_mut()
+            .query::<&Text>()
+            .iter(app.world())
+            .any(|t| t.0.contains("Combined catalog"))
+    );
+    step(&mut app, &[KeyCode::Enter]);
+    assert!(app.world().resource::<Environment>().enabled());
+    assert_eq!(
+        app.world().resource::<variants::SpawnRoster>().0,
+        vec![
+            EnemyKind::Chaser,
+            EnemyKind::Fast,
+            EnemyKind::Rammer,
+            EnemyKind::Slower,
+            EnemyKind::Jammer,
+            EnemyKind::Bomber,
+            EnemyKind::Mothership
+        ]
+    );
+    for _ in 0..120 {
+        step(&mut app, &[]);
+    }
+    assert_eq!(count::<Enemy>(&mut app), 7);
+    assert_eq!(app.world().resource::<Encounter>().spawns.activated, 7);
+    app.world_mut().resource_mut::<Environment>().repair_ready = false;
+    step(&mut app, &[KeyCode::KeyR]);
+    assert!(app.world().resource::<Environment>().repair_ready);
+    assert_eq!(app.world().resource::<Encounter>().elapsed, 0.);
+    assert_eq!(count::<Enemy>(&mut app), 0);
+    step(&mut app, &[KeyCode::Tab]);
+    assert!(!app.world().resource::<Environment>().enabled());
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Hub);
+    assert!(!app.world().contains_resource::<crate::mission::Campaign>());
+    assert!(!app.is_plugin_added::<crate::save::SavePlugin>());
+}

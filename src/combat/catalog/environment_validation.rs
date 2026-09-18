@@ -66,12 +66,12 @@ fn drive(
     let mut advance = true;
     let mut position = None;
     let label = match fixture.step {
-        1..=12 | 31 | 38 => {
+        1..=12 | 31 | 38 | 39 => {
             keys.press(KeyCode::ArrowRight);
             None
         }
         13 => Some("environment-selector"),
-        14 | 33 | 39 => {
+        14 | 33 | 40 => {
             keys.press(KeyCode::Enter);
             None
         }
@@ -153,11 +153,11 @@ fn drive(
             None
         }
         36 => Some("environment-pressure"),
-        40 => {
+        41 => {
             assert!(!environment.enabled());
             Some("ordinary-scenario")
         }
-        41 => {
+        42 => {
             println!(
                 "ENVIRONMENT FIXTURE PASS at {}x{}: selector, full-hull preserves charge, 35 repair once, permanent/cycling cues, upgrade pause, restart/return, pressure roster and ordinary-scenario isolation",
                 window.width(),

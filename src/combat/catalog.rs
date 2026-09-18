@@ -7,6 +7,7 @@ use crate::{
 };
 use bevy::prelude::*;
 
+mod combination_validation;
 mod control_validation;
 mod environment;
 mod environment_scene;
@@ -35,7 +36,7 @@ struct Scenario {
     kinds: &'static [EnemyKind],
 }
 
-const SCENARIOS: [Scenario; 14] = [
+const SCENARIOS: [Scenario; 15] = [
     Scenario {
         name: "Flight practice",
         instruction: "No enemies. Practice banking, altitude, chargers and the timed hazard.",
@@ -120,6 +121,20 @@ const SCENARIOS: [Scenario; 14] = [
         bursts: &[(1., 2), (15., 2)],
         kinds: &[EnemyKind::Fast, EnemyKind::Slower],
     },
+    Scenario {
+        name: "Combined catalog",
+        instruction: "All seven enemy kinds in three waves. Break beam/charge lines, stop motherships, save power for bombs. East fields aid routes; the repair cross restores hull once. Compare builds with U.",
+        bursts: &[(1., 7), (16., 7), (31., 7)],
+        kinds: &[
+            EnemyKind::Chaser,
+            EnemyKind::Fast,
+            EnemyKind::Rammer,
+            EnemyKind::Slower,
+            EnemyKind::Jammer,
+            EnemyKind::Bomber,
+            EnemyKind::Mothership,
+        ],
+    },
 ];
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
@@ -164,7 +179,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_UPGRADE_SMOKE").is_some() {
+    if std::env::var_os("DRONE_COMBINATION_SMOKE").is_some() {
+        combination_validation::install(app);
+    } else if std::env::var_os("DRONE_UPGRADE_SMOKE").is_some() {
         upgrade_validation::install(app);
     } else if std::env::var_os("DRONE_MODULE_SMOKE").is_some() {
         module_validation::install(app);
