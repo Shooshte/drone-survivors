@@ -1,0 +1,15 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.73s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
+ENVIRONMENT FIXTURE: synthetic keyboard, positions, damage and XP=50; auto-fire suppressed. Production fields, cycle, repair, pause/reset and spawns. Not human/balance evidence.
+ENVIRONMENT FIXTURE environment-selector: clock=0.00, hull=100, repair_ready=false, repaired=0, cycle=(true, 6.0)
+ENVIRONMENT FIXTURE environment-ready: clock=0.61, hull=100, repair_ready=true, repaired=0, cycle=(true, 5.394123208)
+ENVIRONMENT FIXTURE repair-used: clock=1.21, hull=75, repair_ready=false, repaired=35, cycle=(true, 4.785650583)
+ENVIRONMENT FIXTURE permanent-field: clock=0.60, hull=100, repair_ready=true, repaired=0, cycle=(true, 5.400156334)
+ENVIRONMENT FIXTURE cycling-field-off: clock=6.32, hull=100, repair_ready=true, repaired=0, cycle=(false, 3.6838087920000078)
+ENVIRONMENT FIXTURE environment-choice: clock=6.62, hull=100, repair_ready=true, repaired=0, cycle=(false, 3.3750786250000093)
+ENVIRONMENT FIXTURE environment-reset: clock=0.30, hull=100, repair_ready=true, repaired=0, cycle=(true, 5.700100959)
+ENVIRONMENT FIXTURE pressure-selector: clock=0.00, hull=100, repair_ready=false, repaired=0, cycle=(true, 6.0)
+ENVIRONMENT FIXTURE environment-pressure: clock=2.05, hull=100, repair_ready=true, repaired=0, cycle=(true, 3.9497962919999994)
+ENVIRONMENT FIXTURE ordinary-scenario: clock=0.00, hull=100, repair_ready=false, repaired=0, cycle=(true, 6.0)
+ENVIRONMENT FIXTURE PASS at 1120x720: selector, full-hull preserves charge, 35 repair once, permanent/cycling cues, upgrade pause, restart/return, pressure roster and ordinary-scenario isolation
+2026-09-18T11:16:39.318967Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(34708767360)

@@ -16,6 +16,8 @@ pub(crate) use scene::{ArenaSceneSetup, FooterFont, HazardFooterSlot, UpgradeFoo
 #[cfg(test)]
 mod altitude_tests;
 #[cfg(test)]
+mod environment_tests;
+#[cfg(test)]
 mod handling_tests;
 #[cfg(test)]
 mod tests;
@@ -101,6 +103,7 @@ fn move_drone(
     modules: Option<Res<crate::modules::Modules>>,
     module_config: Option<Res<crate::modules::ModuleConfig>>,
     effects: Option<Res<crate::combat::control::ControlEffects>>,
+    environment: Option<Res<crate::world::environment::Environment>>,
 ) {
     if let Some(path) = path.as_mut() {
         path.segments.clear();
@@ -129,14 +132,26 @@ fn move_drone(
             flight.velocity.x = horizontal.x;
             flight.velocity.z = horizontal.z;
         }
-        let segments = flight.advance(
-            &mut transform,
-            &input,
-            &config,
-            &arena,
-            time.delta_secs(),
-            world.as_deref(),
-        );
+        let segments = if let Some(environment) = environment.as_deref().filter(|e| e.enabled()) {
+            flight.advance_in_environment(
+                &mut transform,
+                &input,
+                &config,
+                &arena,
+                time.delta_secs(),
+                world.as_deref(),
+                Some(environment),
+            )
+        } else {
+            flight.advance(
+                &mut transform,
+                &input,
+                &config,
+                &arena,
+                time.delta_secs(),
+                world.as_deref(),
+            )
+        };
         if let Some(path) = path.as_mut() {
             path.segments = segments;
         }

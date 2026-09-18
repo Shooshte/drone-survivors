@@ -8,6 +8,9 @@ use crate::{
 use bevy::prelude::*;
 
 mod control_validation;
+mod environment;
+mod environment_scene;
+mod environment_validation;
 mod ordnance_validation;
 mod scene;
 mod validation;
@@ -28,7 +31,7 @@ struct Scenario {
     kinds: &'static [EnemyKind],
 }
 
-const SCENARIOS: [Scenario; 12] = [
+const SCENARIOS: [Scenario; 14] = [
     Scenario {
         name: "Flight practice",
         instruction: "No enemies. Practice banking, altitude, chargers and the timed hazard.",
@@ -101,6 +104,18 @@ const SCENARIOS: [Scenario; 12] = [
         bursts: &[(1., 3)],
         kinds: &[EnemyKind::Bomber, EnemyKind::Mothership, EnemyKind::Jammer],
     },
+    Scenario {
+        name: "Environment practice",
+        instruction: "East arrows: +40% east / -40% west; north/south neutral. North field permanent; south 6s on / 4s off. Repair cross: one +35 hull charge, within 70 at height 90. Full hull saves it.",
+        bursts: &[],
+        kinds: &[EnemyKind::Chaser],
+    },
+    Scenario {
+        name: "Environment pressure",
+        instruction: "Same fields and one +35 hull repair charge. Fast pursuer + slowing beam: route with the east arrows; leave fields to restore normal travel. R restores repair and cycles.",
+        bursts: &[(1., 2), (15., 2)],
+        kinds: &[EnemyKind::Fast, EnemyKind::Slower],
+    },
 ];
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
@@ -114,6 +129,8 @@ pub(super) enum CatalogAction {
 }
 
 pub(super) fn install(app: &mut App, duration: f64) {
+    environment::install(app);
+    environment_scene::install(app);
     app.insert_resource(CatalogArena {
         scenario: 0,
         slots: [None; 4],
@@ -135,7 +152,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_ORDNANCE_SMOKE").is_some() {
+    if std::env::var_os("DRONE_ENVIRONMENT_SMOKE").is_some() {
+        environment_validation::install(app);
+    } else if std::env::var_os("DRONE_ORDNANCE_SMOKE").is_some() {
         ordnance_validation::install(app);
     } else if std::env::var_os("DRONE_CONTROL_SMOKE").is_some() {
         control_validation::install(app);

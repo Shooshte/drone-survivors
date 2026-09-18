@@ -366,3 +366,6 @@ fn catalog_selects_bomb_mothership_and_mixed_ordnance() {
         assert_eq!(count::<SpawnWarning>(&mut app), 0);
     }
 }
+
+#[path = "catalog/environment_tests.rs"]
+mod environment_tests;

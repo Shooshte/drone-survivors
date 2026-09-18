@@ -46,7 +46,8 @@ This isolated arena opens a scenario/loadout selector. **Left/Right** or the
 scenario buttons cycle Flight practice (no enemies), Single pursuer (one chaser),
 Small swarm (three waves of five), Fast pursuer, Double-impact rammer,
 Mixed pursuers (two waves with one of each type), Slowing beam, Module jammer,
-and Mixed control, Collision bomb, Mothership, and Mixed ordnance. **1-4** or the slot buttons cycle each slot
+Mixed control, Collision bomb, Mothership, Mixed ordnance, Environment practice,
+and Environment pressure. **1-4** or the slot buttons cycle each slot
 through empty, the four campaign modules and the catalog-only Repulsor, skipping
 types equipped elsewhere.
 **Enter** or Launch starts a fresh round. The default round lasts **60 active
@@ -60,7 +61,7 @@ button hides to leave room for the upgrade panel. The selector pauses gameplay.
 Launch, restart and return restore the drone, hull, battery, charger reserves,
 hazard cycle and run upgrades. Normal flight, damage, spawn warnings, energy and
 naturally earned upgrades remain active. This mode installs no campaign or save
-systems and awards no campaign resources. Repair, full Repulsor pushback behavior and
+systems and awards no campaign resources. The Repair module, full Repulsor pushback behavior and
 additional upgrades are tracked by the remaining DRO-22 child issues; campaign
 introduction remains gated on human playtests.
 
@@ -74,6 +75,38 @@ DRONE_CATALOG_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/catalog car
 The fixture drives synthetic keyboard input and grants 50 XP solely to display
 the upgrade panel. It checks transitions/text bounds, captures screenshots at
 1120×720 or 640×480 and exits. Ordinary arena play has no synthetic pilot or XP.
+
+### Directional fields and hull-repair sites
+
+**Environment practice** has no enemies. **Environment pressure** adds two waves
+of a fast pursuer and slowing beam, at 1 and 15 seconds. Both scenarios add:
+
+- A blue **permanent north field** and purple **cycling south field**, west of
+  launch. East arrows mark +40% eastward ground travel and -40% westward travel;
+  north/south and vertical movement are unchanged. Fields span the flight height.
+  Overlap never stacks. The south field cycles **6 active seconds on / 4 off**;
+  its arrows disappear and border dims while off. HUD text shows the countdown.
+- A green **repair cross** between the fields, at **height 90**. Fly within
+  **70 units in 3D**, with clear sight, to restore up to **35 hull once per round**.
+  Full hull preserves the charge; damage while already inside can consume it.
+  Healing clamps to the current maximum and cannot revive a destroyed drone.
+  After use, the cross becomes a gray X and the HUD reports the amount repaired.
+
+Fields affect player ground travel without changing stored flight velocity.
+Leaving removes the modifier by the next physics substep (at most 1/120 second).
+Terrain still blocks movement, and ordinary Mobility/beam effects compose with
+fields. Choices pause the cycle and repair. R restores both fixtures; returning
+or choosing an ordinary scenario removes them. Campaign layouts remain unchanged.
+Numeric tuning is provisional; this does not implement the Repair module.
+
+```sh
+DRONE_ENVIRONMENT_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/environment cargo dev -- --validate catalog
+DRONE_ENVIRONMENT_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/environment-small cargo dev -- --validate catalog
+```
+
+This opt-in agent fixture uses synthetic keys, positions, damage and XP, and
+suppresses auto-fire. It checks real repair, cycle/pause/reset, scenario isolation
+and visible text bounds, then exits. [DRO-38 evidence](docs/playtests/dro-38-environment.md).
 
 ### Fast pursuers and double-impact rammers
 

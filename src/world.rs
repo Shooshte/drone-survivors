@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 mod contact;
+pub(crate) mod environment;
 mod geometry;
 pub(crate) use contact::proximity_contact;
 pub(crate) mod hazard;
