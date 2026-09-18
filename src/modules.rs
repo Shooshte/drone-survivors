@@ -19,6 +19,9 @@ pub(crate) enum ModuleKind {
     /// Catalog-only foundation; excluded from the campaign save codec.
     #[serde(skip)]
     Repulsor,
+    /// Catalog-only support; excluded from the campaign save codec.
+    #[serde(skip)]
+    Repair,
 }
 impl ModuleKind {
     pub(crate) const ALL: [Self; 4] = [Self::Overdrive, Self::Shield, Self::Mobility, Self::Rocket];
@@ -30,6 +33,7 @@ impl ModuleKind {
             Self::Mobility => "MOBILITY",
             Self::Rocket => "ROCKETS",
             Self::Repulsor => "REPULSOR",
+            Self::Repair => "REPAIR",
         }
     }
 }
@@ -47,6 +51,12 @@ pub(crate) struct ModuleConfig {
     pub rocket_speed: f32,
     pub rocket_lifetime: f32,
     pub rocket_range: f32,
+    pub repair_rate: f64,
+    pub repair_drain: f64,
+    pub repulsor_interval: f64,
+    pub repulsor_radius: f32,
+    pub repulsor_impulse: f32,
+    pub repulsor_drain: f64,
 }
 impl Default for ModuleConfig {
     fn default() -> Self {
@@ -62,15 +72,21 @@ impl Default for ModuleConfig {
             rocket_speed: 500.,
             rocket_lifetime: 1.5,
             rocket_range: 400.,
+            repair_rate: 6.,
+            repair_drain: 12.,
+            repulsor_interval: 2.,
+            repulsor_radius: 180.,
+            repulsor_impulse: 260.,
+            repulsor_drain: 8.,
         }
     }
 }
 impl ModuleConfig {
     pub fn drain(&self, kind: ModuleKind) -> f64 {
-        if kind == ModuleKind::Repulsor {
-            8.
-        } else {
-            self.drains[kind as usize]
+        match kind {
+            ModuleKind::Repulsor => self.repulsor_drain,
+            ModuleKind::Repair => self.repair_drain,
+            _ => self.drains[kind as usize],
         }
     }
 }
