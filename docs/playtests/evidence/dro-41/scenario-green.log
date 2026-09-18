@@ -1,0 +1,32 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-41-catalog-validation)
+    Finished `test` profile [optimized + debuginfo] target(s) in 20.08s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 24 tests
+test combat::catalog_tests::catalog_choice_keeps_return_but_hides_restart_button_clear_of_modal_heading ... ok
+test combat::catalog_tests::catalog_held_controls_do_not_repeat_across_launch_or_return ... ok
+test combat::catalog_tests::catalog_return_from_paused_upgrade_resets_every_attempt_system ... ok
+test combat::catalog_tests::catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots ... ok
+test combat::catalog_tests::catalog_mouse_controls_cycle_slots_and_restart_terminal_rounds ... ok
+test combat::catalog_tests::environment_tests::environment_full_hull_preserves_charge_and_other_scenarios_have_no_repair ... ok
+test combat::catalog_tests::environment_tests::environment_is_not_installed_by_normal_combat ... ok
+test combat::catalog_tests::environment_tests::environment_full_hull_repair_discards_paid_module_credit_before_next_damage ... ok
+test combat::catalog_tests::environment_tests::environment_repair_requires_sight_height_and_living_player ... ok
+test combat::catalog_tests::environment_tests::environment_repair_sweeps_fast_crossings_and_clamps_to_upgraded_hull ... ok
+test combat::catalog_tests::catalog_selection_is_paused_and_has_no_campaign_state ... ok
+test combat::catalog_tests::environment_tests::environment_changes_travel_without_storing_a_velocity_modifier ... ok
+test combat::catalog_tests::environment_tests::environment_pauses_with_upgrade_and_resets_on_return_restart_and_launch ... ok
+test combat::catalog_tests::environment_tests::environment_composes_with_powered_mobility_and_active_beam_without_mutating_tuning ... ok
+test combat::catalog_tests::upgrade_tests::catalog_preview_uses_four_normal_choices_and_replays_after_restart ... ok
+test combat::catalog_tests::upgrade_tests::empty_catalog_preview_grants_no_xp_and_starts_playing ... ok
+test combat::catalog_tests::upgrade_tests::preview_clicks_and_keyboard_edit_the_same_fixed_slot ... ok
+test combat::catalog_tests::upgrade_tests::preview_only_cycles_eligible_cards_and_module_changes_remove_invalid_choices ... ok
+test combat::catalog_tests::catalog_launch_uses_unique_selected_slots_and_scenario_warnings ... ok
+test combat::catalog_tests::environment_tests::environment_scenario_is_selectable_and_repairs_only_one_charge ... ok
+test combat::catalog_tests::catalog_selects_fast_pursuer_and_preserves_type_through_spawn_warning ... ok
+test combat::catalog_tests::combined_catalog_launches_all_kinds_with_environment_and_resets_to_setup ... ok
+test combat::catalog_tests::catalog_selects_both_control_types_and_mixed_roster ... ok
+test combat::catalog_tests::catalog_selects_bomb_mothership_and_mixed_ordnance ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 477 filtered out; finished in 0.22s
+

@@ -1,0 +1,20 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-41-catalog-validation)
+    Finished `test` profile [optimized + debuginfo] target(s) in 15.82s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 1 test
+
+thread 'combat::catalog_tests::combined_catalog_launches_all_kinds_with_environment_and_resets_to_setup' (641958) panicked at src/combat/catalog_tests.rs:414:5:
+assertion failed: app.world_mut().query::<&Text>().iter(app.world()).any(|t|
+        t.0.contains("Combined catalog"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test combat::catalog_tests::combined_catalog_launches_all_kinds_with_environment_and_resets_to_setup ... FAILED
+
+failures:
+
+failures:
+    combat::catalog_tests::combined_catalog_launches_all_kinds_with_environment_and_resets_to_setup
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 500 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--bin drone-survivors`

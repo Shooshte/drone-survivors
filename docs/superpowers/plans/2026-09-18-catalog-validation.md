@@ -23,10 +23,10 @@ checks presentation. Keep evidence separate from human acceptance.
 Files: src/combat/catalog.rs, src/combat/catalog_tests.rs,
 src/combat/catalog/combination_validation.rs.
 
-- [ ] Add failing selector test: cycle to Combined catalog, launch, assert all seven roster kinds and environment, restart/return reset, no campaign state.
-- [ ] Add scenario using existing waves/roster/environment; update old scenario-wrap expectation.
-- [ ] Add DRONE_COMBINATION_SMOKE fixture using keyboard configuration and normal preview choices; run a combined round, restart, return; check text bounds and capture setup/preview/HUD.
-- [ ] Run native fixture at both supported window sizes, inspect captures, commit coherent increment.
+- [x] Add failing selector test: cycle to Combined catalog, launch, assert all seven roster kinds and environment, restart/return reset, no campaign state.
+- [x] Add scenario using existing waves/roster/environment; update old scenario-wrap expectation.
+- [x] Add DRONE_COMBINATION_SMOKE fixture using keyboard configuration and normal preview choices; run a combined round, restart, return; check text bounds and capture setup/preview/HUD.
+- [x] Run native fixture at both supported window sizes, inspect captures, commit coherent increment.
 
 ### Task 2: Measured comparison probe
 
@@ -49,3 +49,7 @@ docs/playtests/evidence/dro-41/, selected images, this plan.
 - [ ] Run cargo fmt --check, cargo test --locked, cargo clippy --locked --all-targets -- -D warnings, git diff --check.
 - [ ] Independent review; resolve findings and rerun affected checks.
 - [ ] Commit, push codex/dro-41-catalog-validation and open PR against main with Linear link.
+
+## Progress
+
+Baseline: 495 passed / 5 ignored. Task 1: a13258f; selector regression failed on missing Combined catalog, then 24 catalog tests passed. Both native sizes passed and captures visually inspected. Task review passed with no actionable findings. Task 2 probe in progress.
