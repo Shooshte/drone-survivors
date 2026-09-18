@@ -404,6 +404,9 @@ fn catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots() {
 #[path = "catalog/upgrade_tests.rs"]
 mod upgrade_tests;
 
+#[path = "catalog/combination_tests.rs"]
+mod combination_tests;
+
 #[test]
 fn combined_catalog_launches_all_kinds_with_environment_and_resets_to_setup() {
     use crate::{economy::runtime::EnemyKind, world::environment::Environment};

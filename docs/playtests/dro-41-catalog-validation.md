@@ -21,6 +21,110 @@ The new scenario leaves each focused drill intact. No numeric balance changes
 are bundled merely to make the validation pass. Results below distinguish
 observations from evidence sufficient to change tuning.
 
+## Controlled 30 Hz comparison
+
+```sh
+cargo test --locked catalog_combination_probe -- --ignored --nocapture
+```
+
+[Raw measurements](evidence/dro-41/combination-probe.log) include fourteen full
+rounds, each observed enemy kind, choices, power time by module, activation counts,
+active field occupancy, repair crossings/delivery, charger visits and route progress.
+All runs use the real catalog installation, geometry, hazard, finite chargers,
+spawn safety, health and damage. No combat health/energy is granted. Preview XP
+is the normal selector feature. Later naturally earned choices are **Skipped**
+through normal input to keep each measured build fixed; seven such offers opened.
+
+Every moving row uses the same scripted route: north field → west charger →
+south detour at z=410 → east charger → return via the detour → repair cross →
+south field. Charger arrivals dwell for 1.5 seconds. The existing waypoint pilot
+limits desired travel speed to 180; it is a repeatable route, not skilled maximum-
+speed evasion. The stationary control remains at the normal spawn. All rows saw
+all seven enemy kinds; every equipped module was powered during its run.
+
+Single modules are requested while power permits. Four-slot builds rotate one
+requested slot every four active seconds in slot order. All use the same
+conservation policy: switch off at 6 energy, request restart at 20. This avoids
+confounding different activation policies, but underuses baseline's 10-energy
+threshold. The controlled activation check below tests that separate drawback.
+Power and field durations are 30 Hz samples, not exact integrated energy audits.
+
+| Case | Outcome | Active seconds | Hull | Kills | Final energy |
+| --- | --- | ---: | ---: | ---: | ---: |
+| empty-stationary | Dead | 29.47 | 0 | 10 | 100.0 |
+| empty-route | Dead | 39.50 | 0 | 18 | 100.0 |
+| overdrive-control | Survived | 60.00 | 25 | 26 | 5.7 |
+| overdrive-route | Survived | 60.00 | 70 | 26 | 5.8 |
+| rockets-control | Survived | 60.00 | 25 | 26 | 5.7 |
+| rockets-route | Dead | 50.57 | 0 | 24 | 44.5 |
+| repulsor-control | Survived | 60.00 | 5 | 26 | 5.9 |
+| repulsor-route | Dead | 49.20 | 0 | 19 | 58.9 |
+| repair-control | Survived | 60.00 | 37 | 25 | 5.7 |
+| repair-route | Survived | 60.00 | 64 | 28 | 5.7 |
+| offense-control | Survived | 60.00 | 25 | 25 | 5.9 |
+| offense-four | Survived | 60.00 | 110 | 26 | 5.9 |
+| support-control | Survived | 60.00 | 74 | 27 | 5.6 |
+| support-four | Survived | 60.00 | 28 | 25 | 5.8 |
+
+`*-control` has no preview cards. `overdrive-route` adds Hot overdrive;
+`rockets-route` adds Wide-area rockets; `repulsor-route` adds Wide repulsor;
+`repair-route` adds Rapid repair. The four-slot builds are:
+
+- **Offense:** Overdrive / Shield / Mobility / Rockets. Preview cards: Interceptor,
+  Agile frame, Heavy armor, Heavy rounds. Effective maximum hull is 130; its
+  unupgraded control has 100. The 110 versus 25 final hull is not an 85-point
+  reduction in damage: maximum/current starting hull also changed.
+- **Support:** Repulsor / Repair / Shield / Mobility. Preview cards: Rapid shield,
+  Efficient coils, Reserve battery, Long-range rounds. Maximum hull stays 100.
+
+The empty route lasted 10.03 seconds longer and killed eight more enemies than
+standing still; it also received the single 35-hull site repair. This comparison
+includes the route's resource access, not movement alone. All equipped moving
+rows visited chargers four times; site delivery ranged from 3 to 35 hull because
+it clamps to missing hull. The single-module Hot Overdrive run powered the module
+for 25.67 sampled seconds versus 38.87 without the card, yet finished at 70 rather
+than 25 hull with the same 26 kills. Rapid Repair similarly powered for 21.70
+versus 32.20 seconds, finishing at 64 rather than 37 hull.
+
+Wide-area Rockets and Wide Repulsor were not unconditional improvements: their
+runs died at 50.57 and 49.20 seconds, while their controls survived. Their slower
+cadences are plausible contributors; the aggregate run does not isolate every
+collision, spawn cancellation or target decision. The support preview finished
+with more total sampled powered time but lower hull (28 versus 74) and fewer
+kills (25 versus 27). Multiple selected effects prevent attributing that change
+to one card.
+
+**Tuning decision:** retain current values. These observations establish distinct
+uses and costs, and reject an assumption that larger-radius/support previews
+always improve this route. They do not demonstrate catalog-wide dominance or
+redundancy sufficient to remove/nerf a choice. Heavy rounds/armor and Rapid repair
+remain candidates for human comparison, as do crowded-route benefits of wider
+Rockets/Repulsor. One route, one deterministic spawn schedule and a mechanical
+module policy are insufficient for a general ranking.
+
+## Controlled card measurements
+
+The same probe selects each card alone through the production preview/choice
+flow and records effective configuration against an identically equipped control.
+All twelve benefits and drawbacks in the table below were observed in those
+configurations. These are runtime configuration measurements, not twelve separate
+claims about combat performance.
+
+Four additional short fixtures exercise behavior directly. Unlike full rounds,
+these explicitly set initial battery/hull or insert a target, before authored
+waves activate:
+
+| Controlled setup | Without card | With card |
+| --- | --- | --- |
+| 15 battery, request Overdrive | Activates | Efficient coils rejects activation below 20 |
+| Target 500 units away | No shot; 400 range, 0.5s interval | Long-range rounds fires; 600 range, 0.625s interval |
+| Start at 50 hull, one paid second of Repair | +6 hull / −12 energy | Rapid repair: +12 hull / −18 energy |
+| Target 220 units away, powered Repulsor | No push; next pulse in 2s | Wide repulsor pushes; next pulse in 3s |
+
+The range/Repulsor fixtures demonstrate reach and record the configured cadence;
+they do not measure a long-run shot/pulse rate. Existing cooldown-preservation
+and targeting tests cover continuity, repeated choices and reset behavior.
+
 ## Native presentation and lifecycle
 
 ```sh
@@ -79,3 +183,79 @@ The counterplay regression suite also covers source death, overlapping locks,
 shield/invulnerability, terrain, finite power and terminal-outcome ordering.
 Human checks should test whether these responses stay legible during all-seven
 pressure, particularly bomb removal while Repulsor is jammed or depleted.
+
+## Six module roles and limits
+
+| Module | Distinct use | Cost or counterexample |
+| --- | --- | --- |
+| Overdrive | Faster basic shots against individual targets, including killing a control source or parent before another attack | Consumes 10 energy/s while ON; no area effect or healing; does nothing useful without a shootable target |
+| Shield | One ready hit block, including bomb detonation; powered recharge allows another block | 8 energy/s and five powered seconds per recharge; does not restore lost hull or prevent a module lock |
+| Mobility | Higher powered flight acceleration/speed supports escaping range, charges and bad routes | 8 energy/s; no damage/block; route control and braking still matter |
+| Rockets | Splash damages clustered enemies using a separate weapon cadence | 10 energy/s; range, terrain and the two-second launch interval limit use; cannot heal or remove bombs |
+| Repair | Restore hull after surviving damage, without returning to the one-use map repair | 12 energy/s for 6 hull/s; cannot prevent lethal damage, and full hull still drains while ON |
+| Repulsor | Push nearby threats away without damage and dislodge an attached bomb | 8 energy/s, 180-unit reach, two-second interval; cover blocks pushes; jam/brownout prevents a pulse |
+
+Repair and the site are complementary: the site is one free, bounded burst;
+Repair spends finite battery over time. Shield prevents a hit, whereas Repair
+requires surviving it. Rockets kill crowds, whereas Repulsor buys separation and
+handles attachments. These behavioral distinctions are exercised by the support,
+projectile, bomb and environment regressions, in addition to the round matrix.
+
+## Twelve upgrade decisions
+
+The four-opportunity budget forces combinations rather than collecting all cards.
+The following tradeoffs are useful interpretation targets for the controlled
+measurements; they are not claims about human preference or overall dominance.
+
+| Upgrade | Benefit | Drawback / decision |
+| --- | --- | --- |
+| Interceptor | Horizontal acceleration/speed ×1.3 | Capacity ×0.75 reduces powered endurance; speed does not remove the need to brake |
+| Agile frame | Turn, tilt and leveling response ×1.4 | −20 maximum hull reduces the damage margin |
+| Heavy armor | +50 maximum hull | Acceleration ×0.75 in every direction; less responsive pursuit escape and braking |
+| Heavy rounds | Basic projectile damage ×2 | Acceleration ×0.9 in every direction; stronger fire trades against movement |
+| Rapid shield | Powered recharge 5 → 2.5s | Drain 8 → 12/s; faster repeat protection costs battery even while a block is ready |
+| Wide-area rockets | Splash radius 70 → 105 | Launch interval 2 → 3s; wider clusters versus fewer launches at isolated targets |
+| Efficient coils | All drains ×0.75 | Activation threshold 10 → 20; helps sustained use but delays reactivation after depletion |
+| Reserve battery | Capacity 100 → 150 | Maximum horizontal speed ×0.8; no immediate energy refill, so a charger is needed to realize extra storage |
+| Long-range rounds | Basic range 400 → 600 | Shot interval 0.5 → 0.625s; early reach versus lower close-range cadence |
+| Hot overdrive | Powered multiplier 2 → 3 | Overdrive drain 10 → 15/s; more burst output but shorter powered time |
+| Rapid repair | Repair 6 → 12 hull/s | Drain 12 → 18/s; faster recovery has higher instantaneous power demand |
+| Wide repulsor | Reach 180 → 270 | Interval 2 → 3s; reach versus longer vulnerability between pulses |
+
+A numeric benefit is not automatically a universally better choice. Rapid repair
+also improves hull per energy (0.5 → 0.667), but the steeper instantaneous drain
+competes with other modules and can cause earlier shared brownout. Hot overdrive
+raises total powered cadence and drain by the same ratio; free basic fire remains
+available after depletion. Efficient coils increases nominal endurance by one
+third while doubling the threshold for restarting a module. These are arithmetic
+interpretations of production values, distinct from observed round outcomes.
+
+## Verification and remaining work
+
+- `cargo fmt --check` and `git diff --check`: passed.
+- `cargo test --locked`: **496 passed, 0 failed, 6 ignored**. The six ignored tests
+  are the five existing opt-in probes plus this new combination probe.
+- `cargo clippy --locked --all-targets -- -D warnings`: passed.
+- The opt-in combination probe passed twice, with identical runtime, outcome,
+  choice, duration and delta measurement lines. [Repeat log](evidence/dro-41/combination-probe-repeat.log).
+- Both new native sizes and the affected compact environment fixture passed.
+
+[Full suite](evidence/dro-41/cargo-test.log), [strict Clippy](evidence/dro-41/clippy.log).
+The baseline was 495 passed / 5 ignored. The new selector regression first failed
+because the combined scenario did not exist ([red](evidence/dro-41/scenario-red.log));
+after implementation all 24 catalog tests passed ([green](evidence/dro-41/scenario-green.log)).
+The comparison probe is opt-in to keep measured evidence out of ordinary test
+output. Its duration accounting uses actual encounter advancement, so paused
+upgrade input frames do not count as time in a field or time powering a module.
+
+The scenario/native increment received an independent review with no actionable
+findings. Final branch review follows completion of the recorded comparison.
+All commands ran from the separate DRO-41 worktree with the shared build cache
+`CARGO_TARGET_DIR=/Users/shooshte/projects/drone-survivors/target`.
+
+Remaining human work: run contrasting loadouts with self-chosen routes/module
+schedules; test clustered targets for wider-radius cards; compare low-battery
+reactivation and longer charger stays for Coils/Reserve battery; confirm simultaneous
+warning/status cues are understood without coaching. Repeat at both supported
+window sizes. This delivery completes the scoped agent comparison work; it does
+not complete the deferred human gate or authorize campaign expansion.

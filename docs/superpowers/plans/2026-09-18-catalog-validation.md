@@ -33,23 +33,23 @@ src/combat/catalog/combination_validation.rs.
 Files: src/combat/catalog/combination_tests.rs, one test-module registration in catalog_tests.rs;
 evidence and report in /tmp/dro-41-probe-report.md for final documentation.
 
-- [ ] Use production catalog app at fixed 30 Hz with real geometry, hazard, resources and controls.
-- [ ] Exercise Combined catalog with empty/single-module controls and contrasting four-slot/four-card builds. Cover all six modules and twelve upgrades across the matrix.
-- [ ] Compare stationary and moving routes (including field/repair traversal), report active time/outcome/hull/kills/power, observed kinds and environment usage. Keep naturally earned offers and documented previews within four opportunities.
-- [ ] Include controlled comparisons for tradeoffs that aggregate outcomes cannot establish; use existing meaningful regressions as supporting counterplay evidence.
-- [ ] Run opt-in catalog_combination_probe and record exact command/results/limits. Reproduce any defect with a failing regression before changing production behavior.
-- [ ] Self-review probe reliability and commit its independent files.
+- [x] Use production catalog app at fixed 30 Hz with real geometry, hazard, resources and controls.
+- [x] Exercise Combined catalog with empty/single-module controls and contrasting four-slot/four-card builds. Cover all six modules and twelve upgrades across the matrix.
+- [x] Compare stationary and moving routes (including field/repair traversal), report active time/outcome/hull/kills/power, observed kinds and environment usage. Keep naturally earned offers and documented previews within four opportunities.
+- [x] Include controlled comparisons for tradeoffs that aggregate outcomes cannot establish; use existing meaningful regressions as supporting counterplay evidence.
+- [x] Run opt-in catalog_combination_probe and record exact command/results/limits. Reproduce any defect with a failing regression before changing production behavior.
+- [x] Self-review probe reliability and commit its independent files.
 
 ### Task 3: Evidence, review and delivery
 
 Files: README.md, docs/playtests.md, docs/playtests/dro-41-catalog-validation.md,
 docs/playtests/evidence/dro-41/, selected images, this plan.
 
-- [ ] Record measured results and limits, responses for all enemies, uses for six modules, twelve benefit/drawback comparisons, tuning decisions and pending human checks.
-- [ ] Run cargo fmt --check, cargo test --locked, cargo clippy --locked --all-targets -- -D warnings, git diff --check.
+- [x] Record measured results and limits, responses for all enemies, uses for six modules, twelve benefit/drawback comparisons, tuning decisions and pending human checks.
+- [x] Run cargo fmt --check, cargo test --locked, cargo clippy --locked --all-targets -- -D warnings, git diff --check.
 - [ ] Independent review; resolve findings and rerun affected checks.
 - [ ] Commit, push codex/dro-41-catalog-validation and open PR against main with Linear link.
 
 ## Progress
 
-Baseline: 495 passed / 5 ignored. Task 1: a13258f; selector regression failed on missing Combined catalog, then 24 catalog tests passed. Both native sizes passed and captures visually inspected. Task review passed with no actionable findings. Task 2 probe in progress.
+Baseline: 495 passed / 5 ignored. Task 1: a13258f; selector regression failed on missing Combined catalog, then 24 catalog tests passed. Both native sizes passed and captures visually inspected. Task review passed with no actionable findings. Task 2: 6e71d02; fourteen comparisons plus twelve card-config controls and four runtime checks pass reproducibly. Pause-duration accounting corrected during self-review. Full suite: 496 passed / 6 ignored; strict Clippy and formatting pass. No numeric tuning justified by this one route/policy. Final branch review pending.
