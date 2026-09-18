@@ -47,9 +47,9 @@ docs/playtests/evidence/dro-41/, selected images, this plan.
 
 - [x] Record measured results and limits, responses for all enemies, uses for six modules, twelve benefit/drawback comparisons, tuning decisions and pending human checks.
 - [x] Run cargo fmt --check, cargo test --locked, cargo clippy --locked --all-targets -- -D warnings, git diff --check.
-- [ ] Independent review; resolve findings and rerun affected checks.
-- [ ] Commit, push codex/dro-41-catalog-validation and open PR against main with Linear link.
+- [x] Independent review; resolve findings and rerun affected checks.
+- [x] Commit, push codex/dro-41-catalog-validation and open PR against main with Linear link.
 
 ## Progress
 
-Baseline: 495 passed / 5 ignored. Task 1: a13258f; selector regression failed on missing Combined catalog, then 24 catalog tests passed. Both native sizes passed and captures visually inspected. Task review passed with no actionable findings. Task 2: 6e71d02; fourteen comparisons plus twelve card-config controls and four runtime checks pass reproducibly. Pause-duration accounting corrected during self-review. Full suite: 496 passed / 6 ignored; strict Clippy and formatting pass. No numeric tuning justified by this one route/policy. Final branch review pending.
+Baseline: 495 passed / 5 ignored. Task 1: a13258f; selector regression failed on missing Combined catalog, then 24 catalog tests passed. Both native sizes passed and captures visually inspected. Task review passed with no actionable findings. Task 2: 6e71d02; fourteen comparisons plus twelve card-config controls and four runtime checks pass reproducibly. Pause-duration accounting corrected during self-review. Full suite: 496 passed / 6 ignored; strict Clippy and formatting pass. No numeric tuning justified by this one route/policy. Final branch review passed with no actionable defects; all 37 measurement rows reproduced. Delivered as [PR #33](https://github.com/Shooshte/drone-survivors/pull/33) against main.

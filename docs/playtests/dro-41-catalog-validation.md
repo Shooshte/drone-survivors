@@ -248,8 +248,9 @@ The comparison probe is opt-in to keep measured evidence out of ordinary test
 output. Its duration accounting uses actual encounter advancement, so paused
 upgrade input frames do not count as time in a field or time powering a module.
 
-The scenario/native increment received an independent review with no actionable
-findings. Final branch review follows completion of the recorded comparison.
+The scenario/native increment and final branch received independent reviews with
+no remaining actionable findings. Probe review tightened handling/drain coverage,
+choice-budget assertions and XP/pickup logging before the final repeated run.
 All commands ran from the separate DRO-41 worktree with the shared build cache
 `CARGO_TARGET_DIR=/Users/shooshte/projects/drone-survivors/target`.
 
@@ -259,3 +260,6 @@ reactivation and longer charger stays for Coils/Reserve battery; confirm simulta
 warning/status cues are understood without coaching. Repeat at both supported
 window sizes. This delivery completes the scoped agent comparison work; it does
 not complete the deferred human gate or authorize campaign expansion.
+
+Delivered as [PR #33](https://github.com/Shooshte/drone-survivors/pull/33) against main.
+The branch and separate worktree are retained for review follow-up.
