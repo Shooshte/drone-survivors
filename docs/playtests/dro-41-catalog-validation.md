@@ -233,7 +233,7 @@ interpretations of production values, distinct from observed round outcomes.
 ## Verification and remaining work
 
 - `cargo fmt --check` and `git diff --check`: passed.
-- `cargo test --locked`: **496 passed, 0 failed, 6 ignored**. The six ignored tests
+- `cargo test --locked`: **499 passed, 0 failed, 6 ignored**. The six ignored tests
   are the five existing opt-in probes plus this new combination probe.
 - `cargo clippy --locked --all-targets -- -D warnings`: passed.
 - The opt-in combination probe passed twice, with identical runtime, outcome,
@@ -263,3 +263,23 @@ not complete the deferred human gate or authorize campaign expansion.
 
 Delivered as [PR #33](https://github.com/Shooshte/drone-survivors/pull/33) against main.
 The branch and separate worktree are retained for review follow-up.
+
+## PR review follow-up: premature death cannot skip captures
+
+The review finding was valid: `Dead` acted as both a capture trigger and an early
+transition to lifecycle checks. After all seven kinds appeared, a death could
+therefore bypass the remaining 10/20-second HUD samples and still report PASS.
+The fixture now requires `Playing` until all three 3/10/20-second samples have
+been captured, and independently checks the capture count before restarting.
+Premature death or an early terminal survival result fails validation.
+
+Three headless regressions invoke the actual native `drive` system: terminal
+states before each checkpoint reject without advancing; the full checkpoint
+sequence reaches lifecycle validation; and an incomplete count cannot enter
+restart checks. The first and third failed before the fix
+([red](evidence/dro-41/early-death-red.log)); all three pass afterward
+([green](evidence/dro-41/early-death-green.log)). Full suite: **499 passed, 6 ignored**;
+formatting and strict Clippy pass. Independent follow-up review found no issues.
+Both native sizes passed again, and all six required checkpoint PNGs were verified:
+[640×480](evidence/dro-41/early-death-native-640x480.log),
+[1120×720](evidence/dro-41/early-death-native-1120x720.log).

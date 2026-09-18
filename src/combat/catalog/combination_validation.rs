@@ -155,17 +155,23 @@ fn drive(
             fixture.stage = 6;
         }
         6 => {
-            if encounter.elapsed >= [3., 10., 20.][fixture.captures] || *phase == GamePhase::Dead {
+            assert_eq!(
+                *phase,
+                GamePhase::Playing,
+                "combined round ended before all three combat captures completed"
+            );
+            if encounter.elapsed >= [3., 10., 20.][fixture.captures] {
                 capture = Some(
                     ["combined-wave", "combined-fields", "combined-pressure"][fixture.captures],
                 );
                 fixture.captures += 1;
-                if fixture.captures == 3 || *phase == GamePhase::Dead {
+                if fixture.captures == 3 {
                     fixture.stage = 7;
                 }
             }
         }
         7 => {
+            assert_eq!(fixture.captures, 3, "all combat captures must complete");
             assert_eq!(
                 fixture.seen.len(),
                 7,
@@ -235,3 +241,7 @@ fn drive(
         fixture.next = elapsed + 0.5;
     }
 }
+
+#[cfg(test)]
+#[path = "combination_validation_tests.rs"]
+mod tests;
