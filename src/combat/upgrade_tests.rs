@@ -16,8 +16,13 @@ fn basic_rounds_keep_launch_damage_when_configuration_changes() {
 }
 
 fn upgrade_app() -> (App, Entity) {
+    upgrade_app_with_pool(crate::upgrades::UpgradePool::default())
+}
+
+fn upgrade_app_with_pool(pool: crate::upgrades::UpgradePool) -> (App, Entity) {
     let mut app = App::new();
     app.init_resource::<ButtonInput<KeyCode>>()
+        .insert_resource(pool)
         .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
             Duration::from_secs_f32(0.1),
         ))
@@ -617,4 +622,302 @@ fn agile_frame_improves_coordinated_turns_and_restart_restores_them() {
         );
     }
     assert!(turns[1] > turns[0] * 1.35, "turn benefit: {turns:?}");
+}
+
+#[test]
+fn plugin_preserves_a_preinstalled_catalog_pool() {
+    let pool = crate::upgrades::UpgradePool {
+        catalog: true,
+        preview: vec![crate::upgrades::UpgradeKind::ReserveBattery],
+    };
+    let (app, _) = upgrade_app_with_pool(pool.clone());
+    let installed = app.world().resource::<crate::upgrades::UpgradePool>();
+    assert_eq!(installed.catalog, pool.catalog);
+    assert_eq!(installed.preview, pool.preview);
+}
+
+#[test]
+fn catalog_reset_queues_sanitized_preview_as_normal_one_card_choices() {
+    use crate::modules::{Loadout, ModuleKind, Modules};
+    use crate::upgrades::{UpgradeKind, UpgradePool, UpgradeRun};
+    let pool = UpgradePool {
+        catalog: true,
+        preview: vec![
+            UpgradeKind::RapidRepair,
+            UpgradeKind::RapidRepair,
+            UpgradeKind::HotOverdrive,
+            UpgradeKind::WideRepulsor,
+            UpgradeKind::ReserveBattery,
+            UpgradeKind::LongRangeRounds,
+        ],
+    };
+    let (mut app, _) = upgrade_app_with_pool(pool);
+    app.world_mut().resource_mut::<Modules>().loadout = Loadout::new([
+        Some(ModuleKind::Repair),
+        Some(ModuleKind::Overdrive),
+        None,
+        None,
+    ])
+    .unwrap();
+
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert_eq!(
+        (
+            app.world().resource::<UpgradeRun>().pending,
+            app.world().resource::<UpgradeRun>().total_xp
+        ),
+        (4, 1_000)
+    );
+    tick(&mut app, 0., &[]);
+    assert_eq!(
+        app.world().resource::<UpgradeRun>().offer,
+        vec![UpgradeKind::RapidRepair]
+    );
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Backspace]);
+    assert_eq!(
+        app.world().resource::<UpgradeRun>().offer,
+        vec![UpgradeKind::HotOverdrive]
+    );
+    assert_eq!(app.world().resource::<UpgradeRun>().resolved, 1);
+}
+
+#[test]
+fn catalog_reset_opens_preview_before_any_gameplay_frame_can_advance() {
+    use crate::energy::Energy;
+    use crate::modules::Modules;
+    use crate::upgrades::{UpgradeKind, UpgradePool, UpgradeRun};
+    let pool = UpgradePool {
+        catalog: true,
+        preview: vec![UpgradeKind::ReserveBattery],
+    };
+    let (mut app, drone) = upgrade_app_with_pool(pool);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 17.;
+    app.world_mut().resource_mut::<Energy>().current = 5.;
+    app.world_mut().resource_mut::<Modules>().enabled = [true; 4];
+    app.world_mut()
+        .get_mut::<Transform>(drone)
+        .unwrap()
+        .translation = START + Vec3::X * 80.;
+    shot(&mut app, START, Vec3::X, 5.);
+
+    tick(&mut app, 1., &[KeyCode::KeyR, KeyCode::Digit1]);
+
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    assert!(app.world().resource::<Time<Virtual>>().is_paused());
+    assert_eq!(
+        app.world().resource::<UpgradeRun>().offer,
+        vec![UpgradeKind::ReserveBattery]
+    );
+    assert_eq!(app.world().resource::<Encounter>().elapsed, 0.);
+    assert_eq!(app.world().resource::<Energy>().current, 100.);
+    assert_eq!(position(&app, drone), START);
+    assert_eq!(count::<Projectile>(&mut app), 0);
+    assert_eq!(app.world().resource::<Modules>().enabled, [false; 4]);
+
+    tick(&mut app, 30., &[]);
+    assert_eq!(app.world().resource::<Encounter>().elapsed, 0.);
+    assert_eq!(app.world().resource::<Energy>().current, 100.);
+    assert_eq!(position(&app, drone), START);
+    assert_eq!(count::<Projectile>(&mut app), 0);
+}
+
+#[test]
+fn efficient_coils_changes_every_drain_and_enforces_the_higher_activation_threshold() {
+    use crate::energy::{Energy, EnergyConfig};
+    use crate::modules::{ModuleConfig, ModuleKind, Modules};
+    use crate::upgrades::UpgradeKind;
+    let (mut app, _) = upgrade_app();
+    pick(&mut app, UpgradeKind::EfficientCoils);
+
+    let tuning = app.world().resource::<ModuleConfig>();
+    assert_eq!(tuning.drains, [7.5, 6., 6., 7.5]);
+    assert_eq!(tuning.repair_drain, 9.);
+    assert_eq!(tuning.repulsor_drain, 6.);
+    assert_eq!(app.world().resource::<EnergyConfig>().activation, 20.);
+
+    app.world_mut().resource_mut::<Energy>().current = 15.;
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
+    app.world_mut().resource_mut::<Energy>().current = 20.;
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    assert!(
+        app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert_eq!(
+        app.world().resource::<ModuleConfig>().drains,
+        ModuleConfig::default().drains
+    );
+    assert_eq!(
+        app.world().resource::<EnergyConfig>().activation,
+        EnergyConfig::default().activation
+    );
+}
+
+#[test]
+fn reserve_battery_increases_capacity_without_refilling_and_reduces_horizontal_speed() {
+    use crate::energy::{Energy, EnergyConfig};
+    use crate::upgrades::UpgradeKind;
+    let (mut app, _) = upgrade_app();
+    app.world_mut().resource_mut::<Energy>().current = 40.;
+    pick(&mut app, UpgradeKind::ReserveBattery);
+
+    assert_eq!(app.world().resource::<EnergyConfig>().capacity, 150.);
+    assert_eq!(app.world().resource::<Energy>().current, 40.);
+    assert_eq!(
+        app.world()
+            .resource::<crate::arena::FlightConfig>()
+            .max_horizontal_speed,
+        336.
+    );
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert_eq!(
+        app.world().resource::<EnergyConfig>().capacity,
+        EnergyConfig::default().capacity
+    );
+    assert_eq!(
+        app.world()
+            .resource::<crate::arena::FlightConfig>()
+            .max_horizontal_speed,
+        crate::arena::FlightConfig::default().max_horizontal_speed
+    );
+}
+
+#[test]
+fn long_range_rounds_retimes_basic_fire_progress_on_the_first_resumed_frame() {
+    use crate::upgrades::UpgradeKind;
+    let (mut app, _) = upgrade_app();
+    app.world_mut().resource_mut::<CombatConfig>().target_range = 400.;
+    enemy(&mut app, START + Vec3::X * 500., 500);
+    tick(&mut app, 0., &[]);
+    let now = app.world().resource::<Time>().elapsed_secs_f64();
+    app.world_mut().resource_mut::<Weapon>().ready_at = now + 0.4;
+    let before = app.world().resource::<Weapon>().ready_at - now;
+    pick(&mut app, UpgradeKind::LongRangeRounds);
+
+    assert_eq!(app.world().resource::<CombatConfig>().target_range, 600.);
+    assert_eq!(app.world().resource::<CombatConfig>().fire_interval, 0.625);
+    assert_eq!(app.world().resource::<Weapon>().interval, Some(0.625));
+    assert!((app.world().resource::<Weapon>().ready_at - now - before * 1.25).abs() < 1e-6);
+    assert_eq!(count::<Projectile>(&mut app), 0);
+    tick(&mut app, 0.5, &[]);
+    assert_eq!(count::<Projectile>(&mut app), 1);
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert_eq!(
+        app.world().resource::<CombatConfig>().target_range,
+        CombatConfig::default().target_range
+    );
+    assert_eq!(
+        app.world().resource::<CombatConfig>().fire_interval,
+        CombatConfig::default().fire_interval
+    );
+}
+
+#[test]
+fn powered_catalog_upgrades_compose_from_baseline_and_apply_once() {
+    use crate::modules::{Loadout, ModuleConfig, ModuleKind, Modules};
+    use crate::upgrades::{UpgradeKind, UpgradeRun};
+    let (mut app, _) = upgrade_app();
+    app.world_mut().resource_mut::<Modules>().loadout = Loadout::new([
+        Some(ModuleKind::Overdrive),
+        Some(ModuleKind::Repair),
+        Some(ModuleKind::Repulsor),
+        None,
+    ])
+    .unwrap();
+
+    pick(&mut app, UpgradeKind::HotOverdrive);
+    offer(&mut app, 150);
+    app.world_mut().resource_mut::<UpgradeRun>().offer = vec![UpgradeKind::RapidRepair];
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    tick(&mut app, 0., &[]);
+    offer(&mut app, 300);
+    app.world_mut().resource_mut::<UpgradeRun>().offer = vec![UpgradeKind::WideRepulsor];
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    tick(&mut app, 0., &[]);
+    let tuning = app.world().resource::<ModuleConfig>();
+    assert_eq!(tuning.overdrive_multiplier, 3.);
+    assert_eq!(tuning.drain(ModuleKind::Overdrive), 15.);
+    assert_eq!(tuning.repair_rate, 12.);
+    assert_eq!(tuning.repair_drain, 18.);
+    assert_eq!(tuning.repulsor_radius, 270.);
+    assert_eq!(tuning.repulsor_interval, 3.);
+
+    offer(&mut app, 500);
+    app.world_mut().resource_mut::<UpgradeRun>().offer = vec![UpgradeKind::HotOverdrive];
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    tick(&mut app, 0., &[]);
+    let tuning = app.world().resource::<ModuleConfig>();
+    assert_eq!(tuning.overdrive_multiplier, 3.);
+    assert_eq!(tuning.drain(ModuleKind::Overdrive), 15.);
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    let tuning = app.world().resource::<ModuleConfig>();
+    let baseline = ModuleConfig::default();
+    assert_eq!(tuning.overdrive_multiplier, baseline.overdrive_multiplier);
+    assert_eq!(tuning.drains, baseline.drains);
+    assert_eq!(tuning.repair_rate, baseline.repair_rate);
+    assert_eq!(tuning.repair_drain, baseline.repair_drain);
+    assert_eq!(tuning.repulsor_radius, baseline.repulsor_radius);
+    assert_eq!(tuning.repulsor_interval, baseline.repulsor_interval);
+}
+
+#[test]
+fn rapid_repair_uses_the_paid_power_interval_with_composed_drain() {
+    use crate::energy::Energy;
+    use crate::modules::{Loadout, ModuleConfig, ModuleKind, Modules};
+    use crate::upgrades::{UpgradeKind, UpgradeRun};
+    let (mut app, _) = upgrade_app();
+    app.world_mut().resource_mut::<Modules>().loadout =
+        Loadout::new([Some(ModuleKind::Repair), None, None, None]).unwrap();
+    pick(&mut app, UpgradeKind::EfficientCoils);
+    offer(&mut app, 150);
+    app.world_mut().resource_mut::<UpgradeRun>().offer = vec![UpgradeKind::RapidRepair];
+    tick(&mut app, 0., &[KeyCode::Digit1]);
+    tick(&mut app, 0., &[]);
+    app.world_mut().resource_mut::<PlayerHealth>().current = 50;
+    app.world_mut().resource_mut::<Modules>().enabled[0] = true;
+    app.world_mut().resource_mut::<Energy>().current = 100.;
+
+    tick(&mut app, 1., &[]);
+    assert_eq!(app.world().resource::<PlayerHealth>().current, 62);
+    assert!((app.world().resource::<Energy>().current - 86.5).abs() < 1e-6);
+    assert_eq!(app.world().resource::<ModuleConfig>().repair_drain, 13.5);
+}
+
+#[test]
+fn wide_repulsor_preserves_pulse_cooldown_fraction_and_restart_clears_effects() {
+    use crate::arena::DroneFlight;
+    use crate::combat::bombs::BombState;
+    use crate::energy::EnergyConfig;
+    use crate::modules::{Loadout, ModuleConfig, ModuleKind, Modules};
+    use crate::upgrades::{UpgradeKind, UpgradeRun};
+    let (mut app, _) = upgrade_app();
+    app.world_mut().resource_mut::<Modules>().loadout =
+        Loadout::new([Some(ModuleKind::Repulsor), None, None, None]).unwrap();
+    app.world_mut().resource_mut::<Modules>().enabled[0] = true;
+    app.world_mut().resource_mut::<BombState>().pulse_cooldown = 1.;
+    pick(&mut app, UpgradeKind::WideRepulsor);
+
+    assert_eq!(app.world().resource::<ModuleConfig>().repulsor_interval, 3.);
+    assert_eq!(app.world().resource::<BombState>().pulse_cooldown, 1.5);
+    app.world_mut().resource_mut::<BombState>().pulse_cooldown = 0.;
+    let reached = enemy(&mut app, START + Vec3::X * 240., 500);
+    tick(&mut app, 0., &[]);
+    assert_ne!(
+        app.world().get::<DroneFlight>(reached).unwrap().velocity,
+        Vec3::ZERO
+    );
+    tick(&mut app, 0., &[KeyCode::KeyR]);
+    assert_eq!(app.world().resource::<ModuleConfig>().repulsor_interval, 2.);
+    assert_eq!(app.world().resource::<ModuleConfig>().repulsor_radius, 180.);
+    assert_eq!(app.world().resource::<EnergyConfig>().activation, 10.);
+    assert!(app.world().resource::<UpgradeRun>().selected.is_empty());
+    assert_eq!(app.world().resource::<BombState>().pulse_cooldown, 0.);
 }

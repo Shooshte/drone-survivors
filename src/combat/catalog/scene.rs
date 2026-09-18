@@ -10,7 +10,13 @@ pub(super) struct Selector;
 #[derive(Component)]
 pub(super) struct RoundControls;
 #[derive(Component)]
+pub(super) struct SetupPage(bool);
+#[derive(Component)]
 pub(super) enum Copy {
+    Title,
+    PageToggle,
+    Upgrade(usize),
+    PreviewRules,
     Scenario,
     Instruction,
     Slot(usize),
@@ -71,21 +77,44 @@ pub(super) fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
             root.spawn((Node { width: percent(100), max_width: px(740), padding: UiRect::all(px(12)),
                 flex_direction: FlexDirection::Column, row_gap: px(4), ..default() }, BackgroundColor(PANEL)))
                 .with_children(|panel| {
-                    label(panel, "COMBAT TEST ARENA", 24.);
-                    label(panel, "Practice and compare. Campaign progress is separate; this arena does not save.", 13.);
-                    let entity = label(panel, "", 19.); panel.commands().entity(entity).insert(Copy::Scenario);
-                    panel.spawn(Node { width: percent(100), column_gap: px(8), ..default() }).with_children(|row| {
-                        button(row, CatalogAction::Previous, "LEFT  Previous scenario");
-                        button(row, CatalogAction::Next, "RIGHT  Next scenario");
+                    panel.spawn(Node { width: percent(100), height: px(30), min_height: px(30), align_items: AlignItems::Center,
+                        column_gap: px(12), ..default() }).with_children(|row| {
+                        let title = label(row, "COMBAT TEST ARENA", 22.);
+                        row.commands().entity(title).insert(Copy::Title);
+                        row.spawn(Node { width: px(150), min_width: px(150), height: px(30), ..default() }).with_children(|toggle| {
+                            let entity = button(toggle, CatalogAction::ToggleUpgrades, "U  Upgrades");
+                            toggle.commands().entity(entity).insert(Copy::PageToggle);
+                        });
                     });
-                    let entity = label(panel, "", 13.); panel.commands().entity(entity).insert(Copy::Instruction);
-                    label(panel, "Choose modules: click a slot or press 1-4 to cycle. Each type fits once.", 13.);
-                    for slot in 0..4 {
-                        let entity = button(panel, CatalogAction::CycleSlot(slot), "");
-                        panel.commands().entity(entity).insert(Copy::Slot(slot));
-                    }
-                    let entity = label(panel, "", 12.); panel.commands().entity(entity).insert(Copy::PowerRules);
-                    let entity = label(panel, "", 13.); panel.commands().entity(entity).insert(Copy::Duration);
+                    panel.spawn((SetupPage(false), Node { width: percent(100),
+                        flex_direction: FlexDirection::Column, row_gap: px(4), ..default() }))
+                        .with_children(|page| {
+                            label(page, "Practice and compare. Campaign progress is separate; this arena does not save.", 13.);
+                            let entity = label(page, "", 19.); page.commands().entity(entity).insert(Copy::Scenario);
+                            page.spawn(Node { width: percent(100), column_gap: px(8), ..default() }).with_children(|row| {
+                                button(row, CatalogAction::Previous, "LEFT  Previous scenario");
+                                button(row, CatalogAction::Next, "RIGHT  Next scenario");
+                            });
+                            let entity = label(page, "", 13.); page.commands().entity(entity).insert(Copy::Instruction);
+                            label(page, "Choose modules: click a slot or press 1-4 to cycle. Each type fits once.", 13.);
+                            for slot in 0..4 {
+                                let entity = button(page, CatalogAction::CycleSlot(slot), "");
+                                page.commands().entity(entity).insert(Copy::Slot(slot));
+                            }
+                            let entity = label(page, "", 12.); page.commands().entity(entity).insert(Copy::PowerRules);
+                            let entity = label(page, "", 13.); page.commands().entity(entity).insert(Copy::Duration);
+                        });
+                    panel.spawn((SetupPage(true), Node { width: percent(100), display: Display::None,
+                        flex_direction: FlexDirection::Column, row_gap: px(4), ..default() }))
+                        .with_children(|page| {
+                            let entity = label(page, "", 13.); page.commands().entity(entity).insert(Copy::PreviewRules);
+                            label(page, "Click a slot or press 1-4 to cycle eligible cards, including Empty. Each card fits once.", 13.);
+                            for slot in 0..4 {
+                                let entity = button(page, CatalogAction::CycleUpgrade(slot), "");
+                                page.commands().entity(entity).insert(Copy::Upgrade(slot));
+                            }
+                            label(page, "Preview supplies XP for these choices. Pick or Skip spends an opportunity; earn the rest in combat. No campaign saves.", 13.);
+                        });
                     button(panel, CatalogAction::Launch, "ENTER  Launch scenario");
                     label(panel, "In a round: 1-4 toggle modules / R restart / TAB return / ESC quit", 12.);
                 });
@@ -121,12 +150,14 @@ type LayoutNodes<'w, 's> = Query<
         Option<&'static RoundControls>,
         Option<&'static super::super::CombatHudRoot>,
         Option<&'static CatalogAction>,
+        Option<&'static SetupPage>,
     ),
     Or<(
         With<Selector>,
         With<RoundControls>,
         With<super::super::CombatHudRoot>,
         With<CatalogAction>,
+        With<SetupPage>,
     )>,
 >;
 
@@ -139,7 +170,14 @@ pub(super) fn present(
     mut labels: Query<(&Copy, &mut Text)>,
     mut buttons: Query<(&Interaction, &mut BackgroundColor), With<CatalogAction>>,
 ) {
-    for (mut node, selector, round, hud, action) in &mut nodes {
+    for (mut node, selector, round, hud, action, page) in &mut nodes {
+        if let Some(page) = page {
+            node.display = if page.0 == arena.upgrades_page {
+                Display::Flex
+            } else {
+                Display::None
+            };
+        }
         if selector.is_some() {
             node.display = if arena.selecting {
                 Display::Flex
@@ -164,6 +202,33 @@ pub(super) fn present(
     }
     for (copy, mut text) in &mut labels {
         let value = match copy {
+            Copy::Title => if arena.upgrades_page {
+                "UPGRADE PREVIEW"
+            } else {
+                "COMBAT TEST ARENA"
+            }
+            .to_owned(),
+            Copy::PageToggle => {
+                if arena.upgrades_page {
+                    "U  Modules".to_owned()
+                } else {
+                    format!("U  Upgrades {}/4", arena.preview.iter().flatten().count())
+                }
+            }
+            Copy::Upgrade(slot) => match arena.preview[*slot] {
+                Some(kind) => format!(
+                    "{}   {}\nBenefit: {}\nDrawback: {}",
+                    slot + 1,
+                    kind.name(),
+                    kind.benefit(),
+                    kind.drawback()
+                ),
+                None => format!("{}   EMPTY — earn this opportunity in combat", slot + 1),
+            },
+            Copy::PreviewRules => format!(
+                "{} / 4 preview choices. The run still has four opportunities total.",
+                arena.preview.iter().flatten().count()
+            ),
             Copy::Scenario => format!(
                 "{} / {}   {}",
                 arena.scenario + 1,

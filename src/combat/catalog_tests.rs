@@ -400,3 +400,6 @@ fn catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots() {
     assert_eq!(slots[1], None, "cycling must skip Repair already in slot 1");
     assert_eq!(app.world().resource::<Modules>().enabled, [false; 4]);
 }
+
+#[path = "catalog/upgrade_tests.rs"]
+mod upgrade_tests;

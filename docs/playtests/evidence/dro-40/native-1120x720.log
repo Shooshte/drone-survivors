@@ -1,0 +1,26 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.79s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
+UPGRADE FIXTURE: synthetic keyboard and preview XP; ordinary eligibility, four-opportunity choices, modifiers and reset. Agent evidence, not a human balance playtest.
+UPGRADE FIXTURE build-1-setup: phase=Res(Hub)
+UPGRADE FIXTURE card-efficient-coils: phase=Res(Choosing)
+UPGRADE FIXTURE card-reserve-battery: phase=Res(Choosing)
+UPGRADE FIXTURE card-long-range-rounds: phase=Res(Choosing)
+UPGRADE FIXTURE card-hot-overdrive: phase=Res(Choosing)
+UPGRADE FIXTURE build 1: capacity=150.00, activation=20.00, range=600.00, interval=0.625, overdrive=3.00, drains=[11.25, 6.0, 6.0, 7.5], repair=6.00/9.00, repulsor=180.00/2.00/6.00
+UPGRADE FIXTURE build-1-active: phase=Res(Playing)
+UPGRADE FIXTURE build-2-setup: phase=Res(Hub)
+UPGRADE FIXTURE card-rapid-repair: phase=Res(Choosing)
+UPGRADE FIXTURE card-wide-repulsor: phase=Res(Choosing)
+UPGRADE FIXTURE card-interceptor: phase=Res(Choosing)
+UPGRADE FIXTURE card-agile-frame: phase=Res(Choosing)
+UPGRADE FIXTURE build 2: capacity=75.00, activation=10.00, range=400.00, interval=0.500, overdrive=2.00, drains=[10.0, 8.0, 8.0, 10.0], repair=12.00/18.00, repulsor=270.00/3.00/8.00
+UPGRADE FIXTURE build-2-active: phase=Res(Playing)
+UPGRADE FIXTURE build-3-setup: phase=Res(Hub)
+UPGRADE FIXTURE card-heavy-armor: phase=Res(Choosing)
+UPGRADE FIXTURE card-heavy-rounds: phase=Res(Choosing)
+UPGRADE FIXTURE card-rapid-shield: phase=Res(Choosing)
+UPGRADE FIXTURE card-wide-area-rockets: phase=Res(Choosing)
+UPGRADE FIXTURE build 3: capacity=100.00, activation=10.00, range=400.00, interval=0.500, overdrive=2.00, drains=[10.0, 12.0, 8.0, 10.0], repair=6.00/12.00, repulsor=180.00/2.00/8.00
+UPGRADE FIXTURE build-3-active: phase=Res(Playing)
+UPGRADE FIXTURE PASS at 1120x720: all twelve cards, three four-card builds, configured benefits/drawbacks, normal choice budget, restart and return.
+2026-09-18T16:55:16.277222Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(52405797504)

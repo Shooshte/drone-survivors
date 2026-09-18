@@ -1,5 +1,5 @@
 //! Bridges run-local upgrade rules to existing gameplay and pauses its virtual clock.
-use super::{ChoiceAction, ExperienceConfig, UpgradeModifiers, UpgradeRun};
+use super::{ChoiceAction, ExperienceConfig, UpgradeModifiers, UpgradePool, UpgradeRun};
 use crate::{
     arena::{Drone, FlightConfig},
     combat::{CombatConfig, Encounter, PlayerHealth},
@@ -68,12 +68,19 @@ impl Plugin for UpgradePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ExperienceConfig>()
             .init_resource::<UpgradeRun>()
+            .init_resource::<UpgradePool>()
             .init_resource::<ChoiceSession>()
             .init_resource::<ExplorationPickup>()
             .init_resource::<Time<Virtual>>()
             .init_resource::<ButtonInput<MouseButton>>()
             .add_systems(PostStartup, capture_baseline)
             .add_systems(Update, begin_frame.in_set(GameplaySet::Baseline))
+            .add_systems(
+                Update,
+                open_reset_preview
+                    .after(GameplaySet::Reset)
+                    .before(GameplaySet::ChoiceInput),
+            )
             .add_systems(Update, choose.in_set(GameplaySet::ChoiceInput))
             .add_systems(Update, earn.in_set(GameplaySet::Progression));
     }
@@ -100,7 +107,7 @@ fn begin_frame(
     boundary: Option<Res<crate::game::MissionBoundary>>,
     baseline: Res<Baseline>,
     campaign: Option<Res<crate::mission::Campaign>>,
-    mut run: ResMut<UpgradeRun>,
+    run_state: (Res<UpgradePool>, ResMut<UpgradeRun>),
     mut session: ResMut<ChoiceSession>,
     mut pickup: ResMut<ExplorationPickup>,
     mut phase: ResMut<GamePhase>,
@@ -108,8 +115,10 @@ fn begin_frame(
     mut flight: ResMut<FlightConfig>,
     mut combat: ResMut<CombatConfig>,
     mut energy: ResMut<EnergyConfig>,
-    mut modules: ResMut<ModuleConfig>,
+    module_state: (ResMut<ModuleConfig>, Res<Modules>),
 ) {
+    let (pool, mut run) = run_state;
+    let (mut module_config, equipped) = module_state;
     if boundary
         .as_ref()
         .map_or_else(|| keys.just_pressed(KeyCode::KeyR), |b| b.reset)
@@ -118,8 +127,8 @@ fn begin_frame(
         *flight = baseline.flight;
         *combat = baseline.combat.clone();
         *energy = baseline.energy.clone();
-        *modules = baseline.modules.clone();
-        *run = UpgradeRun::default();
+        *module_config = baseline.modules.clone();
+        run.reset_for_pool(&pool, &equipped.loadout);
         *session = ChoiceSession::default();
         *pickup = ExplorationPickup::default();
         clock.unpause();
@@ -131,6 +140,31 @@ fn begin_frame(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn open_reset_preview(
+    keys: Res<ButtonInput<KeyCode>>,
+    boundary: Option<Res<crate::game::MissionBoundary>>,
+    pool: Res<UpgradePool>,
+    modules: Res<Modules>,
+    mut run: ResMut<UpgradeRun>,
+    mut session: ResMut<ChoiceSession>,
+    mut phase: ResMut<GamePhase>,
+    mut clock: ResMut<Time<Virtual>>,
+) {
+    let resetting = boundary
+        .as_ref()
+        .map_or_else(|| keys.just_pressed(KeyCode::KeyR), |b| b.reset);
+    if !resetting || !pool.catalog || *phase != GamePhase::Playing || run.pending == 0 {
+        return;
+    }
+    run.prepare_catalog_offer(&modules.loadout);
+    if !run.offer.is_empty() {
+        session.armed = false;
+        *phase = GamePhase::Choosing;
+        clock.pause();
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn earn(
     keys: Res<ButtonInput<KeyCode>>,
     boundary: Option<Res<crate::game::MissionBoundary>>,
@@ -138,6 +172,7 @@ fn earn(
     encounter: Res<Encounter>,
     drone: Single<&Transform, With<Drone>>,
     modules: Res<Modules>,
+    pool: Res<UpgradePool>,
     mut run: ResMut<UpgradeRun>,
     mut session: ResMut<ChoiceSession>,
     mut pickup: ResMut<ExplorationPickup>,
@@ -170,7 +205,11 @@ fn earn(
         pickup.collected = true;
         run.award(30);
     }
-    run.prepare_offer(&modules.loadout);
+    if pool.catalog {
+        run.prepare_catalog_offer(&modules.loadout);
+    } else {
+        run.prepare_offer(&modules.loadout);
+    }
     if !run.offer.is_empty() {
         session.armed = false;
         *phase = GamePhase::Choosing;
@@ -182,8 +221,7 @@ fn earn(
 fn choose(
     input: (Res<ButtonInput<KeyCode>>, Res<ButtonInput<MouseButton>>),
     buttons: Query<(&ChoiceAction, &Interaction), Changed<Interaction>>,
-    mut run: ResMut<UpgradeRun>,
-    mut session: ResMut<ChoiceSession>,
+    upgrade_state: (Res<UpgradePool>, ResMut<UpgradeRun>, ResMut<ChoiceSession>),
     phase: Res<GamePhase>,
     mut clock: ResMut<Time<Virtual>>,
     baseline: Res<Baseline>,
@@ -195,8 +233,13 @@ fn choose(
     mut health: ResMut<PlayerHealth>,
     mut energy: ResMut<Energy>,
     mut modules: ResMut<Modules>,
-    mut launcher: ResMut<crate::combat::RocketLauncher>,
+    cooldowns: (
+        ResMut<crate::combat::RocketLauncher>,
+        ResMut<crate::combat::bombs::BombState>,
+    ),
 ) {
+    let (pool, mut run, mut session) = upgrade_state;
+    let (mut launcher, mut bomb) = cooldowns;
     let (keys, mouse) = input;
     if *phase != GamePhase::Choosing || keys.just_pressed(KeyCode::KeyR) || session.resume_pending {
         return;
@@ -241,6 +284,7 @@ fn choose(
         let effective = UpgradeModifiers::from_selected(&run.selected);
         let old_hull = combat.player_health;
         let old_recharge = module_config.shield_recharge;
+        let old_repulsor_interval = module_config.repulsor_interval;
         *flight = baseline.flight;
         flight.horizontal_acceleration_multiplier *= effective.horizontal_acceleration;
         flight.max_horizontal_speed *= effective.speed;
@@ -258,6 +302,8 @@ fn choose(
             .combat
             .shot_damage
             .saturating_mul(effective.shot_damage);
+        combat.target_range = baseline.combat.target_range * effective.target_range;
+        combat.fire_interval = baseline.combat.fire_interval * effective.fire_interval;
         if combat.player_health > old_hull {
             health.current = health
                 .current
@@ -266,17 +312,34 @@ fn choose(
         health.current = health.current.min(combat.player_health);
         *energy_config = baseline.energy.clone();
         energy_config.capacity *= effective.capacity;
+        energy_config.activation *= effective.activation;
         energy.current = energy.current.min(energy_config.capacity);
         *module_config = baseline.modules.clone();
+        for drain in &mut module_config.drains {
+            *drain *= effective.module_drain;
+        }
+        module_config.drains[crate::modules::ModuleKind::Overdrive as usize] *=
+            effective.overdrive_drain;
         module_config.shield_recharge *= effective.shield_recharge;
         module_config.drains[crate::modules::ModuleKind::Shield as usize] *= effective.shield_drain;
         module_config.rocket_radius *= effective.rocket_radius;
         module_config.rocket_interval *= effective.rocket_interval;
+        module_config.overdrive_multiplier *= effective.overdrive_multiplier;
+        module_config.repair_rate *= effective.repair_rate;
+        module_config.repair_drain *= effective.module_drain * effective.repair_drain;
+        module_config.repulsor_radius *= effective.repulsor_radius;
+        module_config.repulsor_interval *= effective.repulsor_interval;
+        module_config.repulsor_drain *= effective.module_drain;
         launcher.retime(clock.elapsed_secs_f64(), module_config.rocket_interval);
         modules.shield.remaining *= module_config.shield_recharge / old_recharge;
+        bomb.pulse_cooldown *= module_config.repulsor_interval / old_repulsor_interval;
     }
     session.armed = false;
-    run.prepare_offer(&modules.loadout);
+    if pool.catalog {
+        run.prepare_catalog_offer(&modules.loadout);
+    } else {
+        run.prepare_offer(&modules.loadout);
+    }
     if run.offer.is_empty() {
         // Keep Choosing this frame: no movement, firing or power input leakage.
         // TimePlugin resumes the clock before the next frame's gameplay.
