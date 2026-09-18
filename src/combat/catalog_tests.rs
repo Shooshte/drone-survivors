@@ -8,6 +8,31 @@ use crate::{
 use bevy::time::TimeUpdateStrategy;
 use std::time::Duration;
 
+#[test]
+fn catalog_selects_fast_pursuer_and_preserves_type_through_spawn_warning() {
+    let mut app = app();
+    for _ in 0..3 {
+        step(&mut app, &[KeyCode::ArrowRight]);
+    }
+    assert!(
+        app.world_mut()
+            .query::<&Text>()
+            .iter(app.world())
+            .any(|t| t.0.contains("Fast pursuer"))
+    );
+    step(&mut app, &[KeyCode::Enter]);
+    for _ in 0..120 {
+        step(&mut app, &[]);
+    }
+    let kinds: Vec<_> = app
+        .world_mut()
+        .query::<&Enemy>()
+        .iter(app.world())
+        .map(|e| format!("{:?}", e.kind))
+        .collect();
+    assert_eq!(kinds, vec!["Fast"]);
+}
+
 fn app() -> App {
     let mut app = App::new();
     app.add_plugins(MinimalPlugins)

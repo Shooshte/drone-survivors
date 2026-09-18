@@ -968,6 +968,7 @@ fn edge_labels_follow_live_chargers_aggregate_warnings_and_hide_expired_or_choic
             SpawnWarning {
                 ready_at: 4.,
                 cancelled: false,
+                kind: default(),
             },
             Transform::from_xyz(1200., 90., z),
         ));
@@ -976,6 +977,7 @@ fn edge_labels_follow_live_chargers_aggregate_warnings_and_hide_expired_or_choic
         SpawnWarning {
             ready_at: 3.,
             cancelled: false,
+            kind: default(),
         },
         Transform::from_xyz(-1200., 90., 0.),
     ));
@@ -983,6 +985,7 @@ fn edge_labels_follow_live_chargers_aggregate_warnings_and_hide_expired_or_choic
         SpawnWarning {
             ready_at: 4.,
             cancelled: true,
+            kind: default(),
         },
         Transform::from_xyz(-1200., 90., 0.),
     ));
@@ -990,6 +993,7 @@ fn edge_labels_follow_live_chargers_aggregate_warnings_and_hide_expired_or_choic
         SpawnWarning {
             ready_at: 4.,
             cancelled: false,
+            kind: default(),
         },
         Transform::from_xyz(0., 90., 0.),
     ));
@@ -1142,6 +1146,7 @@ fn six_named_chargers_and_dense_warning_edges_remain_distinct_without_overlap() 
             SpawnWarning {
                 ready_at: 4.,
                 cancelled: false,
+                kind: default(),
             },
             Transform::from_translation(position.with_y(90.)),
         ));

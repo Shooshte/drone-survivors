@@ -1,4 +1,4 @@
-use super::{CombatConfig, Enemy, enemies::spawn_enemy};
+use super::{CombatConfig, Enemy, enemies::spawn_enemy_kind};
 use crate::arena::{Arena, Drone, drone_world_half_extents, world_half_extents};
 use crate::game::GamePhase;
 use bevy::prelude::*;
@@ -146,6 +146,7 @@ pub(crate) struct Encounter {
 pub(crate) struct SpawnWarning {
     pub ready_at: f64,
     pub cancelled: bool,
+    pub kind: crate::economy::runtime::EnemyKind,
 }
 
 pub(super) fn advance_clock(
@@ -293,6 +294,7 @@ pub(super) fn update(
     mut commands: Commands,
     config: Res<WaveConfig>,
     combat: Res<CombatConfig>,
+    roster: Option<Res<super::variants::SpawnRoster>>,
     arena: Res<Arena>,
     world: Option<Res<crate::world::WorldGeometry>>,
     player: Single<&Transform, With<Drone>>,
@@ -325,7 +327,7 @@ pub(super) fn update(
                 // immediately so it cannot count or queue the same warning twice.
                 w.cancelled = true;
             }
-            warnings.push((id, transform.translation, w.ready_at));
+            warnings.push((id, transform.translation, w.ready_at, w.kind));
             occupied.push((id, transform.translation, half));
         } else if enemy.is_some_and(|e| e.health > 0) {
             live += 1;
@@ -336,7 +338,7 @@ pub(super) fn update(
             ));
         }
     }
-    warnings.sort_by_key(|(id, _, _)| id.to_bits());
+    warnings.sort_by_key(|(id, _, _, _)| id.to_bits());
     if *phase != GamePhase::Playing {
         // The outcome wins over spawning, but due requests still need an outcome
         // in the report (including a hitch crossing the final authored burst).
@@ -349,13 +351,13 @@ pub(super) fn update(
             run.next_burst += 1;
         }
         run.spawns.cancelled += warnings.len();
-        for (id, _, _) in warnings {
+        for (id, _, _, _) in warnings {
             commands.entity(id).despawn();
         }
         return;
     }
     let mut pending = warnings.len();
-    for (id, position, ready_at) in warnings {
+    for (id, position, ready_at, kind) in warnings {
         if run.elapsed + 1e-7 < ready_at {
             continue;
         }
@@ -373,7 +375,7 @@ pub(super) fn update(
                 world.as_deref(),
             )
         {
-            spawn_enemy(&mut commands, &combat, position, player.translation);
+            spawn_enemy_kind(&mut commands, &combat, position, player.translation, kind);
             live += 1;
             run.spawns.activated += 1;
         } else {
@@ -425,6 +427,9 @@ pub(super) fn update(
             .spawn((
                 SpawnWarning {
                     ready_at: run.elapsed + config.warning_seconds,
+                    kind: roster
+                        .as_deref()
+                        .map_or_default(|r| r.kind(run.spawns.admitted)),
                     ..default()
                 },
                 Transform::from_translation(position),

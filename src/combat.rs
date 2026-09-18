@@ -14,6 +14,9 @@ mod lifecycle;
 mod rockets;
 pub(crate) use rockets::RocketLauncher;
 pub(crate) mod validation;
+mod variant_contact;
+mod variant_scene;
+mod variants;
 mod waves;
 mod weapon;
 pub(crate) use waves::Encounter;
@@ -27,6 +30,7 @@ mod tests;
 pub(crate) struct CombatConfig {
     pub(crate) player_health: u32,
     enemy_health: u32,
+    variants: variants::VariantConfig,
     pub(crate) contact_damage: u32,
     pub(crate) shot_damage: u32,
     enemy_flight: crate::arena::FlightConfig,
@@ -46,6 +50,7 @@ impl Default for CombatConfig {
         Self {
             player_health: 100,
             enemy_health: 20,
+            variants: default(),
             contact_damage: 10,
             shot_damage: 10,
             enemy_flight: crate::arena::FlightConfig {

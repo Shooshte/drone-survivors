@@ -1,4 +1,7 @@
-use super::{CombatConfig, Enemy};
+use super::{
+    CombatConfig, Enemy,
+    variants::{RamPhase, Rammer},
+};
 use crate::arena::{Arena, Drone, DroneFlight, FlightConfig, FlightInput, world_half_extents};
 use bevy::prelude::*;
 
@@ -10,21 +13,44 @@ pub(super) fn spawn_enemy(
     position: Vec3,
     target: Vec3,
 ) {
+    spawn_enemy_kind(
+        commands,
+        config,
+        position,
+        target,
+        crate::economy::runtime::EnemyKind::Chaser,
+    );
+}
+
+pub(super) fn spawn_enemy_kind(
+    commands: &mut Commands,
+    config: &CombatConfig,
+    position: Vec3,
+    target: Vec3,
+    kind: crate::economy::runtime::EnemyKind,
+) {
     let offset = target - position;
     let flight = DroneFlight {
         heading: (-offset.x).atan2(-offset.z),
         ..default()
     };
-    commands.spawn((
+    let mut entity = commands.spawn((
         Enemy {
-            kind: crate::economy::runtime::EnemyKind::Chaser,
-            health: config.enemy_health,
+            kind,
+            health: if kind == crate::economy::runtime::EnemyKind::Rammer {
+                config.variants.rammer_health
+            } else {
+                config.enemy_health
+            },
             previous: position,
             path: Vec::new(),
         },
         Transform::from_translation(position).with_rotation(flight.rotation()),
         flight,
     ));
+    if kind == crate::economy::runtime::EnemyKind::Rammer {
+        entity.insert(Rammer::default());
+    }
 }
 
 /// Arrival velocity and velocity-error feedback are pilot inputs. The shared
@@ -86,6 +112,19 @@ fn pilot(
     }
 }
 
+type PilotedEnemies<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static mut Enemy,
+        &'static mut Transform,
+        &'static mut DroneFlight,
+        Option<&'static mut Rammer>,
+    ),
+    Without<Drone>,
+>;
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn chase(
     time: Res<Time>,
@@ -94,23 +133,45 @@ pub(super) fn chase(
     world_flight: Res<FlightConfig>,
     world: Option<Res<crate::world::WorldGeometry>>,
     drone: Single<&Transform, With<Drone>>,
-    mut enemies: Query<(Entity, &mut Enemy, &mut Transform, &mut DroneFlight), Without<Drone>>,
+    mut enemies: PilotedEnemies,
 ) {
     let seconds = time.delta_secs();
     let steps = (seconds / (1. / 120.)).ceil().max(1.) as u32;
     let dt = seconds / steps as f32;
     let local_half = Vec3::splat(config.enemy_half_size);
-    let profile = &FlightConfig {
+    let base_profile = FlightConfig {
         gravity: world_flight.gravity,
         ..config.enemy_flight
     };
     let mut positions: Vec<_> = enemies
         .iter()
-        .filter(|(_, e, _, _)| e.health > 0)
-        .map(|(id, _, t, _)| (id, t.translation))
+        .filter(|(_, e, _, _, _)| e.health > 0)
+        .map(|(id, _, t, _, _)| (id, t.translation))
         .collect();
     positions.sort_by_key(|(id, _)| id.to_bits());
-    for (id, mut enemy, mut transform, mut flight) in &mut enemies {
+    for (id, mut enemy, mut transform, mut flight, mut rammer) in &mut enemies {
+        let mut profile = base_profile;
+        if enemy.kind == crate::economy::runtime::EnemyKind::Fast {
+            profile.max_horizontal_speed = config.variants.fast_speed;
+        }
+        let goal = if let Some(ram) = rammer.as_mut() {
+            ram.plan(
+                transform.translation,
+                drone.translation,
+                seconds,
+                &config.variants,
+                world_half_extents(transform.rotation, local_half),
+                &arena,
+                world.as_deref(),
+            )
+        } else {
+            drone.translation
+        };
+        let committed = rammer.as_ref().is_some_and(|r| r.phase == RamPhase::Charge);
+        if committed {
+            profile.max_horizontal_speed = config.variants.charge_speed;
+        }
+        let profile = &profile;
         let separation = separation(
             id,
             transform.translation,
@@ -119,19 +180,29 @@ pub(super) fn chase(
         ) * config.separation_acceleration;
         enemy.previous = transform.translation;
         enemy.path.clear();
-        let target = world
-            .as_deref()
-            .map_or(Some(drone.translation), |world| {
-                crate::world::navigation::next_point(
-                    world,
-                    transform.translation,
-                    drone.translation,
-                    world_half_extents(transform.rotation, local_half),
-                )
-            })
-            .unwrap_or(transform.translation);
+        let target = if committed {
+            goal
+        } else {
+            world
+                .as_deref()
+                .map_or(Some(goal), |world| {
+                    crate::world::navigation::next_point(
+                        world,
+                        transform.translation,
+                        goal,
+                        world_half_extents(transform.rotation, local_half),
+                    )
+                })
+                .unwrap_or(transform.translation)
+        };
         for index in 0..steps {
-            let input = pilot(transform.translation, &flight, target, profile, separation);
+            let input = pilot(
+                transform.translation,
+                &flight,
+                target,
+                profile,
+                if committed { Vec3::ZERO } else { separation },
+            );
             for mut segment in flight.step_in_world(
                 &mut transform,
                 &input,
