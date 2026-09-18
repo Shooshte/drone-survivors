@@ -79,6 +79,7 @@ impl Rammer {
         player: Vec3,
         dt: f32,
         config: &VariantConfig,
+        half: Vec3,
         arena: &crate::arena::Arena,
         world: Option<&crate::world::WorldGeometry>,
     ) -> Vec3 {
@@ -129,8 +130,23 @@ impl Rammer {
                         player
                     }
                 } else {
+                    // Keep a stable flight target, but keep escaping if the
+                    // player follows us to it before separation allows rearming.
+                    if self
+                        .retreat_goal
+                        .is_some_and(|goal| position.distance(goal) < 30.)
+                    {
+                        self.retreat_goal = None;
+                    }
                     *self.retreat_goal.get_or_insert_with(|| {
-                        retreat_target(position, player, config.retreat_distance, arena, world)
+                        retreat_target(
+                            position,
+                            player,
+                            config.retreat_distance,
+                            half,
+                            arena,
+                            world,
+                        )
                     })
                 }
             }
@@ -156,6 +172,7 @@ fn retreat_target(
     position: Vec3,
     player: Vec3,
     distance: f32,
+    half: Vec3,
     arena: &crate::arena::Arena,
     world: Option<&crate::world::WorldGeometry>,
 ) -> Vec3 {
@@ -163,7 +180,6 @@ fn retreat_target(
         .with_y(0.)
         .try_normalize()
         .unwrap_or(Vec3::X);
-    let half = Vec3::splat(25.);
     let min = arena.center() - arena.half_size + half;
     let max = arena.center() + arena.half_size - half;
     (0..8)

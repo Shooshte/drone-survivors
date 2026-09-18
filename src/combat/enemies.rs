@@ -160,6 +160,7 @@ pub(super) fn chase(
                 drone.translation,
                 seconds,
                 &config.variants,
+                world_half_extents(transform.rotation, local_half),
                 &arena,
                 world.as_deref(),
             )

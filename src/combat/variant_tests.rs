@@ -150,16 +150,32 @@ fn rammer_requires_warning_separation_and_two_distinct_accepted_impacts() {
     let mut ram = Rammer::default();
     let start = Vec3::new(-200., 90., 0.);
     let player = Vec3::new(0., 90., 0.);
-    ram.plan(start, player, 100., &config, &arena, None);
+    ram.plan(start, player, 100., &config, Vec3::splat(14.), &arena, None);
     assert_eq!(
         ram.phase,
         RamPhase::Windup,
         "a hitch cannot skip the warning"
     );
     let locked = ram.target;
-    ram.plan(start, player + Vec3::Z * 100., 1., &config, &arena, None);
+    ram.plan(
+        start,
+        player + Vec3::Z * 100.,
+        1.,
+        &config,
+        Vec3::splat(14.),
+        &arena,
+        None,
+    );
     assert_eq!(ram.phase, RamPhase::Windup);
-    ram.plan(start, player + Vec3::Z * 100., 0., &config, &arena, None);
+    ram.plan(
+        start,
+        player + Vec3::Z * 100.,
+        0.,
+        &config,
+        Vec3::splat(14.),
+        &arena,
+        None,
+    );
     assert_eq!(ram.phase, RamPhase::Charge);
     assert_eq!(ram.target, locked, "charge keeps its telegraphed line");
     assert!(!ram.impact(true));
@@ -170,17 +186,25 @@ fn rammer_requires_warning_separation_and_two_distinct_accepted_impacts() {
         "lingering contact cannot consume another impact"
     );
     assert_eq!(ram.impacts, 1);
-    ram.plan(player, player, 100., &config, &arena, None);
+    ram.plan(
+        player,
+        player,
+        100.,
+        &config,
+        Vec3::splat(14.),
+        &arena,
+        None,
+    );
     assert_eq!(
         ram.phase,
         RamPhase::Retreat,
         "time alone cannot rearm while overlapping"
     );
-    ram.plan(start, player, 0., &config, &arena, None);
+    ram.plan(start, player, 0., &config, Vec3::splat(14.), &arena, None);
     assert_eq!(ram.phase, RamPhase::Windup);
     assert_eq!(ram.elapsed, 0.);
-    ram.plan(start, player, 1., &config, &arena, None);
-    ram.plan(start, player, 0., &config, &arena, None);
+    ram.plan(start, player, 1., &config, Vec3::splat(14.), &arena, None);
+    ram.plan(start, player, 0., &config, Vec3::splat(14.), &arena, None);
     assert!(ram.impact(true));
     assert_eq!(ram.impacts, 2);
 }
@@ -367,4 +391,137 @@ fn ordinary_waves_have_no_variant_roster() {
         .collect();
     assert_eq!(kinds.len(), 3);
     assert!(kinds.iter().all(|k| *k == EnemyKind::Chaser));
+}
+
+#[test]
+fn rammer_replans_retreat_when_player_follows_to_its_destination() {
+    let config = VariantConfig::default();
+    let arena = Arena::default();
+    let mut ram = Rammer {
+        phase: RamPhase::Charge,
+        ..default()
+    };
+    ram.impact(true);
+    let destination = ram.plan(
+        Vec3::new(0., 90., 0.),
+        Vec3::new(-50., 90., 0.),
+        0.1,
+        &config,
+        Vec3::splat(14.),
+        &arena,
+        None,
+    );
+    let player = destination + Vec3::Z * 50.;
+    let next = ram.plan(
+        destination,
+        player,
+        2.,
+        &config,
+        Vec3::splat(14.),
+        &arena,
+        None,
+    );
+    assert_eq!(ram.phase, RamPhase::Retreat);
+    assert!(
+        next.distance(destination) > 100.,
+        "rammer must keep retreating after the player follows it"
+    );
+    assert!(next.distance(player) >= config.rearm_distance);
+    assert_eq!(ram.impacts, 1);
+}
+
+#[test]
+fn missed_charge_retreats_without_spending_budget_and_terminal_states_freeze_flight() {
+    let config = VariantConfig::default();
+    let mut ram = Rammer {
+        phase: RamPhase::Charge,
+        elapsed: config.charge_seconds,
+        ..default()
+    };
+    ram.plan(
+        Vec3::new(200., 90., 0.),
+        Vec3::new(0., 90., 0.),
+        0.1,
+        &config,
+        Vec3::splat(14.),
+        &Arena::default(),
+        None,
+    );
+    assert_eq!(ram.phase, RamPhase::Retreat);
+    assert_eq!(ram.impacts, 0);
+    for phase in [GamePhase::Dead, GamePhase::Survived] {
+        let mut app = app();
+        let id = spawn(&mut app, EnemyKind::Rammer, Vec3::new(-200., 90., 0.));
+        step(&mut app, 1. / 60.);
+        let before = app.world().get::<Transform>(id).unwrap().translation;
+        let elapsed = app.world().get::<Rammer>(id).unwrap().elapsed;
+        *app.world_mut().resource_mut::<GamePhase>() = phase;
+        step(&mut app, 3.);
+        assert_eq!(app.world().get::<Rammer>(id).unwrap().elapsed, elapsed);
+        assert_eq!(
+            app.world().get::<Transform>(id).unwrap().translation,
+            before
+        );
+    }
+}
+
+#[test]
+fn rammer_retreat_can_leave_a_wall_contact_with_its_physical_hull() {
+    let world = crate::world::WorldGeometry {
+        solids: vec![crate::world::Solid {
+            center: Vec3::new(0., 150., 0.),
+            half: Vec3::new(10., 150., 500.),
+        }],
+        hazard: None,
+    };
+    let position = Vec3::new(-25., 90., 0.);
+    let player = Vec3::new(-80., 90., 0.);
+    let goal = retreat_target(
+        position,
+        player,
+        240.,
+        Vec3::splat(14.),
+        &Arena::default(),
+        Some(&world),
+    );
+    assert!(
+        goal.distance(position) > 100.,
+        "retreat must escape a wall contact, got {goal:?}"
+    );
+}
+
+#[test]
+fn following_a_retreating_rammer_still_allows_a_second_physical_warning() {
+    for hz in [30, 60, 144] {
+        let mut app = app();
+        let id = spawn(&mut app, EnemyKind::Rammer, Vec3::new(-250., 90., 0.));
+        let mut followed = false;
+        let mut rearmed = false;
+        for _ in 0..hz * 25 {
+            step(&mut app, 1. / hz as f32);
+            let ram = app.world().get::<Rammer>(id).unwrap();
+            if !followed && let Some(goal) = ram.retreat_goal {
+                let mut drone = app
+                    .world_mut()
+                    .query_filtered::<&mut Transform, With<Drone>>();
+                drone.single_mut(app.world_mut()).unwrap().translation = goal + Vec3::Z * 50.;
+                followed = true;
+            } else if followed && ram.phase == RamPhase::Windup {
+                let player = app
+                    .world_mut()
+                    .query_filtered::<&Transform, With<Drone>>()
+                    .single(app.world())
+                    .unwrap()
+                    .translation;
+                let enemy = app.world().get::<Transform>(id).unwrap().translation;
+                assert!(
+                    enemy.distance(player) >= 175.,
+                    "rearmed without separation at {hz} Hz"
+                );
+                rearmed = true;
+                break;
+            }
+        }
+        assert!(followed && rearmed, "did not recover at {hz} Hz");
+    }
 }
