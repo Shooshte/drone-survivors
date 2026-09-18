@@ -1605,7 +1605,7 @@ Warnings require range/clear sight; beams slow horizontal flight without stackin
 and jammers lock one announced slot OFF without power drain before manual
 reactivation. Campaign content and saves remain unchanged.
 
-**417 tests pass**, 5 existing probes ignored; formatting and strict Clippy pass.
+**422 tests pass**, 5 existing probes ignored; formatting and strict Clippy pass.
 Native fixtures pass at 1120×720 and 640×480, including per-frame navigation/HUD
 clearance. Scripted banking avoids both attacks at 30/60/144 Hz while idle controls
 receive them. Independent review and compact visual inspection led to acquisition
@@ -1613,3 +1613,8 @@ range and HUD-clearance fixes; re-review found no remaining actionable findings.
 
 [Rules, measured comparisons, logs, screenshots and human follow-up](playtests/dro-36-control-enemies.md).
 Agent checks do not establish human balance acceptance or lift the campaign gate.
+
+DRO-36 PR review follow-up: attack delivery now occurs after same-frame lethal
+projectile/hazard damage and outcome resolution. Five added regressions cover
+both enemy types, three damage sources, real movement/power state, surviving
+sources, terminal outcomes and the beam's final active movement interval.

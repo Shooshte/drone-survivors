@@ -351,3 +351,219 @@ fn control_keyboard_escape_breaks_attacks_in_both_isolated_scenarios() {
         }
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+enum LethalHit {
+    Shot,
+    Rocket,
+    Hazard,
+}
+
+fn expiring_source(app: &mut App, kind: EnemyKind) -> Entity {
+    let id = spawn(app, kind);
+    let position = app.world().get::<Transform>(id).unwrap().translation;
+    *app.world_mut().get_mut::<ControlAttack>(id).unwrap() = ControlAttack {
+        phase: ControlPhase::Windup,
+        elapsed: WINDUP,
+        slot: (kind == EnemyKind::Jammer).then_some(0),
+        anchor: position,
+    };
+    app.world_mut().get_mut::<Enemy>(id).unwrap().health = 10;
+    id
+}
+
+fn lethal_hit(app: &mut App, id: Entity, hit: LethalHit) {
+    use crate::combat::{Projectile, ShotPayload, rockets::Rocket};
+    let position = app.world().get::<Transform>(id).unwrap().translation;
+    if matches!(hit, LethalHit::Hazard) {
+        app.insert_resource(crate::world::WorldGeometry {
+            solids: vec![],
+            hazard: Some(crate::world::Solid {
+                center: position,
+                half: Vec3::splat(30.),
+            }),
+        });
+        app.insert_resource(crate::world::hazard::HazardState {
+            phase: crate::world::hazard::HazardPhase::Active,
+            ..default()
+        });
+    } else {
+        let mut shot = app.world_mut().spawn((
+            Projectile {
+                velocity: Vec3::ZERO,
+                remaining: 1.,
+            },
+            ShotPayload {
+                damage: 10,
+                radius: 70.,
+            },
+            Transform::from_translation(position),
+        ));
+        if matches!(hit, LethalHit::Rocket) {
+            shot.insert(Rocket);
+        }
+    }
+}
+
+#[test]
+fn lethal_hit_on_beam_delivery_frame_preserves_unslowed_motion() {
+    for hz in [30, 60, 144] {
+        for hit in [LethalHit::Shot, LethalHit::Rocket, LethalHit::Hazard] {
+            let mut baseline = app();
+            let mut app = app();
+            for world in [&mut baseline, &mut app] {
+                world
+                    .world_mut()
+                    .query_filtered::<&mut DroneFlight, With<Drone>>()
+                    .single_mut(world.world_mut())
+                    .unwrap()
+                    .velocity = Vec3::X * 420.;
+            }
+            let id = expiring_source(&mut app, EnemyKind::Slower);
+            lethal_hit(&mut app, id, hit);
+            step(&mut baseline, 1. / hz as f32);
+            step(&mut app, 1. / hz as f32);
+            assert!(
+                app.world().get_entity(id).is_err(),
+                "fixture must deliver a real lethal hit"
+            );
+            assert_eq!(app.world().resource::<crate::combat::Encounter>().kills, 1);
+            assert!(
+                !app.world().resource::<ControlEffects>().slowed,
+                "{hit:?} {hz}Hz"
+            );
+            let movement = |app: &mut App| {
+                let (t, f) = app
+                    .world_mut()
+                    .query_filtered::<(&Transform, &DroneFlight), With<Drone>>()
+                    .single(app.world())
+                    .unwrap();
+                (t.translation, f.velocity)
+            };
+            assert_eq!(
+                movement(&mut app),
+                movement(&mut baseline),
+                "{hit:?} {hz}Hz"
+            );
+        }
+    }
+}
+
+#[test]
+fn lethal_hit_on_jam_delivery_frame_preserves_module_intent_and_power() {
+    for hz in [30, 60, 144] {
+        for hit in [LethalHit::Shot, LethalHit::Rocket, LethalHit::Hazard] {
+            let mut app = app();
+            let id = expiring_source(&mut app, EnemyKind::Jammer);
+            app.world_mut().resource_mut::<Modules>().enabled[0] = true;
+            lethal_hit(&mut app, id, hit);
+            step(&mut app, 1. / hz as f32);
+            assert!(app.world().get_entity(id).is_err());
+            let modules = app.world().resource::<Modules>();
+            assert_eq!(modules.disabled_for, [0.; 4], "{hit:?} {hz}Hz");
+            assert_eq!(modules.jam_grace, 0.);
+            assert!(modules.active(ModuleKind::Overdrive));
+            assert!(
+                (app.world().resource::<Energy>().current - (100. - 10. / f64::from(hz))).abs()
+                    < 1e-5
+            );
+        }
+    }
+}
+
+#[test]
+fn surviving_jammer_commits_after_damage_and_stays_off_without_further_drain() {
+    let mut app = app();
+    let id = expiring_source(&mut app, EnemyKind::Jammer);
+    app.world_mut().get_mut::<Enemy>(id).unwrap().health = 40;
+    app.world_mut().resource_mut::<Modules>().enabled[0] = true;
+    lethal_hit(&mut app, id, LethalHit::Shot);
+    step(&mut app, 1. / 60.);
+    assert_eq!(app.world().get::<Enemy>(id).unwrap().health, 30);
+    assert_eq!(app.world().resource::<Modules>().disabled_for[0], 3.);
+    assert!(
+        !app.world()
+            .resource::<Modules>()
+            .active(ModuleKind::Overdrive)
+    );
+    let energy = app.world().resource::<Energy>().current;
+    run(&mut app, 0.5, 60);
+    assert_eq!(app.world().resource::<Energy>().current, energy);
+}
+
+#[test]
+fn committed_beam_slows_its_final_movement_interval_before_expiring() {
+    for hz in [30, 60, 144] {
+        let mut app = app();
+        let id = expiring_source(&mut app, EnemyKind::Slower);
+        {
+            let mut attack = app.world_mut().get_mut::<ControlAttack>(id).unwrap();
+            attack.phase = ControlPhase::Active;
+            attack.elapsed = 2. - 1. / hz as f32;
+        }
+        let drone = app
+            .world_mut()
+            .query_filtered::<Entity, With<Drone>>()
+            .single(app.world())
+            .unwrap();
+        app.world_mut()
+            .get_mut::<DroneFlight>(drone)
+            .unwrap()
+            .velocity = Vec3::X * 420.;
+        step(&mut app, 1. / hz as f32);
+        assert!(
+            app.world()
+                .get::<DroneFlight>(drone)
+                .unwrap()
+                .velocity
+                .length()
+                <= 252.,
+            "{hz}Hz: final active interval must still slow movement"
+        );
+        assert_eq!(
+            app.world().get::<ControlAttack>(id).unwrap().phase,
+            ControlPhase::Recovery
+        );
+        assert!(!app.world().resource::<ControlEffects>().slowed);
+        app.world_mut()
+            .get_mut::<DroneFlight>(drone)
+            .unwrap()
+            .velocity = Vec3::X * 420.;
+        step(&mut app, 1. / hz as f32);
+        assert!(
+            app.world()
+                .get::<DroneFlight>(drone)
+                .unwrap()
+                .velocity
+                .length()
+                > 252.
+        );
+    }
+}
+
+#[test]
+fn terminal_frame_does_not_deliver_surviving_sources_attack() {
+    for kind in [EnemyKind::Slower, EnemyKind::Jammer] {
+        let mut app = app();
+        let id = expiring_source(&mut app, kind);
+        // Let the source live while the player fails at the outcome boundary.
+        app.world_mut()
+            .resource_mut::<crate::combat::PlayerHealth>()
+            .current = 0;
+        step(&mut app, 1. / 60.);
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Dead);
+        assert_eq!(
+            app.world().get::<ControlAttack>(id).unwrap().phase,
+            ControlPhase::Windup
+        );
+        assert!(!app.world().resource::<ControlEffects>().slowed);
+        assert_eq!(app.world().resource::<Modules>().disabled_for, [0.; 4]);
+        assert_eq!(
+            app.world()
+                .resource::<crate::energy::PowerFrame>()
+                .modules
+                .disabled_for,
+            [0.; 4]
+        );
+    }
+}

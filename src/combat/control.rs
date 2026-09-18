@@ -1,12 +1,16 @@
 //! Range/line-of-sight control attacks. Only catalog rosters spawn these sources.
 use super::Enemy;
-use crate::{arena::Drone, economy::runtime::EnemyKind, modules::Modules};
+use crate::{
+    arena::Drone, economy::runtime::EnemyKind, energy::PowerFrame, game::GamePhase,
+    modules::Modules,
+};
 use bevy::prelude::*;
 
 pub(super) const RANGE: f32 = 320.;
 const APPROACH_DISTANCE: f32 = 240.;
 const WINDUP: f32 = 1.2;
 const RECOVERY: f32 = 3.;
+const BEAM_SECONDS: f32 = 2.;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) enum ControlPhase {
@@ -61,17 +65,49 @@ pub(super) fn reset(mut effects: ResMut<ControlEffects>) {
     *effects = default();
 }
 
-pub(super) fn update(
+fn in_sight(source: Vec3, player: Vec3, world: Option<&crate::world::WorldGeometry>) -> bool {
+    source.distance(player) <= RANGE && world.is_none_or(|w| w.line_clear(source, player))
+}
+
+/// Only already-committed beams can affect this frame's movement. A newly ready
+/// warning must survive this frame's projectile and hazard resolution first.
+pub(super) fn prepare(
     time: Res<Time>,
     drone: Single<&Transform, With<Drone>>,
     world: Option<Res<crate::world::WorldGeometry>>,
     mut modules: ResMut<Modules>,
     mut effects: ResMut<ControlEffects>,
+    enemies: Query<(&Enemy, &Transform, &ControlAttack)>,
+) {
+    modules.advance_jam(time.delta_secs_f64());
+    effects.slowed = enemies.iter().any(|(enemy, transform, attack)| {
+        enemy.health > 0
+            && enemy.kind == EnemyKind::Slower
+            && attack.phase == ControlPhase::Active
+            && attack.elapsed < BEAM_SECONDS
+            && in_sight(transform.translation, drone.translation, world.as_deref())
+    });
+}
+
+/// Commit attacks after damage/outcome resolution, into the staged power frame
+/// so energy::update cannot overwrite a delivered lock. Energy accounted before
+/// delivery belongs to the elapsed, unlocked interval; future frames draw none.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn resolve(
+    time: Res<Time>,
+    drone: Single<&Transform, With<Drone>>,
+    world: Option<Res<crate::world::WorldGeometry>>,
+    phase: Res<GamePhase>,
+    mut power: ResMut<PowerFrame>,
+    mut effects: ResMut<ControlEffects>,
     mut enemies: Query<(Entity, &Enemy, &Transform, &mut ControlAttack)>,
 ) {
     let dt = time.delta_secs();
-    modules.advance_jam(f64::from(dt));
     effects.slowed = false;
+    if *phase != GamePhase::Playing {
+        return;
+    }
+    let modules = &mut power.modules;
     // Resolve simultaneous pulses deterministically, without extending a lock.
     let mut ids: Vec<_> = enemies.iter().map(|(id, _, _, _)| id).collect();
     ids.sort_by_key(|id| id.to_bits());
@@ -83,10 +119,7 @@ pub(super) fn update(
             continue;
         }
         let jammer = enemy.kind == EnemyKind::Jammer;
-        let in_sight = transform.translation.distance(drone.translation) <= RANGE
-            && world
-                .as_ref()
-                .is_none_or(|w| w.line_clear(transform.translation, drone.translation));
+        let in_sight = in_sight(transform.translation, drone.translation, world.as_deref());
         match attack.phase {
             ControlPhase::Approach => {
                 let slot = if jammer {
@@ -120,7 +153,7 @@ pub(super) fn update(
             }
             ControlPhase::Active => {
                 attack.elapsed += dt;
-                let duration = if jammer { 0.4 } else { 2. };
+                let duration = if jammer { 0.4 } else { BEAM_SECONDS };
                 if (!jammer && !in_sight) || attack.elapsed + 1e-6 >= duration {
                     attack.enter(ControlPhase::Recovery);
                 }

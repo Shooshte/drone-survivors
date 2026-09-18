@@ -110,7 +110,9 @@ or XP are granted. These checks do not replace human balance/counterplay testing
 The catalog also offers **Slowing beam**, **Module jammer**, and **Mixed control**
 (both plus a fast pursuer). These enemies have 40 hull, approach to 240 units,
 and warn for 1.2 active seconds. Breaking clear sight or moving beyond 320 units
-cancels a warning; destroying the source also prevents its attack. Shield blocks
+cancels a warning; destroying the source also prevents its attack, including a
+lethal projectile or hazard hit on the delivery frame. New beams begin slowing
+movement on the following frame after damage resolves. Shield blocks
 contact damage but does not block control attacks. All tuning is provisional.
 
 - **Cross emitter / BEAM:** a 2-second beam reduces horizontal speed and

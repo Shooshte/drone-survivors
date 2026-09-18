@@ -30,7 +30,12 @@ A delivered lock expires even if its source dies. Expiry leaves the slot OFF;
 player must press its key again with the ordinary battery threshold. Shield
 blocks damage, not control attacks. Basic fire and steering always remain.
 
-Compute attack/status state before player movement and power preparation.
+Before movement, age existing locks and derive slowing from already committed
+beams. Resolve warning/attack transitions after projectile, hazard and outcome
+resolution; a source killed on its delivery frame never starts a new attack.
+New beams affect movement from the following frame. Commit new jams into the
+staged power state before weapon firing, so they persist through the energy
+commit. Energy used before delivery belongs to the elapsed unlocked interval.
 Timers freeze outside gameplay; reset/arena return clears all effects. Existing
 energy staging must preserve the lock state and cannot charge disabled modules,
 recharge their shields, launch rockets or confer Mobility/Overdrive benefits.

@@ -135,7 +135,7 @@ impl Plugin for CombatPlugin {
             .add_systems(Startup, lifecycle::setup)
             .add_systems(
                 Update,
-                control::update
+                control::prepare
                     .after(GameplaySet::ChoiceInput)
                     .before(GameplaySet::Movement)
                     .run_if(is_playing)
@@ -171,6 +171,7 @@ impl Plugin for CombatPlugin {
                     hazards::damage,
                     lifecycle::contact_damage,
                     waves::finish,
+                    control::resolve,
                     waves::update,
                     crate::energy::update,
                     weapon::fire,

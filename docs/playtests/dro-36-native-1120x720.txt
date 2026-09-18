@@ -1,20 +1,20 @@
-    Finished `dev` profile [optimized + debuginfo] target(s) in 0.71s
+    Finished `dev` profile [optimized + debuginfo] target(s) in 1.28s
      Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
 CONTROL FIXTURE: synthetic keys; auto-fire suppressed; each single source repositioned once. Production warnings, attacks, power and recovery. Not human/balance evidence.
 CONTROL FIXTURE beam-selector: time=0.00 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE activated Slower; repositioned for visibility
 CONTROL FIXTURE beam-warning: time=1.87 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE beam-active: time=2.99 slow=true lock=[0.0, 0.0, 0.0, 0.0]
-CONTROL FIXTURE beam-recovery: time=4.99 slow=false lock=[0.0, 0.0, 0.0, 0.0]
-CONTROL FIXTURE beam-restart: time=1.00 slow=false lock=[0.0, 0.0, 0.0, 0.0]
+CONTROL FIXTURE beam-recovery: time=5.00 slow=false lock=[0.0, 0.0, 0.0, 0.0]
+CONTROL FIXTURE beam-restart: time=0.99 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE jam-selector: time=0.00 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE activated Jammer; repositioned for visibility
 CONTROL FIXTURE jam-warning: time=2.77 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE jam-lock: time=2.98 slow=false lock=[3.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE jam-unlocked-off: time=5.98 slow=false lock=[0.0, 0.0, 0.0, 0.0]
-CONTROL FIXTURE jam-manual-enable: time=8.00 slow=false lock=[0.0, 0.0, 0.0, 0.0]
+CONTROL FIXTURE jam-manual-enable: time=7.99 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE jam-restart: time=1.00 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE control-mixed-selector: time=0.00 slow=false lock=[0.0, 0.0, 0.0, 0.0]
-CONTROL FIXTURE control-mixed-round: time=1.76 slow=false lock=[0.0, 0.0, 0.0, 0.0]
+CONTROL FIXTURE control-mixed-round: time=1.77 slow=false lock=[0.0, 0.0, 0.0, 0.0]
 CONTROL FIXTURE PASS at 1120x720: beam phases, jam target/lock/OFF expiry/manual enable, resets and mixed roster
-2026-09-18T09:07:50.793548Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(45072269952)
+2026-09-18T10:30:39.887196Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(36639294080)

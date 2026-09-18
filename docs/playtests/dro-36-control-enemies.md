@@ -46,7 +46,7 @@ starting both types at 280 units reproduced it; acquisition now uses 240 while
 actionable findings.
 
 - `cargo fmt --check` and `git diff --check`: pass.
-- `cargo test --locked`: **417 passed, 5 existing probes ignored, 0 failed**.
+- `cargo test --locked`: **422 passed, 5 existing probes ignored, 0 failed**.
   [Full output](dro-36-tests.txt).
 - `cargo clippy --locked --all-targets -- -D warnings`: pass.
   [Output](dro-36-clippy.txt).
@@ -109,6 +109,30 @@ warning after the fixture PASS; exit status was zero.
 - [Compact locked module](../images/dro-36-640x480-jam-lock.png)
 - [Compact expiry to OFF](../images/dro-36-640x480-jam-unlocked-off.png)
 - [Normal active beam](../images/dro-36-1120x720-beam-active.png)
+
+## PR review follow-up: delivery versus lethal damage
+
+The review finding was valid. Warning expiry previously applied slowing/jamming
+before projectiles and hazards could kill the source during that frame. New
+production-system regressions reproduced both the slow and the three-second lock.
+
+Attack transitions now commit after projectile, hazard, contact and outcome
+resolution. A dead source cannot deliver a new attack. Pre-movement preparation
+only ages existing locks and applies beams already committed on an earlier frame;
+a new beam starts affecting movement in the following frame. New jams update the
+staged module state before power commit and firing. Power used before delivery
+belongs to the elapsed unlocked interval, and locked intervals draw none. Existing
+beam timing includes its final movement interval before expiry.
+
+Regression coverage includes lethal bullets, rockets and hazards for both enemy
+types at 30/60/144 Hz; actual motion is compared with an unimpeded control, and
+canceled jams preserve module intent and normal drain. Nonlethal hits still allow
+delivery; terminal outcomes suppress it. The final active beam interval and its
+following unimpeded interval are checked at all three rates. Full suite: **422
+passed, 5 existing probes ignored**; strict Clippy/formatting pass. Read-only
+review found no remaining substantive issues after the duration correction.
+Native smoke checks were rerun successfully at both sizes; linked screenshots
+show the unchanged presentation from the earlier capture runs.
 
 ## Human follow-up
 
