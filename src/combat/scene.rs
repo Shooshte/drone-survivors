@@ -31,10 +31,23 @@ impl Plugin for CombatScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<FeedbackConfig>()
             .init_resource::<DamageCue>()
-            .add_systems(Startup, (setup.in_set(CombatSceneSetup), feedback::setup))
+            .add_systems(
+                Startup,
+                (
+                    setup.in_set(CombatSceneSetup),
+                    feedback::setup,
+                    super::variant_scene::setup,
+                ),
+            )
             .add_systems(
                 Update,
-                (add_visuals, feedback::update, update_hud)
+                (
+                    add_visuals,
+                    super::variant_scene::spawn,
+                    feedback::update,
+                    super::variant_scene::present,
+                    update_hud,
+                )
                     .chain()
                     .in_set(GameplaySet::Presentation),
             );
@@ -99,7 +112,7 @@ fn setup(
 fn add_visuals(
     mut commands: Commands,
     assets: Res<CombatAssets>,
-    enemies: Query<Entity, Added<Enemy>>,
+    enemies: Query<(Entity, &Enemy), Added<Enemy>>,
     mut projectiles: Query<
         (
             Entity,
@@ -111,7 +124,10 @@ fn add_visuals(
     >,
 ) {
     // Handles survive restarts, so firing and resetting allocate no new assets.
-    for entity in &enemies {
+    for (entity, enemy) in &enemies {
+        if enemy.kind != crate::economy::runtime::EnemyKind::Chaser {
+            continue;
+        }
         commands.entity(entity).insert((
             Mesh3d(assets.enemy_mesh.clone()),
             MeshMaterial3d(assets.enemy_material.clone()),

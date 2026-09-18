@@ -45,33 +45,72 @@ pub(super) fn restart(
     *phase = GamePhase::Playing;
 }
 
+type ContactEnemies<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static mut Enemy,
+        &'static Transform,
+        Option<&'static mut super::variants::Rammer>,
+    ),
+>;
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn contact_damage(
+    mut commands: Commands,
     time: Res<Time>,
     config: Res<CombatConfig>,
     drone: Single<&Transform, With<Drone>>,
-    enemies: Query<(&Enemy, &Transform)>,
+    path: Option<Res<crate::world::PlayerPath>>,
+    world: Option<Res<crate::world::WorldGeometry>>,
+    mut enemies: ContactEnemies,
     mut health: ResMut<PlayerHealth>,
     mut phase: ResMut<GamePhase>,
     mut outcomes: ResMut<CombatOutcomes>,
     mut power: ResMut<crate::energy::PowerFrame>,
     modules: Res<crate::modules::ModuleConfig>,
 ) {
+    use super::variants::RamPhase;
+    use crate::economy::runtime::EnemyKind;
     let now = time.elapsed_secs_f64();
-    if *phase != GamePhase::Playing || now + 1e-7 < health.invulnerable_until {
+    if *phase != GamePhase::Playing {
         return;
     }
-    if enemies.iter().any(|(enemy, target)| {
-        let half = drone_world_half_extents(drone.rotation)
-            + world_half_extents(target.rotation, Vec3::splat(config.enemy_half_size))
-            + Vec3::splat(0.001);
-        enemy.health > 0
-            && (target.translation - drone.translation)
-                .abs()
-                .cmple(half)
-                .all()
-    }) {
-        apply_player_damage(
+    let mut contacts: Vec<_> = enemies
+        .iter()
+        .filter_map(|(id, enemy, target, rammer)| {
+            if enemy.health == 0
+                || (enemy.kind == EnemyKind::Rammer
+                    && !rammer.is_some_and(|r| r.phase == RamPhase::Charge))
+            {
+                return None;
+            }
+            let at = if enemy.kind == EnemyKind::Chaser {
+                let half = drone_world_half_extents(drone.rotation)
+                    + world_half_extents(target.rotation, Vec3::splat(config.enemy_half_size))
+                    + Vec3::splat(0.001);
+                (target.translation - drone.translation)
+                    .abs()
+                    .cmple(half)
+                    .all()
+                    .then_some(1.)
+            } else {
+                super::variant_contact::contact(
+                    enemy,
+                    target,
+                    &drone,
+                    path.as_deref(),
+                    &config,
+                    world.as_deref(),
+                )
+            }?;
+            Some((id, at))
+        })
+        .collect();
+    contacts.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
+    for (id, _) in contacts {
+        let accepted = apply_player_damage(
             config.contact_damage,
             now,
             &config,
@@ -81,6 +120,13 @@ pub(super) fn contact_damage(
             &mut power,
             &modules,
         );
+        if let Ok((_, mut enemy, _, Some(mut rammer))) = enemies.get_mut(id)
+            && rammer.impact(accepted)
+        {
+            // Expending a hull on impact is not a player kill or a loot event.
+            enemy.health = 0;
+            commands.entity(id).despawn();
+        }
     }
 }
 

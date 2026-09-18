@@ -16,6 +16,42 @@ fn simultaneous_lethal_hits_count_one_kill() {
 }
 
 #[test]
+fn simultaneous_lethal_hits_on_new_types_emit_one_typed_kill() {
+    use crate::economy::runtime::EnemyKind;
+    for kind in [EnemyKind::Fast, EnemyKind::Rammer] {
+        let (mut app, _) = empty_app();
+        quiet(&mut app);
+        app.world_mut()
+            .resource_mut::<CombatConfig>()
+            .variants
+            .fast_speed = 0.;
+        let id = enemy(&mut app, START + Vec3::X * 80., 10);
+        app.world_mut().get_mut::<Enemy>(id).unwrap().kind = kind;
+        if kind == EnemyKind::Rammer {
+            app.world_mut()
+                .entity_mut(id)
+                .insert(super::super::variants::Rammer::default());
+        }
+        for _ in 0..2 {
+            shot(&mut app, START, Vec3::X * 650., 1.);
+        }
+        step(&mut app, 0.2, &[]);
+        assert_eq!(app.world().resource::<Encounter>().kills, 1);
+        let deaths = app
+            .world()
+            .resource::<CombatOutcomes>()
+            .0
+            .iter()
+            .filter(|event| {
+                matches!(event,
+            CombatOutcome::Hit { kind: k, killed: true, .. } if *k == kind)
+            })
+            .count();
+        assert_eq!(deaths, 1);
+    }
+}
+
+#[test]
 fn coincident_chasers_separate_gradually_using_physical_flight() {
     let (mut app, _) = empty_app();
     app.world_mut().resource_mut::<CombatConfig>().target_range = 0.;
@@ -51,6 +87,49 @@ fn scene_app() -> (App, Entity) {
         .unwrap();
     quiet(&mut app);
     (app, drone)
+}
+
+#[test]
+fn fast_enemy_keeps_its_distinct_material_after_hit_flash_expires() {
+    let (mut app, _) = scene_app();
+    let fast = enemy(&mut app, START + Vec3::X * 80., 80);
+    app.world_mut().get_mut::<Enemy>(fast).unwrap().kind = crate::economy::runtime::EnemyKind::Fast;
+    app.world_mut()
+        .resource_mut::<CombatConfig>()
+        .variants
+        .fast_speed = 0.;
+    let chaser = enemy(&mut app, START - Vec3::X * 80., 80);
+    step(&mut app, 0., &[]);
+    let base = app
+        .world()
+        .get::<MeshMaterial3d<StandardMaterial>>(fast)
+        .unwrap()
+        .0
+        .clone();
+    assert_ne!(
+        base,
+        app.world()
+            .get::<MeshMaterial3d<StandardMaterial>>(chaser)
+            .unwrap()
+            .0
+    );
+    shot(&mut app, START, Vec3::X * 650., 1.);
+    step(&mut app, 0.1, &[]);
+    assert_ne!(
+        base,
+        app.world()
+            .get::<MeshMaterial3d<StandardMaterial>>(fast)
+            .unwrap()
+            .0
+    );
+    step(&mut app, 0.2, &[]);
+    assert_eq!(
+        base,
+        app.world()
+            .get::<MeshMaterial3d<StandardMaterial>>(fast)
+            .unwrap()
+            .0
+    );
 }
 
 #[test]

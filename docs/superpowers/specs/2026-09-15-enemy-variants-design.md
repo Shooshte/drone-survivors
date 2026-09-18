@@ -14,7 +14,7 @@ authorized while campaign introduction stays gated. No further split is needed.
 - Rammer: 80 hull; approach at 260u/s. Within 280u, brake and show a full 1s
   warning, then charge toward a locked point beyond the target at a 420u/s cap.
   It cannot steer the charge toward the player's new position. After contact or
-  a 1.6s missed charge, retreat using the same physical flight/navigation.
+  a 3s missed charge, retreat using the same physical flight/navigation.
 - No contact damage in approach, warning or retreat. Rearm only after 1.2s of
   retreat and at least 180u separation, then warn again. Each accepted hull hit
   or shield block spends one of two impacts. Shared invulnerability rejects an

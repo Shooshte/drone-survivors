@@ -9,10 +9,12 @@ use crate::{
 use bevy::prelude::*;
 use std::collections::HashSet;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum EnemyKind {
     #[default]
     Chaser,
+    Fast,
+    Rammer,
 }
 #[derive(Clone, Copy)]
 pub(crate) struct DropRule {
@@ -49,7 +51,7 @@ impl Default for EconomyConfig {
 impl EconomyConfig {
     fn rule(&self, kind: EnemyKind) -> DropRule {
         match kind {
-            EnemyKind::Chaser => self.chaser,
+            EnemyKind::Chaser | EnemyKind::Fast | EnemyKind::Rammer => self.chaser,
         }
     }
 }

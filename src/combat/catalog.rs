@@ -1,5 +1,6 @@
 //! Interactive content experiments, installed only by --validate catalog.
-use super::WaveConfig;
+use super::{WaveConfig, variants::SpawnRoster};
+use crate::economy::runtime::EnemyKind;
 use crate::{
     game::{GamePhase, GameplaySet, MissionBoundary},
     modules::{Loadout, ModuleKind, Modules, SLOT_KEYS},
@@ -21,23 +22,45 @@ struct Scenario {
     name: &'static str,
     instruction: &'static str,
     bursts: &'static [(f64, usize)],
+    kinds: &'static [EnemyKind],
 }
 
-const SCENARIOS: [Scenario; 3] = [
+const SCENARIOS: [Scenario; 6] = [
     Scenario {
         name: "Flight practice",
         instruction: "No enemies. Practice banking, altitude, chargers and the timed hazard.",
+        kinds: &[EnemyKind::Chaser],
         bursts: &[],
     },
     Scenario {
         name: "Single pursuer",
         instruction: "One chaser. Watch its warning, keep moving and compare module use.",
+        kinds: &[EnemyKind::Chaser],
         bursts: &[(1., 1)],
     },
     Scenario {
         name: "Small swarm",
         instruction: "Three waves of five. Avoid encirclement and conserve energy between waves.",
+        kinds: &[EnemyKind::Chaser],
         bursts: &[(1., 5), (9., 5), (17., 5)],
+    },
+    Scenario {
+        name: "Fast pursuer",
+        instruction: "Cyan fins: faster pursuit. Change heading/altitude and use cover.",
+        bursts: &[(1., 1)],
+        kinds: &[EnemyKind::Fast],
+    },
+    Scenario {
+        name: "Double-impact rammer",
+        instruction: "Yellow ring: dodge the line. Red: charge. Blue: retreat. Two pips = two impacts.",
+        bursts: &[(1., 1)],
+        kinds: &[EnemyKind::Rammer],
+    },
+    Scenario {
+        name: "Mixed pursuers",
+        instruction: "Orange chasers, cyan fast pursuers, magenta rammers. Break charge lines with cover.",
+        bursts: &[(1., 3), (12., 3)],
+        kinds: &[EnemyKind::Chaser, EnemyKind::Fast, EnemyKind::Rammer],
     },
 ];
 
@@ -59,6 +82,7 @@ pub(super) fn install(app: &mut App, duration: f64) {
         duration,
     })
     .init_resource::<MissionBoundary>()
+    .init_resource::<SpawnRoster>()
     .insert_resource(GamePhase::Hub)
     .add_systems(Update, controls.in_set(GameplaySet::Transition))
     .add_systems(
@@ -108,6 +132,7 @@ fn controls(
     mut boundary: ResMut<MissionBoundary>,
     mut modules: ResMut<Modules>,
     mut waves: ResMut<WaveConfig>,
+    mut roster: ResMut<SpawnRoster>,
 ) {
     *boundary = MissionBoundary::default();
     let keyboard = if arena.selecting {
@@ -160,6 +185,7 @@ fn controls(
         waves.disable_authored_waves();
         waves.duration = arena.duration;
         waves.bursts = SCENARIOS[arena.scenario].bursts.to_vec();
+        roster.0 = SCENARIOS[arena.scenario].kinds.to_vec();
     }
 }
 

@@ -38,6 +38,33 @@ fn pickup(app: &mut App, position: Vec3, cache: bool) -> Entity {
 fn count(app: &mut App) -> usize {
     app.world_mut().query::<&Pickup>().iter(app.world()).count()
 }
+
+#[test]
+fn new_enemy_kill_kinds_use_normal_drop_rules_without_duplicate_rewards() {
+    let mut app = fixture();
+    app.world_mut()
+        .resource_mut::<EconomyConfig>()
+        .chaser
+        .chance_percent = 100;
+    for kind in [EnemyKind::Fast, EnemyKind::Rammer] {
+        let id = app.world_mut().spawn_empty().id();
+        for _ in 0..2 {
+            app.world_mut()
+                .resource_mut::<CombatOutcomes>()
+                .0
+                .push(CombatOutcome::Hit {
+                    entity: id,
+                    kind,
+                    position: Vec3::new(-300., 90., 0.),
+                    killed: true,
+                });
+        }
+    }
+    app.world_mut().run_system_once(spawn_drops).unwrap();
+    assert_eq!(count(&mut app), 2);
+    app.world_mut().run_system_once(spawn_drops).unwrap();
+    assert_eq!(count(&mut app), 2);
+}
 fn advance(app: &mut App, secs: f32) {
     app.world_mut()
         .resource_mut::<Time>()
