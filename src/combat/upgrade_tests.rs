@@ -683,6 +683,46 @@ fn catalog_reset_queues_sanitized_preview_as_normal_one_card_choices() {
 }
 
 #[test]
+fn catalog_reset_opens_preview_before_any_gameplay_frame_can_advance() {
+    use crate::energy::Energy;
+    use crate::modules::Modules;
+    use crate::upgrades::{UpgradeKind, UpgradePool, UpgradeRun};
+    let pool = UpgradePool {
+        catalog: true,
+        preview: vec![UpgradeKind::ReserveBattery],
+    };
+    let (mut app, drone) = upgrade_app_with_pool(pool);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 17.;
+    app.world_mut().resource_mut::<Energy>().current = 5.;
+    app.world_mut().resource_mut::<Modules>().enabled = [true; 4];
+    app.world_mut()
+        .get_mut::<Transform>(drone)
+        .unwrap()
+        .translation = START + Vec3::X * 80.;
+    shot(&mut app, START, Vec3::X, 5.);
+
+    tick(&mut app, 1., &[KeyCode::KeyR, KeyCode::Digit1]);
+
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Choosing);
+    assert!(app.world().resource::<Time<Virtual>>().is_paused());
+    assert_eq!(
+        app.world().resource::<UpgradeRun>().offer,
+        vec![UpgradeKind::ReserveBattery]
+    );
+    assert_eq!(app.world().resource::<Encounter>().elapsed, 0.);
+    assert_eq!(app.world().resource::<Energy>().current, 100.);
+    assert_eq!(position(&app, drone), START);
+    assert_eq!(count::<Projectile>(&mut app), 0);
+    assert_eq!(app.world().resource::<Modules>().enabled, [false; 4]);
+
+    tick(&mut app, 30., &[]);
+    assert_eq!(app.world().resource::<Encounter>().elapsed, 0.);
+    assert_eq!(app.world().resource::<Energy>().current, 100.);
+    assert_eq!(position(&app, drone), START);
+    assert_eq!(count::<Projectile>(&mut app), 0);
+}
+
+#[test]
 fn efficient_coils_changes_every_drain_and_enforces_the_higher_activation_threshold() {
     use crate::energy::{Energy, EnergyConfig};
     use crate::modules::{ModuleConfig, ModuleKind, Modules};

@@ -75,6 +75,12 @@ impl Plugin for UpgradePlugin {
             .init_resource::<ButtonInput<MouseButton>>()
             .add_systems(PostStartup, capture_baseline)
             .add_systems(Update, begin_frame.in_set(GameplaySet::Baseline))
+            .add_systems(
+                Update,
+                open_reset_preview
+                    .after(GameplaySet::Reset)
+                    .before(GameplaySet::ChoiceInput),
+            )
             .add_systems(Update, choose.in_set(GameplaySet::ChoiceInput))
             .add_systems(Update, earn.in_set(GameplaySet::Progression));
     }
@@ -130,6 +136,30 @@ fn begin_frame(
     } else if session.resume_pending {
         session.resume_pending = false;
         *phase = GamePhase::Playing;
+    }
+}
+
+fn open_reset_preview(
+    keys: Res<ButtonInput<KeyCode>>,
+    boundary: Option<Res<crate::game::MissionBoundary>>,
+    pool: Res<UpgradePool>,
+    modules: Res<Modules>,
+    mut run: ResMut<UpgradeRun>,
+    mut session: ResMut<ChoiceSession>,
+    mut phase: ResMut<GamePhase>,
+    mut clock: ResMut<Time<Virtual>>,
+) {
+    let resetting = boundary
+        .as_ref()
+        .map_or_else(|| keys.just_pressed(KeyCode::KeyR), |b| b.reset);
+    if !resetting || !pool.catalog || *phase != GamePhase::Playing || run.pending == 0 {
+        return;
+    }
+    run.prepare_catalog_offer(&modules.loadout);
+    if !run.offer.is_empty() {
+        session.armed = false;
+        *phase = GamePhase::Choosing;
+        clock.pause();
     }
 }
 
