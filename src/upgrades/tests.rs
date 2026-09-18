@@ -261,3 +261,123 @@ fn final_selection_marks_build_complete_without_another_level() {
     run.award(run.threshold());
     assert_eq!(run.pending, 0);
 }
+
+#[test]
+fn campaign_pool_stays_at_six_while_catalog_exposes_all_twelve() {
+    assert_eq!(UpgradeKind::ALL.len(), 6);
+    assert_eq!(UpgradeKind::CATALOG.len(), 12);
+    assert_eq!(
+        &UpgradeKind::CATALOG[..UpgradeKind::ALL.len()],
+        &UpgradeKind::ALL
+    );
+
+    let mut campaign = choice_ready();
+    campaign.selected = UpgradeKind::ALL.to_vec();
+    campaign.prepare_offer(&Loadout::default());
+    assert!(campaign.exhausted);
+
+    let mut catalog = choice_ready();
+    catalog.selected = UpgradeKind::ALL.to_vec();
+    catalog.prepare_catalog_offer(&Loadout::default());
+    assert!(!catalog.exhausted);
+    assert!(
+        catalog
+            .offer
+            .iter()
+            .all(|kind| UpgradeKind::CATALOG.contains(kind) && !UpgradeKind::ALL.contains(kind))
+    );
+}
+
+#[test]
+fn catalog_prerequisites_follow_the_current_equipped_loadout() {
+    let empty = Loadout::new([None; 4]).unwrap();
+    assert!(!UpgradeKind::EfficientCoils.eligible(&empty));
+    assert!(UpgradeKind::ReserveBattery.eligible(&empty));
+    assert!(UpgradeKind::LongRangeRounds.eligible(&empty));
+    assert!(!UpgradeKind::HotOverdrive.eligible(&empty));
+    assert!(!UpgradeKind::RapidRepair.eligible(&empty));
+    assert!(!UpgradeKind::WideRepulsor.eligible(&empty));
+
+    for (kind, upgrade) in [
+        (ModuleKind::Overdrive, UpgradeKind::HotOverdrive),
+        (ModuleKind::Repair, UpgradeKind::RapidRepair),
+        (ModuleKind::Repulsor, UpgradeKind::WideRepulsor),
+    ] {
+        let loadout = Loadout::new([None, Some(kind), None, None]).unwrap();
+        assert!(UpgradeKind::EfficientCoils.eligible(&loadout));
+        assert!(upgrade.eligible(&loadout));
+    }
+}
+
+#[test]
+fn preview_reset_sanitizes_then_consumes_one_card_per_offer_even_when_skipped() {
+    let loadout = Loadout::new([
+        Some(ModuleKind::Overdrive),
+        Some(ModuleKind::Repair),
+        None,
+        None,
+    ])
+    .unwrap();
+    let pool = UpgradePool {
+        catalog: true,
+        preview: vec![
+            UpgradeKind::RapidRepair,
+            UpgradeKind::RapidRepair,
+            UpgradeKind::WideRepulsor,
+            UpgradeKind::HotOverdrive,
+            UpgradeKind::ReserveBattery,
+            UpgradeKind::LongRangeRounds,
+        ],
+    };
+    let mut run = UpgradeRun::default();
+    run.reset_for_pool(&pool, &loadout);
+
+    assert_eq!((run.pending, run.total_xp, run.xp), (4, 1_000, 0));
+    for (resolved, expected) in [
+        UpgradeKind::RapidRepair,
+        UpgradeKind::HotOverdrive,
+        UpgradeKind::ReserveBattery,
+        UpgradeKind::LongRangeRounds,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        run.prepare_catalog_offer(&loadout);
+        assert_eq!(run.offer, vec![expected]);
+        assert!(run.resolve(None));
+        assert_eq!(run.resolved, resolved as u32 + 1);
+    }
+    assert!(run.exhausted);
+    assert!(run.selected.is_empty());
+}
+
+#[test]
+fn new_modifiers_compose_once_from_baselines_regardless_of_order_or_duplicates() {
+    let selected = [
+        UpgradeKind::EfficientCoils,
+        UpgradeKind::ReserveBattery,
+        UpgradeKind::LongRangeRounds,
+        UpgradeKind::HotOverdrive,
+        UpgradeKind::RapidRepair,
+        UpgradeKind::WideRepulsor,
+    ];
+    let forward = UpgradeModifiers::from_selected(&selected);
+    let reverse = UpgradeModifiers::from_selected(&selected.into_iter().rev().collect::<Vec<_>>());
+    let duplicated =
+        UpgradeModifiers::from_selected(&selected.into_iter().chain(selected).collect::<Vec<_>>());
+
+    assert_eq!(forward, reverse);
+    assert_eq!(forward, duplicated);
+    assert_eq!(forward.speed, 0.8);
+    assert_eq!(forward.capacity, 1.5);
+    assert_eq!(forward.activation, 2.);
+    assert_eq!(forward.module_drain, 0.75);
+    assert_eq!(forward.target_range, 1.5);
+    assert_eq!(forward.fire_interval, 1.25);
+    assert_eq!(forward.overdrive_multiplier, 1.5);
+    assert_eq!(forward.overdrive_drain, 1.5);
+    assert_eq!(forward.repair_rate, 2.);
+    assert_eq!(forward.repair_drain, 1.5);
+    assert_eq!(forward.repulsor_radius, 1.5);
+    assert_eq!(forward.repulsor_interval, 1.5);
+}
