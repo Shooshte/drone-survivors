@@ -1673,7 +1673,7 @@ U / Upgrades opens an arena preview page for distinct eligible cards. Selected
 previews supply their normal XP cost and go through Pick/Skip; they spend the
 same four-opportunity budget. Empty previews leave normal progression intact.
 
-**494 tests passed, 5 existing probes ignored**; formatting and strict Clippy
+**495 tests passed, 5 existing probes ignored**; formatting and strict Clippy
 passed. Native agent fixtures passed at 1120×720 and 640×480 for all twelve cards
 and three four-card combinations. The existing module fixture caught a header
 height regression; after correction it passed all fourteen scenarios at 640×480,

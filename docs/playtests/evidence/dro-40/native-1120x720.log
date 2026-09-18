@@ -1,5 +1,4 @@
-   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-40-catalog-upgrades)
-    Finished `dev` profile [optimized + debuginfo] target(s) in 6.88s
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.79s
      Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
 UPGRADE FIXTURE: synthetic keyboard and preview XP; ordinary eligibility, four-opportunity choices, modifiers and reset. Agent evidence, not a human balance playtest.
 UPGRADE FIXTURE build-1-setup: phase=Res(Hub)
@@ -24,4 +23,4 @@ UPGRADE FIXTURE card-wide-area-rockets: phase=Res(Choosing)
 UPGRADE FIXTURE build 3: capacity=100.00, activation=10.00, range=400.00, interval=0.500, overdrive=2.00, drains=[10.0, 12.0, 8.0, 10.0], repair=6.00/12.00, repulsor=180.00/2.00/8.00
 UPGRADE FIXTURE build-3-active: phase=Res(Playing)
 UPGRADE FIXTURE PASS at 1120x720: all twelve cards, three four-card builds, configured benefits/drawbacks, normal choice budget, restart and return.
-2026-09-18T16:48:40.684841Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(43810931328)
+2026-09-18T16:55:16.277222Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(52405797504)

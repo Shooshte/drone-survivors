@@ -40,11 +40,11 @@ fire retimes on the first resumed frame. Pause freezes gameplay.
 ## Automated verification
 
 - `cargo fmt --check`: passed.
-- `cargo test --locked`: **494 passed, 0 failed, 5 existing opt-in probes ignored**.
+- `cargo test --locked`: **495 passed, 0 failed, 5 existing opt-in probes ignored**.
 - `cargo clippy --locked --all-targets -- -D warnings`: passed.
 - `git diff --check`: passed.
 
-The baseline was 478 passed / 5 ignored. Sixteen new behavioral regressions cover
+The baseline was 478 passed / 5 ignored. Seventeen new behavioral regressions cover
 campaign/catalog offer isolation, prerequisites, preview filtering/budget/Skip,
 modifier composition and defensive deduplication, actual long-range targeting,
 actual wider Repulsor reach, paid Repair healing/drain, the 20-energy activation
@@ -117,3 +117,14 @@ and reset checks. The three-card capture includes the new Efficient coils card.
 
 ![Existing setup with four modules and longer copy](../images/dro-40-modules-640x480.png)
 ![Ordinary three-card catalog offer](../images/dro-40-three-choices-640x480.png)
+
+
+## Independent review follow-up
+
+Review found that the first configured preview opened after one gameplay update.
+A nonzero-time failing regression reproduced the timing error. The opener now
+runs after reset and before choice input/movement/combat, so previews consume no
+scenario time. The regression verifies reset hull/power/position/projectiles and
+paused time; the native fixture now asserts zero encounter time at every queued
+preview. Both native sizes were rerun successfully after the fix. Task and
+whole-branch re-review found no remaining actionable findings.

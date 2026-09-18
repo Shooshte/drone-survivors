@@ -70,6 +70,7 @@ fn drive(
     arena: Res<CatalogArena>,
     run: Res<UpgradeRun>,
     phase: Res<GamePhase>,
+    encounter: Res<crate::combat::Encounter>,
     modules: Res<ModuleConfig>,
     energy: Res<EnergyConfig>,
     combat: Res<CombatConfig>,
@@ -140,6 +141,10 @@ fn drive(
         }
         4 => {
             assert_eq!(*phase, GamePhase::Choosing);
+            assert_eq!(
+                encounter.elapsed, 0.,
+                "preview must precede scenario gameplay"
+            );
             assert_eq!(run.offer, vec![desired[fixture.choice]]);
             assert_eq!(run.resolved as usize, fixture.choice);
             capture = Some(format!(

@@ -139,6 +139,7 @@ fn begin_frame(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn open_reset_preview(
     keys: Res<ButtonInput<KeyCode>>,
     boundary: Option<Res<crate::game::MissionBoundary>>,
