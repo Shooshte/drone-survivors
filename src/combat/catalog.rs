@@ -7,6 +7,7 @@ use crate::{
 };
 use bevy::prelude::*;
 
+mod control_validation;
 mod scene;
 mod validation;
 mod variant_validation;
@@ -26,7 +27,7 @@ struct Scenario {
     kinds: &'static [EnemyKind],
 }
 
-const SCENARIOS: [Scenario; 6] = [
+const SCENARIOS: [Scenario; 9] = [
     Scenario {
         name: "Flight practice",
         instruction: "No enemies. Practice banking, altitude, chargers and the timed hazard.",
@@ -63,6 +64,24 @@ const SCENARIOS: [Scenario; 6] = [
         bursts: &[(1., 3), (12., 3)],
         kinds: &[EnemyKind::Chaser, EnemyKind::Fast, EnemyKind::Rammer],
     },
+    Scenario {
+        name: "Slowing beam",
+        instruction: "Cross emitter: break sight/range during yellow warning. Active beam slows horizontal flight to 60%.",
+        bursts: &[(1., 1)],
+        kinds: &[EnemyKind::Slower],
+    },
+    Scenario {
+        name: "Module jammer",
+        instruction: "Antenna: announced slot locks for 3s. Break sight/range to dodge; press its key after recovery.",
+        bursts: &[(1., 1)],
+        kinds: &[EnemyKind::Jammer],
+    },
+    Scenario {
+        name: "Mixed control",
+        instruction: "Beam, jammer and fast pursuer. Use cover/altitude; locks do not stack. Blue rings mark recovery.",
+        bursts: &[(1., 3), (12., 3)],
+        kinds: &[EnemyKind::Slower, EnemyKind::Jammer, EnemyKind::Fast],
+    },
 ];
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
@@ -97,7 +116,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_VARIANT_SMOKE").is_some() {
+    if std::env::var_os("DRONE_CONTROL_SMOKE").is_some() {
+        control_validation::install(app);
+    } else if std::env::var_os("DRONE_VARIANT_SMOKE").is_some() {
         variant_validation::install(app);
     } else if std::env::var_os("DRONE_CATALOG_SMOKE").is_some() {
         validation::install(app);

@@ -130,3 +130,38 @@ fn simultaneous_toggles_are_independent_and_rates_match_frame_sizes() {
         );
     }
 }
+
+#[test]
+fn jammed_module_is_off_unpowered_and_requires_manual_reactivation() {
+    let config = ModuleConfig::default();
+    let mut modules = Modules {
+        enabled: [true; 4],
+        ..default()
+    };
+    assert!(modules.jam(1));
+    assert!(!modules.active(ModuleKind::Shield));
+    assert!(!modules.block(&config));
+    assert_eq!(modules.drain(&config), 28.);
+    modules.shield.blocks = 0;
+    modules.shield.remaining = 2.;
+    modules.recharge_shield(1., &config);
+    assert_eq!(modules.shield.remaining, 2.);
+    let mut keys = ButtonInput::default();
+    keys.press(KeyCode::Digit2);
+    modules.toggle(&keys, 100., 10., 0.);
+    assert!(!modules.enabled[1]);
+    assert!(!modules.jam(0), "overlaps cannot disable another slot");
+    modules.advance_jam(3.);
+    assert_eq!(modules.disabled_for[1], 0.);
+    assert!(!modules.enabled[1]);
+    assert!(!modules.jam(0), "recovery grace prevents chained locks");
+    modules.toggle(&keys, 0., 10., 0.);
+    assert!(
+        !modules.enabled[1],
+        "normal activation threshold still applies"
+    );
+    modules.toggle(&keys, 100., 10., 0.);
+    assert!(modules.active(ModuleKind::Shield));
+    modules.advance_jam(3.);
+    assert!(modules.jam(0));
+}

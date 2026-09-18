@@ -39,6 +39,12 @@ pub(super) fn spawn_enemy_kind(
             kind,
             health: if kind == crate::economy::runtime::EnemyKind::Rammer {
                 config.variants.rammer_health
+            } else if matches!(
+                kind,
+                crate::economy::runtime::EnemyKind::Slower
+                    | crate::economy::runtime::EnemyKind::Jammer
+            ) {
+                40
             } else {
                 config.enemy_health
             },
@@ -48,6 +54,12 @@ pub(super) fn spawn_enemy_kind(
         Transform::from_translation(position).with_rotation(flight.rotation()),
         flight,
     ));
+    if matches!(
+        kind,
+        crate::economy::runtime::EnemyKind::Slower | crate::economy::runtime::EnemyKind::Jammer
+    ) {
+        entity.insert(super::control::ControlAttack::default());
+    }
     if kind == crate::economy::runtime::EnemyKind::Rammer {
         entity.insert(Rammer::default());
     }
@@ -121,6 +133,7 @@ type PilotedEnemies<'w, 's> = Query<
         &'static mut Transform,
         &'static mut DroneFlight,
         Option<&'static mut Rammer>,
+        Option<&'static super::control::ControlAttack>,
     ),
     Without<Drone>,
 >;
@@ -145,11 +158,11 @@ pub(super) fn chase(
     };
     let mut positions: Vec<_> = enemies
         .iter()
-        .filter(|(_, e, _, _, _)| e.health > 0)
-        .map(|(id, _, t, _, _)| (id, t.translation))
+        .filter(|(_, e, _, _, _, _)| e.health > 0)
+        .map(|(id, _, t, _, _, _)| (id, t.translation))
         .collect();
     positions.sort_by_key(|(id, _)| id.to_bits());
-    for (id, mut enemy, mut transform, mut flight, mut rammer) in &mut enemies {
+    for (id, mut enemy, mut transform, mut flight, mut rammer, control) in &mut enemies {
         let mut profile = base_profile;
         if enemy.kind == crate::economy::runtime::EnemyKind::Fast {
             profile.max_horizontal_speed = config.variants.fast_speed;
@@ -164,6 +177,8 @@ pub(super) fn chase(
                 &arena,
                 world.as_deref(),
             )
+        } else if let Some(attack) = control {
+            attack.flight_target(transform.translation, drone.translation, world.as_deref())
         } else {
             drone.translation
         };

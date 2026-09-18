@@ -15,6 +15,8 @@ pub(crate) enum EnemyKind {
     Chaser,
     Fast,
     Rammer,
+    Slower,
+    Jammer,
 }
 #[derive(Clone, Copy)]
 pub(crate) struct DropRule {
@@ -51,7 +53,11 @@ impl Default for EconomyConfig {
 impl EconomyConfig {
     fn rule(&self, kind: EnemyKind) -> DropRule {
         match kind {
-            EnemyKind::Chaser | EnemyKind::Fast | EnemyKind::Rammer => self.chaser,
+            EnemyKind::Chaser
+            | EnemyKind::Fast
+            | EnemyKind::Rammer
+            | EnemyKind::Slower
+            | EnemyKind::Jammer => self.chaser,
         }
     }
 }

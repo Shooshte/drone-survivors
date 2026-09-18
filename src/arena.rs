@@ -100,6 +100,7 @@ fn move_drone(
     mut path: Option<ResMut<crate::world::PlayerPath>>,
     modules: Option<Res<crate::modules::Modules>>,
     module_config: Option<Res<crate::modules::ModuleConfig>>,
+    effects: Option<Res<crate::combat::control::ControlEffects>>,
 ) {
     if let Some(path) = path.as_mut() {
         path.segments.clear();
@@ -111,11 +112,22 @@ fn move_drone(
         config.max_horizontal_speed *= tuning.mobility_multiplier;
         config.horizontal_acceleration_multiplier *= tuning.mobility_multiplier;
     }
+    let slow = effects.as_deref().map_or(1., |e| e.movement_multiplier());
+    config.max_horizontal_speed *= slow;
+    config.horizontal_acceleration_multiplier *= slow;
     let input = FlightInput::read(&keys, &config);
     for (mut transform, mut flight) in &mut drones {
         // A legacy direct-combat restart also consumes its entire movement frame.
         if keys.just_pressed(KeyCode::KeyR) {
             continue;
+        }
+        if slow < 1. {
+            let horizontal = flight
+                .velocity
+                .with_y(0.)
+                .clamp_length_max(config.max_horizontal_speed);
+            flight.velocity.x = horizontal.x;
+            flight.velocity.z = horizontal.z;
         }
         let segments = flight.advance(
             &mut transform,

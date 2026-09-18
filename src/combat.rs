@@ -4,6 +4,8 @@ use bevy::prelude::*;
 
 mod catalog;
 mod collision;
+pub(crate) mod control;
+mod control_scene;
 mod hazards;
 mod scene;
 pub(crate) use scene::{CombatHudRoot, CombatScenePlugin, CombatSceneSetup};
@@ -119,6 +121,7 @@ impl Plugin for CombatPlugin {
             .init_resource::<CombatConfig>()
             .init_resource::<GamePhase>()
             .init_resource::<Weapon>()
+            .init_resource::<control::ControlEffects>()
             .init_resource::<rockets::RocketLauncher>()
             .init_resource::<WaveConfig>()
             .init_resource::<Encounter>()
@@ -130,6 +133,20 @@ impl Plugin for CombatPlugin {
                 invulnerable_until: 0.,
             })
             .add_systems(Startup, lifecycle::setup)
+            .add_systems(
+                Update,
+                control::update
+                    .after(GameplaySet::ChoiceInput)
+                    .before(GameplaySet::Movement)
+                    .run_if(is_playing)
+                    .run_if(not(input_just_pressed(KeyCode::KeyR))),
+            )
+            .add_systems(
+                Update,
+                control::reset
+                    .in_set(GameplaySet::Reset)
+                    .run_if(crate::game::reset_requested),
+            )
             .add_systems(
                 Update,
                 lifecycle::cleanup

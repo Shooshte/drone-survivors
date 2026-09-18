@@ -18,7 +18,12 @@ fn simultaneous_lethal_hits_count_one_kill() {
 #[test]
 fn simultaneous_lethal_hits_on_new_types_emit_one_typed_kill() {
     use crate::economy::runtime::EnemyKind;
-    for kind in [EnemyKind::Fast, EnemyKind::Rammer] {
+    for kind in [
+        EnemyKind::Fast,
+        EnemyKind::Rammer,
+        EnemyKind::Slower,
+        EnemyKind::Jammer,
+    ] {
         let (mut app, _) = empty_app();
         quiet(&mut app);
         app.world_mut()

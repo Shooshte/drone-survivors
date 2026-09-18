@@ -278,3 +278,39 @@ fn catalog_choice_keeps_return_but_hides_restart_button_clear_of_modal_heading()
         }
     }
 }
+
+#[test]
+fn catalog_selects_both_control_types_and_mixed_roster() {
+    use crate::economy::runtime::EnemyKind;
+    for (index, expected) in [
+        (6, vec![EnemyKind::Slower]),
+        (7, vec![EnemyKind::Jammer]),
+        (
+            8,
+            vec![EnemyKind::Slower, EnemyKind::Jammer, EnemyKind::Fast],
+        ),
+    ] {
+        let mut app = app();
+        for _ in 0..index {
+            step(&mut app, &[KeyCode::ArrowRight]);
+        }
+        step(&mut app, &[KeyCode::Enter]);
+        for _ in 0..120 {
+            step(&mut app, &[]);
+        }
+        let kinds: Vec<_> = app
+            .world_mut()
+            .query::<&Enemy>()
+            .iter(app.world())
+            .map(|e| e.kind)
+            .collect();
+        assert_eq!(kinds.len(), expected.len());
+        for kind in expected {
+            assert!(kinds.contains(&kind), "{kinds:?} missing {kind:?}");
+        }
+        step(&mut app, &[KeyCode::Tab]);
+        assert_eq!(count::<Enemy>(&mut app), 0);
+        assert_eq!(app.world().resource::<Modules>().disabled_for, [0.; 4]);
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Hub);
+    }
+}
