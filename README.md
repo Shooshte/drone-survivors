@@ -62,7 +62,7 @@ Launch, restart and return restore the drone, hull, battery, charger reserves,
 hazard cycle and run upgrades. Normal flight, damage, spawn warnings, energy and
 naturally earned upgrades remain active. This mode installs no campaign or save
 systems and awards no campaign resources. All six modules are available here;
-additional upgrades and combination tuning remain DRO-40/DRO-41. New catalog
+all twelve temporary upgrades are available; combination tuning remains DRO-41. New catalog
 content stays excluded from campaign shops, spawns and upgrade offers until the
 human playtest gate is lifted.
 
@@ -75,7 +75,50 @@ DRONE_CATALOG_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/catalog car
 
 The fixture drives synthetic keyboard input and grants 50 XP solely to display
 the upgrade panel. It checks transitions/text bounds, captures screenshots at
-1120×720 or 640×480 and exits. Ordinary arena play has no synthetic pilot or XP.
+1120×720 or 640×480 and exits. Ordinary arena play has no synthetic pilot; selecting upgrade previews grants the XP described below.
+
+### Twelve temporary upgrades
+
+Press **U** or click **Upgrades** in arena setup to open the preview page. **1–4**
+or the four card buttons cycle distinct, equipment-eligible cards, including
+Empty. Every card shows its benefit and drawback. **U** returns to modules;
+removing a required module clears its preview card. **Enter** launches either page.
+
+Selected previews grant synthetic XP for their normal cumulative cost and queue
+one-card Pick/Skip dialogs in slot order. They use the **same four opportunities**
+as earned choices: four previews leave no later choices, and Skip spends one.
+With fewer previews, earn the remaining opportunities through normal combat.
+Empty previews grant no XP. Launch/restart replays the configured preview;
+Tab clears active effects and preserves setup choices. Catalog-earned offers use
+all twelve eligible definitions; campaign offers keep the original six.
+
+The six additions below compose with the original cards from the run's baseline.
+Percentages multiply, and each card applies once. Values are provisional.
+
+| Upgrade | Benefit | Drawback | Requires |
+| --- | --- | --- | --- |
+| Efficient coils | −25% drain for all modules | Activation requirement 10 → 20 energy | Any equipped module |
+| Reserve battery | +50% battery capacity | −20% maximum horizontal speed | Any loadout |
+| Long-range rounds | +50% basic targeting range | +25% basic firing interval | Any loadout |
+| Hot overdrive | +50% powered Overdrive firing multiplier | +50% Overdrive drain | Overdrive |
+| Rapid repair | Double powered repair rate | +50% Repair drain | Repair |
+| Wide repulsor | +50% pulse radius | +50% pulse interval | Repulsor |
+
+Capacity growth does not refill energy. Efficient coils raises the existing
+activation threshold, without adding an activation debit. Its drain reduction
+also multiplies Rapid shield, Hot overdrive and Rapid repair penalties. Longer
+basic targeting range does not change rocket range or already launched shots.
+Cooldown progress survives choices; launch/restart/return restore baseline stats.
+
+```sh
+DRONE_UPGRADE_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/upgrades cargo dev --locked -- --validate catalog
+DRONE_UPGRADE_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/upgrades-small cargo dev --locked -- --validate catalog
+```
+
+This agent fixture selects all twelve cards across three four-card previews,
+uses normal choice input, checks restart/return and text bounds, and captures both
+setup and choice screens. Its synthetic input/XP is labeled in the log; it does
+not establish human balance acceptance. See [DRO-40 evidence](docs/playtests/dro-40-catalog-upgrades.md).
 
 ### Repair and Repulsor modules
 

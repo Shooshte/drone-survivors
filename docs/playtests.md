@@ -1659,3 +1659,25 @@ fractional repair-credit edge after environmental healing; a failing integration
 regression and cleanup fix resolved it, and re-review found no remaining findings.
 [Rules, logs, screenshots and human follow-up](playtests/dro-39-support-modules.md).
 Human balance acceptance and campaign introduction remain gated.
+
+
+## DRO-40 — Twelve temporary upgrades — 2026-09-18
+
+Completed the six approved catalog additions: Efficient coils, Reserve battery,
+Long-range rounds, Hot overdrive, Rapid repair and Wide repulsor. Every card has
+an explicit drawback and equipment eligibility. Baseline-derived effects compose
+without repeated application, preserve cooldown progress and reset on boundaries.
+Campaign offers remain limited to the original six definitions.
+
+U / Upgrades opens an arena preview page for distinct eligible cards. Selected
+previews supply their normal XP cost and go through Pick/Skip; they spend the
+same four-opportunity budget. Empty previews leave normal progression intact.
+
+**494 tests passed, 5 existing probes ignored**; formatting and strict Clippy
+passed. Native agent fixtures passed at 1120×720 and 640×480 for all twelve cards
+and three four-card combinations. The existing module fixture caught a header
+height regression; after correction it passed all fourteen scenarios at 640×480,
+including an ordinary three-card offer. These are explicit synthetic-input/XP
+checks, not a human balance verdict. [Detailed rules, measurements, logs and
+screenshots](playtests/dro-40-catalog-upgrades.md). DRO-41 combination tuning,
+human acceptance and campaign introduction remain gated.

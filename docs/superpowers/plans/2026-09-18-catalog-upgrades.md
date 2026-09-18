@@ -27,11 +27,11 @@ Files: src/upgrades.rs, src/upgrades/runtime.rs, focused new upgrade rule/runtim
 
 Interfaces: expose UpgradeKind::CATALOG (12), UpgradeKind::eligible(&Loadout), and UpgradePool resource with `catalog: bool` and `preview: Vec<UpgradeKind>` (default false/empty). UpgradePlugin initializes it only if absent. Arena installs true/empty and controls preview. Existing prepare_offer callers retain campaign defaults. At run reset, runtime sanitizes preview against current loadout (distinct, eligible, max four), grants cumulative XP for its count, and routes each through a one-card normal modal. Pending preview cards are consumed when offered so Skip cannot repeat them; any remaining earned choices use normal catalog sampling.
 
-- [ ] Write failing tests for pool isolation, new prerequisites, preview skips/budget and each modifier's composition/idempotence.
-- [ ] Implement six definitions with benefit/drawback copy, catalog-only sampling and preview queue; preserve `UpgradeKind::ALL` as campaign six.
-- [ ] Write failing runtime tests using production plugins for effective configs, battery clamp, activation behavior, paid repair, pulse cooldown fractions and reset.
-- [ ] Extend baseline application for new stats, scaling all drains and retiming the Repulsor cooldown without free pulses. Keep original behavior unchanged.
-- [ ] Run focused tests and commit the gameplay increment. Report exact tests and red/green evidence.
+- [x] Write failing tests for pool isolation, new prerequisites, preview skips/budget and each modifier's composition/idempotence.
+- [x] Implement six definitions with benefit/drawback copy, catalog-only sampling and preview queue; preserve `UpgradeKind::ALL` as campaign six.
+- [x] Write failing runtime tests using production plugins for effective configs, battery clamp, activation behavior, paid repair, pulse cooldown fractions and reset.
+- [x] Extend baseline application for new stats, scaling all drains and retiming the Repulsor cooldown without free pulses. Keep original behavior unchanged.
+- [x] Run focused tests and commit the gameplay increment. Report exact tests and red/green evidence.
 
 ### Task 2: Arena setup and native evidence
 
@@ -39,20 +39,24 @@ Files: src/combat/catalog.rs, src/combat/catalog/scene.rs, new src/combat/catalo
 
 Interfaces: use Task 1's UpgradePool; write preview only while selecting. U toggles page, 1–4 cycle modules or preview cards according to page. Remove ineligible previews after module changes.
 
-- [ ] Write failing selector integration tests proving eligible distinct selection, keyboard/click parity, preview launch/skip budget and restart/return reset.
-- [ ] Add the focused preview page with four card rows, benefit/drawback copy, count and synthetic-XP explanation; preserve module/scenario page behavior and viewport fit.
-- [ ] Add opt-in DRONE_UPGRADE_SMOKE native fixture; exercise all twelve cards, combinations, four-limit, cooldown/power and reset through normal controls. Label synthetic XP and controls.
-- [ ] Run targeted integration tests and native fixtures at both supported window sizes, inspect screenshots/text bounds, then commit.
+- [x] Write failing selector integration tests proving eligible distinct selection, keyboard/click parity, preview launch/skip budget and restart/return reset.
+- [x] Add the focused preview page with four card rows, benefit/drawback copy, count and synthetic-XP explanation; preserve module/scenario page behavior and viewport fit.
+- [x] Add opt-in DRONE_UPGRADE_SMOKE native fixture; exercise all twelve cards, combinations, four-limit, cooldown/power and reset through normal controls. Label synthetic XP and controls.
+- [x] Run targeted integration tests and native fixtures at both supported window sizes, inspect screenshots/text bounds, then commit.
 
 ### Task 3: Review and delivery
 
 Files: README.md, docs/playtests.md, docs/playtests/dro-40-catalog-upgrades.md, selected screenshots, this plan.
 
 - [ ] Review gameplay task and final branch independently; fix actionable findings and rerun affected checks.
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
+- [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 - [ ] Record exact evidence, provisional tuning and known limits. Commit coherent documentation.
 - [ ] Push codex/dro-40-catalog-upgrades; open PR against main with Linear link and evidence.
 
 ## Progress
 
 Baseline on origin/main 2e578e8: 478 passed, 5 ignored, zero failures. Worktree isolated at .worktrees/dro-40-catalog-upgrades.
+
+Task 1: implemented in 482da18; 18 rule tests and 26 production runtime tests passed. Independent review pending.
+Task 2: implemented in 0c371b9; four new selector integration tests pass. Native all-card fixtures pass at both sizes; module regression passes all14 scenarios after header-height correction.
+Final automated verification: 494 passed / 5 ignored, formatting and strict Clippy clean. Native screenshots and logs recorded in docs/playtests/dro-40-catalog-upgrades.md.
