@@ -279,3 +279,75 @@ fn control_wall_prevents_jam_and_killing_windup_source_prevents_delivery() {
         assert_eq!(app.world().resource::<Modules>().disabled_for, [0.; 4]);
     }
 }
+
+#[test]
+fn control_sources_approach_before_warning_even_inside_sustain_range() {
+    for kind in [EnemyKind::Slower, EnemyKind::Jammer] {
+        let mut app = app();
+        let id = spawn(&mut app, kind);
+        app.world_mut()
+            .get_mut::<Transform>(id)
+            .unwrap()
+            .translation
+            .x = -280.;
+        step(&mut app, 1. / 60.);
+        assert_eq!(
+            app.world().get::<ControlAttack>(id).unwrap().phase,
+            ControlPhase::Approach
+        );
+        run(&mut app, 2., 60);
+        assert_ne!(
+            app.world().get::<ControlAttack>(id).unwrap().phase,
+            ControlPhase::Approach
+        );
+    }
+}
+
+#[test]
+fn control_keyboard_escape_breaks_attacks_in_both_isolated_scenarios() {
+    for hz in [30, 60, 144] {
+        for kind in [EnemyKind::Slower, EnemyKind::Jammer] {
+            let mut results = Vec::new();
+            for flee in [false, true] {
+                let mut app = app();
+                spawn(&mut app, kind);
+                if flee {
+                    app.world_mut()
+                        .resource_mut::<ButtonInput<KeyCode>>()
+                        .press(KeyCode::KeyE);
+                }
+                let mut slow_seconds = 0.;
+                let mut locked = false;
+                for _ in 0..hz * 3 {
+                    step(&mut app, 1. / hz as f32);
+                    if app.world().resource::<ControlEffects>().slowed {
+                        slow_seconds += 1. / hz as f32;
+                    }
+                    locked |= app
+                        .world()
+                        .resource::<Modules>()
+                        .disabled_for
+                        .iter()
+                        .any(|&t| t > 0.);
+                }
+                let position = app
+                    .world_mut()
+                    .query_filtered::<&Transform, With<Drone>>()
+                    .single(app.world())
+                    .unwrap()
+                    .translation;
+                println!(
+                    "CONTROL ESCAPE {hz}Hz {kind:?} flee={flee}: slowed={slow_seconds:.3}s lock={locked} end={position:?}"
+                );
+                results.push((slow_seconds, locked));
+            }
+            if kind == EnemyKind::Slower {
+                assert!(results[0].0 > 1.5);
+                assert_eq!(results[1].0, 0.);
+            } else {
+                assert!(results[0].1);
+                assert!(!results[1].1);
+            }
+        }
+    }
+}

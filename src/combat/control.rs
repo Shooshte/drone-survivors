@@ -4,6 +4,7 @@ use crate::{arena::Drone, economy::runtime::EnemyKind, modules::Modules};
 use bevy::prelude::*;
 
 pub(super) const RANGE: f32 = 320.;
+const APPROACH_DISTANCE: f32 = 240.;
 const WINDUP: f32 = 1.2;
 const RECOVERY: f32 = 3.;
 
@@ -36,7 +37,7 @@ impl ControlAttack {
     ) -> Vec3 {
         if matches!(self.phase, ControlPhase::Windup | ControlPhase::Active) {
             self.anchor
-        } else if position.distance(player) <= 240.
+        } else if position.distance(player) <= APPROACH_DISTANCE
             && world.is_none_or(|w| w.line_clear(position, player))
         {
             position
@@ -95,7 +96,10 @@ pub(super) fn update(
                 } else {
                     None
                 };
-                if in_sight && (!jammer || (slot.is_some() && modules.can_be_jammed())) {
+                if in_sight
+                    && transform.translation.distance(drone.translation) <= APPROACH_DISTANCE
+                    && (!jammer || (slot.is_some() && modules.can_be_jammed()))
+                {
                     attack.slot = slot;
                     attack.anchor = transform.translation;
                     attack.enter(ControlPhase::Windup);
