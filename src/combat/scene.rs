@@ -38,6 +38,7 @@ impl Plugin for CombatScenePlugin {
                     feedback::setup,
                     super::variant_scene::setup,
                     super::control_scene::setup,
+                    super::ordnance_scene::setup,
                 ),
             )
             .add_systems(
@@ -46,10 +47,13 @@ impl Plugin for CombatScenePlugin {
                     add_visuals,
                     super::variant_scene::spawn,
                     super::control_scene::spawn,
+                    super::ordnance_scene::spawn,
                     feedback::update,
                     super::variant_scene::present,
                     super::control_scene::present,
                     super::control_scene::status,
+                    super::ordnance_scene::present,
+                    super::ordnance_scene::status,
                     update_hud,
                 )
                     .chain()
@@ -112,6 +116,19 @@ fn setup(
             ));
             parent.spawn((
                 super::control_scene::ControlHud,
+                Text::default(),
+                crate::arena::FooterFont::new(14., 12.),
+                TextFont::from_font_size(14.),
+                TextLayout::new(Justify::Left, LineBreak::WordBoundary),
+                Node {
+                    width: percent(100),
+                    display: Display::None,
+                    ..default()
+                },
+                TextColor(Color::srgb(1., 0.88, 0.5)),
+            ));
+            parent.spawn((
+                super::ordnance_scene::OrdnanceHud,
                 Text::default(),
                 crate::arena::FooterFont::new(14., 12.),
                 TextFont::from_font_size(14.),

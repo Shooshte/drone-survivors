@@ -13,6 +13,7 @@ pub(crate) fn present(
     energy: Res<Energy>,
     battery_config: Res<EnergyConfig>,
     phase: Res<GamePhase>,
+    bomb: Res<crate::combat::bombs::BombState>,
     mut rows: Query<(&ModuleHud, &mut Text, &mut TextColor)>,
 ) {
     for (row, mut text, mut color) in &mut rows {
@@ -45,6 +46,8 @@ pub(crate) fn present(
                         }
                     )
                 }
+            } else if kind == ModuleKind::Repulsor {
+                format!(" {:.1}s pulse", bomb.pulse_cooldown)
             } else {
                 String::new()
             };

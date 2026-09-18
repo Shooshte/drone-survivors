@@ -17,6 +17,8 @@ pub(crate) enum EnemyKind {
     Rammer,
     Slower,
     Jammer,
+    Bomber,
+    Mothership,
 }
 #[derive(Clone, Copy)]
 pub(crate) struct DropRule {
@@ -57,7 +59,9 @@ impl EconomyConfig {
             | EnemyKind::Fast
             | EnemyKind::Rammer
             | EnemyKind::Slower
-            | EnemyKind::Jammer => self.chaser,
+            | EnemyKind::Jammer
+            | EnemyKind::Bomber
+            | EnemyKind::Mothership => self.chaser,
         }
     }
 }

@@ -67,6 +67,7 @@ pub(crate) fn apply(
             "{} is already owned. Assign it to a slot for free.",
             kind.name()
         ),
+        Err(ShopError::CatalogOnly) => "Available in the catalog arena only.".into(),
         Err(ShopError::InsufficientFunds) => "Not enough banked salvage or components.".into(),
         Err(ShopError::NotOwned(kind)) => format!("Buy {} before equipping it.", kind.name()),
         Err(ShopError::InvalidSlot(_)) => "Choose a slot from 1 to 4.".into(),

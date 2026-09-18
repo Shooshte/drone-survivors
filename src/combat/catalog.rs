@@ -8,6 +8,7 @@ use crate::{
 use bevy::prelude::*;
 
 mod control_validation;
+mod ordnance_validation;
 mod scene;
 mod validation;
 mod variant_validation;
@@ -27,7 +28,7 @@ struct Scenario {
     kinds: &'static [EnemyKind],
 }
 
-const SCENARIOS: [Scenario; 9] = [
+const SCENARIOS: [Scenario; 12] = [
     Scenario {
         name: "Flight practice",
         instruction: "No enemies. Practice banking, altitude, chargers and the timed hazard.",
@@ -82,6 +83,24 @@ const SCENARIOS: [Scenario; 9] = [
         bursts: &[(1., 3), (12., 3)],
         kinds: &[EnemyKind::Slower, EnemyKind::Jammer, EnemyKind::Fast],
     },
+    Scenario {
+        name: "Collision bomb",
+        instruction: "Red spiked carrier: avoid contact. One bomb, 3s fuse, 25 damage. Powered Repulsor dislodges it; shield blocks the blast.",
+        bursts: &[(1., 1)],
+        kinds: &[EnemyKind::Bomber],
+    },
+    Scenario {
+        name: "Mothership",
+        instruction: "White launch ring: destroy the parent to stop launches. One child per 6s, 1.2s warning, shared cap 30.",
+        bursts: &[(1., 1)],
+        kinds: &[EnemyKind::Mothership],
+    },
+    Scenario {
+        name: "Mixed ordnance",
+        instruction: "Carrier, mothership and jammer. Repulsor needs power and an unlocked slot. Destroy parents to stop launches.",
+        bursts: &[(1., 3)],
+        kinds: &[EnemyKind::Bomber, EnemyKind::Mothership, EnemyKind::Jammer],
+    },
 ];
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
@@ -116,7 +135,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_CONTROL_SMOKE").is_some() {
+    if std::env::var_os("DRONE_ORDNANCE_SMOKE").is_some() {
+        ordnance_validation::install(app);
+    } else if std::env::var_os("DRONE_CONTROL_SMOKE").is_some() {
         control_validation::install(app);
     } else if std::env::var_os("DRONE_VARIANT_SMOKE").is_some() {
         variant_validation::install(app);
@@ -135,6 +156,7 @@ fn cycle_slot(arena: &mut CatalogArena, slot: usize) {
         Some(ModuleKind::Shield),
         Some(ModuleKind::Mobility),
         Some(ModuleKind::Rocket),
+        Some(ModuleKind::Repulsor),
     ];
     let current = choices
         .iter()

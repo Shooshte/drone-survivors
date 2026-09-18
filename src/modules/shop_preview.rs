@@ -75,6 +75,7 @@ pub(crate) fn catalog_detail(kind: ModuleKind, modules: &ModuleConfig) -> String
             "Horizontal thrust/speed x{}  |  drain {drain}/s  |  Tradeoff: lower energy margin.",
             number(f64::from(modules.mobility_multiplier))
         ),
+        ModuleKind::Repulsor => "Catalog only: removes attached bombs; 8/s, 2s cooldown".into(),
         ModuleKind::Rocket => format!(
             "{} damage / {} radius / every {}s  |  drain {drain}/s  |  Tradeoff: draw while ON.",
             modules.rocket_damage,
@@ -111,6 +112,7 @@ fn slot_effect(kind: ModuleKind, modules: &ModuleConfig) -> String {
             "x{} horizontal",
             number(f64::from(modules.mobility_multiplier))
         ),
+        ModuleKind::Repulsor => "Catalog only: removes attached bombs; 8/s, 2s cooldown".into(),
         ModuleKind::Rocket => format!("{} dmg", modules.rocket_damage),
     }
 }
