@@ -1,0 +1,27 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-37-bombs-mothership)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 18.01s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
+ORDNANCE FIXTURE: synthetic keys, carrier/parent repositioning and lethal parent projectile; auto-fire suppressed. Production contact, fuse, power, spawn warnings and death. Not balance/human evidence.
+ORDNANCE FIXTURE bomb-selector: time=0.00, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 0, admitted: 0, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 0, cancelled: 0 }
+ORDNANCE FIXTURE moved spawned carrier to contact
+ORDNANCE FIXTURE bomb-countdown: time=2.17, hull=100, fuse=Some(2.600046208), kills=0, spawn=SpawnCounts { requested: 1, admitted: 1, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 1, cancelled: 0 }
+ORDNANCE FIXTURE bomb-dislodged: time=2.98, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 1, admitted: 1, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 1, cancelled: 0 }
+ORDNANCE FIXTURE bomb-restart: time=0.40, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 0, admitted: 0, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 0, cancelled: 0 }
+ORDNANCE FIXTURE moved spawned carrier to contact
+ORDNANCE FIXTURE bomb-countdown: time=2.16, hull=100, fuse=Some(2.608211708), kills=0, spawn=SpawnCounts { requested: 1, admitted: 1, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 1, cancelled: 0 }
+ORDNANCE FIXTURE bomb-detonated: time=4.77, hull=75, fuse=None, kills=0, spawn=SpawnCounts { requested: 1, admitted: 1, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 1, cancelled: 0 }
+ORDNANCE FIXTURE mothership-selector: time=0.00, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 0, admitted: 0, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 0, cancelled: 0 }
+ORDNANCE FIXTURE repositioned spawned mothership for visibility
+ORDNANCE FIXTURE mothership-warning: time=7.77, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 2, admitted: 2, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 1, cancelled: 0 }
+ORDNANCE FIXTURE mothership-child: time=8.97, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 2, admitted: 2, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 2, cancelled: 0 }
+ORDNANCE FIXTURE fired lethal synthetic projectile at parent with pending launch
+ORDNANCE FIXTURE mothership-destroyed: time=14.18, hull=50, fuse=None, kills=1, spawn=SpawnCounts { requested: 3, admitted: 3, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 2, cancelled: 1 }
+ORDNANCE FIXTURE ordnance-mixed-selector: time=0.00, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 0, admitted: 0, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 0, cancelled: 0 }
+ORDNANCE FIXTURE ordnance-mixed-round: time=1.77, hull=100, fuse=None, kills=0, spawn=SpawnCounts { requested: 3, admitted: 3, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 3, cancelled: 0 }
+ORDNANCE FIXTURE repositioned mixed enemies to expose simultaneous HUD states
+ORDNANCE FIXTURE ordnance-mixed-threats: time=2.57, hull=100, fuse=Some(2.6081365), kills=0, spawn=SpawnCounts { requested: 3, admitted: 3, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 3, cancelled: 0 }
+ORDNANCE FIXTURE ordnance-mixed-lock: time=3.39, hull=100, fuse=Some(1.7917179580000002), kills=0, spawn=SpawnCounts { requested: 3, admitted: 3, rejected_cap: 0, rejected_space: 0, skipped_hitch: 0, skipped_terminal: 0, activated: 3, cancelled: 0 }
+ORDNANCE FIXTURE PASS at 640x480: bomb countdown, powered dislodge, 25 damage, restart, warned child, parent death cancellation, mixed roster and simultaneous bomb/jam HUD
+2026-09-18T10:56:53.195560Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(31334875776)

@@ -70,6 +70,7 @@ pub(super) fn contact_damage(
     mut outcomes: ResMut<CombatOutcomes>,
     mut power: ResMut<crate::energy::PowerFrame>,
     modules: Res<crate::modules::ModuleConfig>,
+    mut bomb: ResMut<super::bombs::BombState>,
 ) {
     use super::variants::RamPhase;
     use crate::economy::runtime::EnemyKind;
@@ -110,6 +111,17 @@ pub(super) fn contact_damage(
         .collect();
     contacts.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
     for (id, _) in contacts {
+        if *phase != GamePhase::Playing {
+            break;
+        }
+        if let Ok((_, mut enemy, _, _)) = enemies.get_mut(id)
+            && enemy.kind == EnemyKind::Bomber
+        {
+            bomb.attach();
+            enemy.health = 0;
+            commands.entity(id).despawn();
+            continue;
+        }
         let accepted = apply_player_damage(
             config.contact_damage,
             now,

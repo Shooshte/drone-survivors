@@ -37,7 +37,9 @@ pub(super) fn spawn_enemy_kind(
     let mut entity = commands.spawn((
         Enemy {
             kind,
-            health: if kind == crate::economy::runtime::EnemyKind::Rammer {
+            health: if kind == crate::economy::runtime::EnemyKind::Mothership {
+                100
+            } else if kind == crate::economy::runtime::EnemyKind::Rammer {
                 config.variants.rammer_health
             } else if matches!(
                 kind,
@@ -59,6 +61,9 @@ pub(super) fn spawn_enemy_kind(
         crate::economy::runtime::EnemyKind::Slower | crate::economy::runtime::EnemyKind::Jammer
     ) {
         entity.insert(super::control::ControlAttack::default());
+    }
+    if kind == crate::economy::runtime::EnemyKind::Mothership {
+        entity.insert(super::mothership::Mothership::default());
     }
     if kind == crate::economy::runtime::EnemyKind::Rammer {
         entity.insert(Rammer::default());
@@ -167,7 +172,12 @@ pub(super) fn chase(
         if enemy.kind == crate::economy::runtime::EnemyKind::Fast {
             profile.max_horizontal_speed = config.variants.fast_speed;
         }
-        let goal = if let Some(ram) = rammer.as_mut() {
+        if enemy.kind == crate::economy::runtime::EnemyKind::Mothership {
+            profile.max_horizontal_speed = 120.;
+        }
+        let goal = if enemy.kind == crate::economy::runtime::EnemyKind::Mothership {
+            super::mothership::flight_target(transform.translation, drone.translation)
+        } else if let Some(ram) = rammer.as_mut() {
             ram.plan(
                 transform.translation,
                 drone.translation,

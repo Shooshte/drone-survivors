@@ -160,6 +160,7 @@ fn module_effects_follow_each_of_the_four_equipped_positions() {
             );
             step(&mut app, 0., &[key]);
             match kind {
+                ModuleKind::Repulsor => unreachable!("campaign module list excludes Repulsor"),
                 ModuleKind::Overdrive => {
                     assert_eq!(app.world().resource::<Weapon>().interval, Some(0.25))
                 }

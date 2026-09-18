@@ -46,8 +46,9 @@ This isolated arena opens a scenario/loadout selector. **Left/Right** or the
 scenario buttons cycle Flight practice (no enemies), Single pursuer (one chaser),
 Small swarm (three waves of five), Fast pursuer, Double-impact rammer,
 Mixed pursuers (two waves with one of each type), Slowing beam, Module jammer,
-and Mixed control. **1-4** or the slot buttons cycle each slot
-through empty and the four existing modules, skipping types equipped elsewhere.
+and Mixed control, Collision bomb, Mothership, and Mixed ordnance. **1-4** or the slot buttons cycle each slot
+through empty, the four campaign modules and the catalog-only Repulsor, skipping
+types equipped elsewhere.
 **Enter** or Launch starts a fresh round. The default round lasts **60 active
 seconds**; `--seconds` accepts 1–600. A short limit can finish before later waves.
 
@@ -59,7 +60,7 @@ button hides to leave room for the upgrade panel. The selector pauses gameplay.
 Launch, restart and return restore the drone, hull, battery, charger reserves,
 hazard cycle and run upgrades. Normal flight, damage, spawn warnings, energy and
 naturally earned upgrades remain active. This mode installs no campaign or save
-systems and awards no campaign resources. Additional enemies, Repair/Repulsor modules and
+systems and awards no campaign resources. Repair, full Repulsor pushback behavior and
 additional upgrades are tracked by the remaining DRO-22 child issues; campaign
 introduction remains gated on human playtests.
 
@@ -141,6 +142,43 @@ basic auto-fire, and repositions each single source once while resetting its
 attack phase. It observes production warnings, slowing, lock expiry and manual
 reactivation. The escape test compares idle with ordinary banking input at
 30/60/144 Hz; neither is human acceptance. See [DRO-36 evidence](docs/playtests/dro-36-control-enemies.md).
+
+### Collision bombs and motherships
+
+Select **Collision bomb**, **Mothership**, or **Mixed ordnance** in the catalog
+arena. These enemies and the experimental Repulsor remain excluded from campaign.
+
+A red spiked carrier attaches one bomb on collision and is consumed without kill
+credit. Avoid contact or shoot it first. Attachment deals no immediate damage;
+a second carrier cannot stack or refresh the **three-second fuse**. The HUD and
+red attachment show the countdown. Detonation attempts **25 hull damage once**,
+using normal shield and invulnerability rules. Upgrade choices pause the fuse;
+restart, return and terminal outcomes clear it.
+
+Cycle a catalog slot to **REPULSOR** and toggle it with that slot's **1–4** key.
+While powered it pulses immediately when ready, then every **two seconds**, removing
+an attached bomb before detonation. It drains **8 energy/second**, uses the standard
+activation threshold, and cannot pulse while jammed or depleted. Toggling cannot
+reset its cooldown. A ready pulse wins a simultaneous fuse expiry. This initial
+Repulsor only dislodges bombs; its broader module behavior belongs to DRO-39.
+
+The white faceted mothership has **100 hull**, a **120-unit speed cap**, and
+approaches to **350 units**. Every **six active seconds** it attempts one launch,
+with a **1.2-second warning** on the launch ring, spawn site and HUD. It cycles
+through chaser, fast pursuer, rammer, slower, jammer and bomb carrier. Pending
+launches count toward the shared **30-enemy cap**; blocked or crowded sites are
+rejected. Destroying the parent immediately cancels its pending launch; existing
+children remain. Motherships never spawn more motherships.
+
+```sh
+DRONE_ORDNANCE_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/ordnance cargo dev --locked -- --validate catalog
+DRONE_ORDNANCE_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/ordnance-small cargo dev --locked -- --validate catalog
+```
+
+This opt-in fixture uses synthetic keys and contact positioning, suppresses basic
+fire, and fires one synthetic lethal projectile to check parent cancellation.
+It validates presentation and production rules, not difficulty or human acceptance.
+[DRO-37 evidence and limits](docs/playtests/dro-37-bombs-mothership.md).
 
 ## Campaign mission selection
 

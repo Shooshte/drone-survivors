@@ -2,11 +2,14 @@ use crate::game::{GamePhase, GameplaySet, is_playing};
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 
+pub(crate) mod bombs;
 mod catalog;
 mod collision;
 pub(crate) mod control;
 mod control_scene;
 mod hazards;
+mod mothership;
+mod ordnance_scene;
 mod scene;
 pub(crate) use scene::{CombatHudRoot, CombatScenePlugin, CombatSceneSetup};
 mod enemies;
@@ -121,6 +124,7 @@ impl Plugin for CombatPlugin {
             .init_resource::<CombatConfig>()
             .init_resource::<GamePhase>()
             .init_resource::<Weapon>()
+            .init_resource::<bombs::BombState>()
             .init_resource::<control::ControlEffects>()
             .init_resource::<rockets::RocketLauncher>()
             .init_resource::<WaveConfig>()
@@ -143,7 +147,7 @@ impl Plugin for CombatPlugin {
             )
             .add_systems(
                 Update,
-                control::reset
+                (control::reset, bombs::reset)
                     .in_set(GameplaySet::Reset)
                     .run_if(crate::game::reset_requested),
             )
@@ -154,6 +158,7 @@ impl Plugin for CombatPlugin {
                     .run_if(resource_exists::<crate::game::MissionBoundary>),
             )
             .add_systems(Update, feedback::clear.in_set(GameplaySet::Reset))
+            .add_systems(Update, bombs::cleanup.in_set(GameplaySet::Cleanup))
             .add_systems(
                 Update,
                 (lifecycle::restart, hazards::reset)
@@ -168,10 +173,13 @@ impl Plugin for CombatPlugin {
                     enemies::chase,
                     weapon::advance_projectiles,
                     crate::energy::prepare,
+                    bombs::advance,
                     hazards::damage,
                     lifecycle::contact_damage,
                     waves::finish,
                     control::resolve,
+                    bombs::resolve,
+                    mothership::update,
                     waves::update,
                     crate::energy::update,
                     weapon::fire,

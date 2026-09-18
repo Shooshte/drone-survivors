@@ -222,7 +222,10 @@ fn catalog_mouse_controls_cycle_slots_and_restart_terminal_rounds() {
     click(&mut app, Return);
     click(&mut app, CycleSlot(0));
     click(&mut app, Launch);
-    assert_eq!(app.world().resource::<Modules>().loadout.slots()[0], None);
+    assert_eq!(
+        app.world().resource::<Modules>().loadout.slots()[0],
+        Some(ModuleKind::Repulsor)
+    );
 }
 
 #[test]
@@ -312,5 +315,54 @@ fn catalog_selects_both_control_types_and_mixed_roster() {
         assert_eq!(count::<Enemy>(&mut app), 0);
         assert_eq!(app.world().resource::<Modules>().disabled_for, [0.; 4]);
         assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Hub);
+    }
+}
+
+#[test]
+fn catalog_selects_bomb_mothership_and_mixed_ordnance() {
+    use crate::economy::runtime::EnemyKind;
+    for (index, expected) in [
+        (9, vec![EnemyKind::Bomber]),
+        (10, vec![EnemyKind::Mothership]),
+        (
+            11,
+            vec![EnemyKind::Bomber, EnemyKind::Mothership, EnemyKind::Jammer],
+        ),
+    ] {
+        let mut app = app();
+        for _ in 0..index {
+            step(&mut app, &[KeyCode::ArrowRight]);
+        }
+        for _ in 0..5 {
+            step(&mut app, &[KeyCode::Digit1]);
+        }
+        step(&mut app, &[KeyCode::Enter]);
+        assert_eq!(
+            app.world().resource::<Modules>().loadout.slots()[0],
+            Some(ModuleKind::Repulsor)
+        );
+        for _ in 0..120 {
+            step(&mut app, &[]);
+        }
+        let kinds: Vec<_> = app
+            .world_mut()
+            .query::<&Enemy>()
+            .iter(app.world())
+            .map(|e| e.kind)
+            .collect();
+        assert_eq!(kinds.len(), expected.len());
+        for kind in expected {
+            assert!(kinds.contains(&kind));
+        }
+        app.world_mut().resource_mut::<bombs::BombState>().attach();
+        step(&mut app, &[KeyCode::Tab]);
+        assert!(
+            app.world()
+                .resource::<bombs::BombState>()
+                .remaining
+                .is_none()
+        );
+        assert_eq!(count::<Enemy>(&mut app), 0);
+        assert_eq!(count::<SpawnWarning>(&mut app), 0);
     }
 }

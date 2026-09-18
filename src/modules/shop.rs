@@ -9,6 +9,7 @@ use crate::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ShopError {
     AlreadyOwned(ModuleKind),
+    CatalogOnly,
     InsufficientFunds,
     NotOwned(ModuleKind),
     InvalidSlot(usize),
@@ -26,6 +27,7 @@ pub(crate) fn price(kind: ModuleKind) -> Amounts {
             salvage: 15,
             components: 0,
         },
+        ModuleKind::Repulsor => Amounts::default(),
         ModuleKind::Rocket => Amounts {
             salvage: 25,
             components: 1,
@@ -53,6 +55,9 @@ impl ModuleInventory {
         owned: Vec<ModuleKind>,
         slots: [Option<ModuleKind>; 4],
     ) -> Result<Self, &'static str> {
+        if owned.iter().any(|kind| !ModuleKind::ALL.contains(kind)) {
+            return Err("catalog-only module");
+        }
         let count = owned.len();
         let owned: BTreeSet<_> = owned.into_iter().collect();
         if owned.len() != count {
@@ -77,6 +82,9 @@ impl ModuleInventory {
         kind: ModuleKind,
         bank: &mut Amounts,
     ) -> Result<(), ShopError> {
+        if !ModuleKind::ALL.contains(&kind) {
+            return Err(ShopError::CatalogOnly);
+        }
         if self.owns(kind) {
             return Err(ShopError::AlreadyOwned(kind));
         }

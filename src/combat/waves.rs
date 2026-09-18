@@ -179,12 +179,12 @@ pub(super) fn finish(
 }
 
 // Conservative for any heading/tilt at activation, including a moving player.
-fn spawn_half(config: &CombatConfig) -> Vec3 {
+pub(super) fn spawn_half(config: &CombatConfig) -> Vec3 {
     Vec3::splat(config.enemy_half_size * 3_f32.sqrt())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn safe(
+pub(super) fn safe(
     position: Vec3,
     half: Vec3,
     arena: &Arena,
@@ -285,6 +285,7 @@ type Occupants<'w, 's> = Query<
         &'static Transform,
         Option<&'static Enemy>,
         Option<&'static mut SpawnWarning>,
+        Option<&'static super::mothership::SpawnParent>,
     ),
     Or<(With<Enemy>, With<SpawnWarning>)>,
 >;
@@ -301,6 +302,7 @@ pub(super) fn update(
     phase: Res<GamePhase>,
     mut run: ResMut<Encounter>,
     mut occupants: Occupants,
+    enemies: Query<&Enemy>,
 ) {
     if matches!(
         *phase,
@@ -317,7 +319,7 @@ pub(super) fn update(
     let mut occupied = Vec::new();
     let half = spawn_half(&combat);
     let mut live = 0;
-    for (id, transform, enemy, warning) in &mut occupants {
+    for (id, transform, enemy, warning, parent) in &mut occupants {
         if let Some(mut w) = warning {
             if w.cancelled {
                 continue;
@@ -327,7 +329,13 @@ pub(super) fn update(
                 // immediately so it cannot count or queue the same warning twice.
                 w.cancelled = true;
             }
-            warnings.push((id, transform.translation, w.ready_at, w.kind));
+            warnings.push((
+                id,
+                transform.translation,
+                w.ready_at,
+                w.kind,
+                parent.copied(),
+            ));
             occupied.push((id, transform.translation, half));
         } else if enemy.is_some_and(|e| e.health > 0) {
             live += 1;
@@ -338,7 +346,7 @@ pub(super) fn update(
             ));
         }
     }
-    warnings.sort_by_key(|(id, _, _, _)| id.to_bits());
+    warnings.sort_by_key(|(id, _, _, _, _)| id.to_bits());
     if *phase != GamePhase::Playing {
         // The outcome wins over spawning, but due requests still need an outcome
         // in the report (including a hitch crossing the final authored burst).
@@ -351,13 +359,20 @@ pub(super) fn update(
             run.next_burst += 1;
         }
         run.spawns.cancelled += warnings.len();
-        for (id, _, _, _) in warnings {
+        for (id, _, _, _, _) in warnings {
             commands.entity(id).despawn();
         }
         return;
     }
     let mut pending = warnings.len();
-    for (id, position, ready_at, kind) in warnings {
+    for (id, position, ready_at, kind, parent) in warnings {
+        if parent.is_some_and(|parent| !enemies.get(parent.0).is_ok_and(|enemy| enemy.health > 0)) {
+            commands.entity(id).despawn();
+            pending -= 1;
+            occupied.retain(|(other, _, _)| *other != id);
+            run.spawns.cancelled += 1;
+            continue;
+        }
         if run.elapsed + 1e-7 < ready_at {
             continue;
         }

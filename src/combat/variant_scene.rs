@@ -63,7 +63,11 @@ pub(super) fn spawn(
 ) {
     for (id, enemy) in &enemies {
         match enemy.kind {
-            EnemyKind::Chaser | EnemyKind::Slower | EnemyKind::Jammer => {}
+            EnemyKind::Chaser
+            | EnemyKind::Slower
+            | EnemyKind::Jammer
+            | EnemyKind::Bomber
+            | EnemyKind::Mothership => {}
             EnemyKind::Fast => {
                 commands
                     .entity(id)
@@ -155,7 +159,11 @@ pub(super) fn present(assets: Res<VariantAssets>, mut bodies: Bodies, mut cues: 
             match enemy.kind {
                 EnemyKind::Fast => material.0 = assets.fast.clone(),
                 EnemyKind::Rammer => material.0 = assets.rammer.clone(),
-                EnemyKind::Chaser | EnemyKind::Slower | EnemyKind::Jammer => {}
+                EnemyKind::Chaser
+                | EnemyKind::Slower
+                | EnemyKind::Jammer
+                | EnemyKind::Bomber
+                | EnemyKind::Mothership => {}
             }
         }
         let _ = rammer;

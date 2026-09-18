@@ -16,6 +16,9 @@ pub(crate) enum ModuleKind {
     Shield,
     Mobility,
     Rocket,
+    /// Catalog-only foundation; excluded from the campaign save codec.
+    #[serde(skip)]
+    Repulsor,
 }
 impl ModuleKind {
     pub(crate) const ALL: [Self; 4] = [Self::Overdrive, Self::Shield, Self::Mobility, Self::Rocket];
@@ -26,6 +29,7 @@ impl ModuleKind {
             Self::Shield => "SHIELD",
             Self::Mobility => "MOBILITY",
             Self::Rocket => "ROCKETS",
+            Self::Repulsor => "REPULSOR",
         }
     }
 }
@@ -63,7 +67,11 @@ impl Default for ModuleConfig {
 }
 impl ModuleConfig {
     pub fn drain(&self, kind: ModuleKind) -> f64 {
-        self.drains[kind as usize]
+        if kind == ModuleKind::Repulsor {
+            8.
+        } else {
+            self.drains[kind as usize]
+        }
     }
 }
 
