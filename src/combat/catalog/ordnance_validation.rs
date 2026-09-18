@@ -236,8 +236,38 @@ fn drive(
             }
         }
         40 => {
+            for (_, enemy, mut transform, mut flight, _) in &mut enemies {
+                transform.translation = drone.translation
+                    + match enemy.kind {
+                        EnemyKind::Bomber => Vec3::ZERO,
+                        EnemyKind::Jammer => Vec3::X * 240.,
+                        EnemyKind::Mothership => Vec3::NEG_X * 350.,
+                        _ => continue,
+                    };
+                *flight = default();
+            }
             println!(
-                "ORDNANCE FIXTURE PASS at {}x{}: bomb countdown, powered dislodge, 25 damage, restart, warned child, parent death cancellation and mixed roster",
+                "ORDNANCE FIXTURE repositioned mixed enemies to expose simultaneous HUD states"
+            );
+            None
+        }
+        41 => {
+            assert!(bomb.remaining.is_some());
+            Some("ordnance-mixed-threats")
+        }
+        42 => {
+            if modules.disabled_for[0] > 0. {
+                assert!(bomb.remaining.is_some());
+                assert!(!modules.active(ModuleKind::Repulsor));
+                Some("ordnance-mixed-lock")
+            } else {
+                advance = false;
+                None
+            }
+        }
+        43 => {
+            println!(
+                "ORDNANCE FIXTURE PASS at {}x{}: bomb countdown, powered dislodge, 25 damage, restart, warned child, parent death cancellation, mixed roster and simultaneous bomb/jam HUD",
                 window.width(),
                 window.height()
             );

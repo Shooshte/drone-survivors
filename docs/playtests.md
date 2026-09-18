@@ -1618,3 +1618,13 @@ DRO-36 PR review follow-up: attack delivery now occurs after same-frame lethal
 projectile/hazard damage and outcome resolution. Five added regressions cover
 both enemy types, three damage sources, real movement/power state, surviving
 sources, terminal outcomes and the beam's final active movement interval.
+
+## DRO-37 — Collision bombs and mothership spawning — 2026-09-18
+
+Added Collision bomb, Mothership and Mixed ordnance to the isolated catalog arena.
+Bombs have a visible three-second, nonstacking fuse, 25-damage shield/invulnerability
+resolution and powered Repulsor removal. Motherships warn before spawning a bounded,
+nonrecursive child roster, share the existing cap/clearance checks, and cancel pending
+launches on death. Repulsor's bomb-removal foundation is catalog-only; the full module
+work remains DRO-39. Campaign waves, module choices, upgrade offers and saves retain
+their existing behavior. [Rules, verification evidence and human follow-up](playtests/dro-37-bombs-mothership.md).
