@@ -1,0 +1,19 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-35-enemy-variants)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 4.19s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
+VARIANT FIXTURE: synthetic keyboard, auto-fire suppressed, single enemies repositioned once after production warning activation. Natural rammer cycles; no granted damage/XP. Not human/balance evidence.
+VARIANT FIXTURE fast-selector: hull=100 time=0.00
+VARIANT FIXTURE activated Fast; repositioned for visibility
+VARIANT FIXTURE fast-flight: hull=100 time=2.76
+VARIANT FIXTURE rammer-selector: hull=100 time=0.00
+VARIANT FIXTURE activated Rammer; repositioned for visibility
+VARIANT FIXTURE rammer-warning: hull=100 time=1.87
+VARIANT FIXTURE rammer-charge: hull=100 time=2.77
+VARIANT FIXTURE rammer-retreat: hull=90 time=4.74
+VARIANT FIXTURE rammer-second-warning: hull=90 time=8.60
+VARIANT FIXTURE two separate impacts; hull=80 kills=0; all cues observed
+VARIANT FIXTURE rammer-restart: hull=100 time=1.00
+VARIANT FIXTURE mixed-selector: hull=100 time=0.00
+VARIANT FIXTURE mixed-round: hull=100 time=1.77
+VARIANT FIXTURE PASS at 640x480: new selectors, typed warning activation, natural two-impact cycle, restart and mixed roster
+2026-09-18T08:18:13.445498Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(34091811456)

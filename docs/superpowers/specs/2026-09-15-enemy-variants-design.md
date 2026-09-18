@@ -20,7 +20,8 @@ authorized while campaign introduction stays gated. No further split is needed.
   or shield block spends one of two impacts. Shared invulnerability rejects an
   impact but still ends that charge. Second accepted impact destroys the rammer
   without granting a kill, XP or loot. Shooting/hazard kills follow existing
-  combat outcome/drop rules exactly once. It can be killed during any phase.
+  combat outcome/drop rules exactly once. It can be killed during any phase. Retreat uses its actual physical envelope
+  near cover and chooses a new destination if the player follows it to the old one.
 - A magenta armored body, state-colored ring and two visible impact indicators
   expose type, remaining budget and warning/charge/retreat state. Reuse cached
   meshes/materials and preserve the right material after hit flashes.

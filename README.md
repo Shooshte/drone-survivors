@@ -44,7 +44,8 @@ cargo dev -- --validate catalog --seconds 90
 
 This isolated arena opens a scenario/loadout selector. **Left/Right** or the
 scenario buttons cycle Flight practice (no enemies), Single pursuer (one chaser),
-and Small swarm (three waves of five). **1-4** or the slot buttons cycle each slot
+Small swarm (three waves of five), Fast pursuer, Double-impact rammer, and
+Mixed pursuers (two waves with one of each type). **1-4** or the slot buttons cycle each slot
 through empty and the four existing modules, skipping types equipped elsewhere.
 **Enter** or Launch starts a fresh round. The default round lasts **60 active
 seconds**; `--seconds` accepts 1–600. A short limit can finish before later waves.
@@ -57,7 +58,7 @@ button hides to leave room for the upgrade panel. The selector pauses gameplay.
 Launch, restart and return restore the drone, hull, battery, charger reserves,
 hazard cycle and run upgrades. Normal flight, damage, spawn warnings, energy and
 naturally earned upgrades remain active. This mode installs no campaign or save
-systems and awards no campaign resources. New enemies, Repair/Repulsor modules and
+systems and awards no campaign resources. Additional enemies, Repair/Repulsor modules and
 additional upgrades are tracked by the remaining DRO-22 child issues; campaign
 introduction remains gated on human playtests.
 
@@ -71,6 +72,37 @@ DRONE_CATALOG_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/catalog car
 The fixture drives synthetic keyboard input and grants 50 XP solely to display
 the upgrade panel. It checks transitions/text bounds, captures screenshots at
 1120×720 or 640×480 and exits. Ordinary arena play has no synthetic pilot or XP.
+
+### Fast pursuers and double-impact rammers
+
+These enemies appear only in their catalog scenarios. Ordinary campaign waves
+and the original arena scenarios still use orange chasers.
+
+- **Fast pursuer:** cyan body and paired fins, 20 hull, 350u/s horizontal speed
+  cap (ordinary chaser: 260u/s). Change heading or altitude and use cover.
+- **Rammer:** magenta armor, 80 hull. Within 280u and clear sight it brakes for a
+  full one-second **yellow warning**, then charges along the marked direction
+  with a 420u/s cap. Dodge sideways or use cover; it does not retarget a charge.
+  A **red ring/line** marks the charge and a **blue ring** marks harmless retreat.
+  It must retreat for at least 1.2 active seconds and reach 180u separation before
+  another full warning. A missed charge also retreats, without spending an impact.
+- **Two yellow pips** show remaining impacts. A hull hit or shield block spends
+  one; shared invulnerability rejects the hit but still forces retreat. After
+  the second accepted impact it breaks apart without awarding a kill, XP or loot.
+  Shooting it instead uses ordinary kill rewards. Approach, warning and retreat
+  contact are harmless. All tuning is provisional.
+
+```sh
+DRONE_VARIANT_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/variants cargo dev -- --validate catalog
+DRONE_VARIANT_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/variants-small cargo dev -- --validate catalog
+```
+
+This opt-in native fixture selects all three new scenarios, suppresses auto-fire,
+and repositions each single enemy once after production spawn-warning activation.
+It observes the rammer's natural warning/charge/retreat/two-impact cycle, checks
+restart and mixed spawning, captures screenshots and exits. No hull damage, kills
+or XP are granted. These checks do not replace human balance/counterplay testing.
+[DRO-35 evidence and remaining human checks](docs/playtests/dro-35-enemy-variants.md).
 
 ## Campaign mission selection
 

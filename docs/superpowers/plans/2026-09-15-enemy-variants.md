@@ -14,30 +14,37 @@ roster, per-kind tuning and an attached rammer state machine; cached visual cues
 
 ## 1. Spawn and identify the new enemies
 
-- [ ] Add a failing catalog regression for the new selectable scenarios.
-- [ ] Extend EnemyKind; put per-kind tuning and Rammer state in
+- [x] Add a failing catalog regression for the new selectable scenarios.
+- [x] Extend EnemyKind; put per-kind tuning and Rammer state in
   `src/combat/variants.rs`, register it from `src/combat.rs`.
-- [ ] Add an optional arena spawn roster, capture its kind in SpawnWarning and
+- [x] Add an optional arena spawn roster, capture its kind in SpawnWarning and
   use a typed spawn helper. Keep existing spawn_enemy as the ordinary-chaser
   entry for legacy fixtures. Extend catalog scenario metadata and instructions.
-- [ ] Test typed activation and isolation; commit.
+- [x] Test typed activation and isolation; commit.
 
 ## 2. Physical attacks, contact and feedback
 
-- [ ] Write tests for rammer phases, impact budgets, shield/invulnerability,
+- [x] Write tests for rammer phases, impact budgets, shield/invulnerability,
   reset/pause, swept crossings and terrain before implementing those rules.
-- [ ] Feed variant targets/profiles into `enemies::chase`; retain rotor physics.
-- [ ] Extend contact_damage with optional Rammer state and segment-based new-type
+- [x] Feed variant targets/profiles into `enemies::chase`; retain rotor physics.
+- [x] Extend contact_damage with optional Rammer state and segment-based new-type
   contact; preserve ordinary chaser contact. Separate accepted impact accounting
   from kill rewards. Exercise normal projectile and economy event consumers.
-- [ ] Cache variant meshes/materials, rings and impact indicators in a dedicated
+- [x] Cache variant meshes/materials, rings and impact indicators in a dedicated
   scene module. Make feedback restore the material corresponding to type/state.
-- [ ] Run focused frame-rate/terrain/kill tests; commit.
+- [x] Run focused frame-rate/terrain/kill tests; commit.
 
 ## 3. Verify and deliver
 
-- [ ] Extend explicit native fixture for both new scenarios and rammer cues;
+- [x] Extend explicit native fixture for both new scenarios and rammer cues;
   inspect screenshots at 640x480 and 1120x720. Record synthetic setup precisely.
-- [ ] Run formatting, full tests and strict Clippy; independent review and fixes.
-- [ ] Record results in docs/playtests.md and a DRO-35 report; update README.
-- [ ] Commit, push, open PR against main and move DRO-35 to In Review with links.
+- [x] Run formatting, full tests and strict Clippy; independent review and fixes.
+- [x] Record results in docs/playtests.md and a DRO-35 report; update README.
+- [x] Commit, push, open PR against main and move DRO-35 to In Review with links.
+
+## Completion notes — September 18, 2026
+
+Resumed the existing approved worktree and partial implementation. Initial suite
+passed 399 tests; completed native fixture and independent review. Review fixes
+were reproduced red/green with extra recovery tests; final suite passed 403 tests
+with five existing probes ignored. See `docs/playtests/dro-35-enemy-variants.md`.

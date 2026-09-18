@@ -1586,3 +1586,13 @@ of the implementation and follow-up found no actionable issues.
 [Detailed report and evidence](playtests/dro-34-catalog-arena.md).
 Remaining catalog content belongs to DRO-35–DRO-41 after the arena foundation merges.
 Human acceptance and campaign introduction remain pending.
+
+## DRO-35 — Fast pursuers and double-impact rammers — 2026-09-18
+
+Added catalog-only fast, rammer and mixed scenarios. Rammers warn, commit, retreat
+and deliver at most two separate accepted impacts. Review caught and fixed two
+retreat stalls near walls and following players. Full suite: **403 passed, 5 existing
+probes ignored**; formatting and strict Clippy pass. Native fixtures passed at
+1120×720 and 640×480, observing natural two-impact cycles and reset/type behavior
+from disclosed synthetic setup. Human acceptance and campaign introduction remain
+pending. [Evidence, screenshots and human checklist](playtests/dro-35-enemy-variants.md).

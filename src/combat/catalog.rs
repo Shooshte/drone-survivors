@@ -9,6 +9,7 @@ use bevy::prelude::*;
 
 mod scene;
 mod validation;
+mod variant_validation;
 
 #[derive(Resource)]
 struct CatalogArena {
@@ -96,7 +97,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_CATALOG_SMOKE").is_some() {
+    if std::env::var_os("DRONE_VARIANT_SMOKE").is_some() {
+        variant_validation::install(app);
+    } else if std::env::var_os("DRONE_CATALOG_SMOKE").is_some() {
         validation::install(app);
     }
 }
