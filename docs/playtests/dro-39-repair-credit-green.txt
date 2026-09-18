@@ -1,0 +1,21 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-39-repair-repulsor)
+    Finished `test` profile [optimized + debuginfo] target(s) in 17.50s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 13 tests
+test arena::environment_tests::environment_field_crossing_is_consistent_at_30_60_120_hz_and_has_no_exit_impulse ... ok
+test arena::environment_tests::environment_boost_respects_swept_terrain_and_actual_player_path ... ok
+test world::environment::tests::environment_cycle_boundaries_and_repair_limits ... ok
+test world::environment::tests::environment_travel_axes_overlap_and_exit_are_bounded ... ok
+test combat::catalog_tests::environment_tests::environment_is_not_installed_by_normal_combat ... ok
+test combat::catalog_tests::environment_tests::environment_repair_sweeps_fast_crossings_and_clamps_to_upgraded_hull ... ok
+test combat::catalog_tests::environment_tests::environment_full_hull_repair_discards_paid_module_credit_before_next_damage ... ok
+test combat::catalog_tests::environment_tests::environment_repair_requires_sight_height_and_living_player ... ok
+test combat::catalog_tests::environment_tests::environment_full_hull_preserves_charge_and_other_scenarios_have_no_repair ... ok
+test combat::catalog_tests::environment_tests::environment_pauses_with_upgrade_and_resets_on_return_restart_and_launch ... ok
+test combat::catalog_tests::environment_tests::environment_scenario_is_selectable_and_repairs_only_one_charge ... ok
+test combat::catalog_tests::environment_tests::environment_changes_travel_without_storing_a_velocity_modifier ... ok
+test combat::catalog_tests::environment_tests::environment_composes_with_powered_mobility_and_active_beam_without_mutating_tuning ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 470 filtered out; finished in 0.06s
+

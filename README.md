@@ -48,7 +48,7 @@ Small swarm (three waves of five), Fast pursuer, Double-impact rammer,
 Mixed pursuers (two waves with one of each type), Slowing beam, Module jammer,
 Mixed control, Collision bomb, Mothership, Mixed ordnance, Environment practice,
 and Environment pressure. **1-4** or the slot buttons cycle each slot
-through empty, the four campaign modules and the catalog-only Repulsor, skipping
+through empty, the four campaign modules, Repulsor and Repair, skipping
 types equipped elsewhere.
 **Enter** or Launch starts a fresh round. The default round lasts **60 active
 seconds**; `--seconds` accepts 1–600. A short limit can finish before later waves.
@@ -61,9 +61,10 @@ button hides to leave room for the upgrade panel. The selector pauses gameplay.
 Launch, restart and return restore the drone, hull, battery, charger reserves,
 hazard cycle and run upgrades. Normal flight, damage, spawn warnings, energy and
 naturally earned upgrades remain active. This mode installs no campaign or save
-systems and awards no campaign resources. The Repair module, full Repulsor pushback behavior and
-additional upgrades are tracked by the remaining DRO-22 child issues; campaign
-introduction remains gated on human playtests.
+systems and awards no campaign resources. All six modules are available here;
+additional upgrades and combination tuning remain DRO-40/DRO-41. New catalog
+content stays excluded from campaign shops, spawns and upgrade offers until the
+human playtest gate is lifted.
 
 For the explicit native UI fixture:
 
@@ -75,6 +76,36 @@ DRONE_CATALOG_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/catalog car
 The fixture drives synthetic keyboard input and grants 50 XP solely to display
 the upgrade panel. It checks transitions/text bounds, captures screenshots at
 1120×720 or 640×480 and exits. Ordinary arena play has no synthetic pilot or XP.
+
+### Repair and Repulsor modules
+
+Choose either module in any of the four arena slots; each type fits once. Both
+start OFF and require at least **10 energy** to activate (a threshold, not an
+extra charge). Drain continues while ON, including at full hull or with no
+nearby enemies. Empty power turns modules OFF; jammer locks require manual
+reactivation after recovery.
+
+| Module | Benefit | Cost and limits |
+| --- | --- | --- |
+| Repair | Restores **6 hull/s** of supplied power time | **12 energy/s**; capped at current maximum hull; no banked healing at full hull or revival |
+| Repulsor | Pushes visible enemies within **180 units in 3D** and removes an attached bomb | **8 energy/s**, one pulse every **2s**; no damage; solid cover blocks enemy push |
+
+Repulsor is ready on the first powered update. It changes enemy velocity through
+normal terrain collision and flight, so enemies can resume pursuit. Its cooldown
+continues while OFF during active play; toggling cannot reset it. The expanding
+cyan ring shows a pulse; the slot HUD shows the next pulse time. Repair's HUD
+reports its rate or FULL. Upgrade choices freeze both modules. Restart, launch
+and return reset repair credit and pulse state. No new modules are accepted by
+campaign shops, loadouts or saved campaigns. Balance values are provisional.
+
+```sh
+DRONE_MODULE_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/modules cargo dev -- --validate catalog
+DRONE_MODULE_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/modules cargo dev -- --validate catalog
+```
+
+This agent fixture uses synthetic damage, an enemy, a bomb attachment and XP,
+with basic auto-fire suppressed. It checks production effects and native text
+bounds; it is not a human balance playtest.
 
 ### Directional fields and hull-repair sites
 
@@ -97,7 +128,7 @@ Leaving removes the modifier by the next physics substep (at most 1/120 second).
 Terrain still blocks movement, and ordinary Mobility/beam effects compose with
 fields. Choices pause the cycle and repair. R restores both fixtures; returning
 or choosing an ordinary scenario removes them. Campaign layouts remain unchanged.
-Numeric tuning is provisional; this does not implement the Repair module.
+Numeric tuning is provisional. The repair site is independent of the Repair module.
 
 ```sh
 DRONE_ENVIRONMENT_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/environment cargo dev -- --validate catalog

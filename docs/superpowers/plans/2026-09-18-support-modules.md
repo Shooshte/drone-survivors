@@ -21,11 +21,11 @@
 
 Files: src/modules.rs, src/energy.rs, src/combat.rs, src/combat/bombs.rs, new focused support behavior/test file(s), exhaustive matches in src/modules/shop.rs and shop_preview.rs.
 
-- [ ] Add tests first for repair power accounting/cap/banking/pause/jam/reset/terminal behavior and repulsor range/cover/no-damage/physics/bomb behavior. Observe failures before implementation.
-- [ ] Add Repair as a serde-skipped variant; retain campaign ALL and the default loadout. Add config tuning for both support modules.
-- [ ] Carry paid repair duration through PowerFrame; accumulate fractional hull safely after damage resolution, clearing credit at full hull and boundaries.
-- [ ] Extend the single existing Repulsor pulse to apply bounded outward enemy velocity, preserving collision-aware movement and bomb precedence.
-- [ ] Verify targeted tests and save/shop rejection, then commit the coherent gameplay increment.
+- [x] Add tests first for repair power accounting/cap/banking/pause/jam/reset/terminal behavior and repulsor range/cover/no-damage/physics/bomb behavior. Observe failures before implementation.
+- [x] Add Repair as a serde-skipped variant; retain campaign ALL and the default loadout. Add config tuning for both support modules.
+- [x] Carry paid repair duration through PowerFrame; accumulate fractional hull safely after damage resolution, clearing credit at full hull and boundaries.
+- [x] Extend the single existing Repulsor pulse to apply bounded outward enemy velocity, preserving collision-aware movement and bomb precedence.
+- [x] Verify targeted tests and save/shop rejection, then commit the coherent gameplay increment.
 
 Tests use production plugins with manual Time, actual energy::prepare/update and normal phase boundaries. For one second powered Repair from hull 50, expect hull 56 and battery 88. For 0.5 powered seconds before depletion, expect 3 hull and disabled modules. Full-hull elapsed time must never become future healing. An in-range enemy must get outward velocity with unchanged hull, encounter kills and player rewards; an occluded or out-of-range enemy must not.
 
@@ -33,15 +33,15 @@ Tests use production plugins with manual Time, actual energy::prepare/update and
 
 Files: src/combat/catalog.rs, src/combat/catalog/scene.rs, src/modules/scene.rs, src/combat/ordnance_scene.rs, src/combat/catalog_tests.rs, new src/combat/catalog/module_validation.rs.
 
-- [ ] Add a failing selector integration test proving all six distinct modules can be selected and duplicate types are skipped.
-- [ ] Append Repair after the existing Repulsor choice to preserve existing scenario fixtures. Add concise descriptions and configured drain/activation values to selected slot labels; show repair status and configurable pulse radius.
-- [ ] Add DRONE_MODULE_SMOKE native fixture exercising real slot selection, power use, repair, pulse, bomb dislodge, lock, pause and reset. Explicitly label synthetic damage/positions/XP.
-- [ ] Run native fixture with DRONE_CAPTURE_DIR at both supported sizes; inspect saved screenshots and text bounds. Commit presentation and fixture.
+- [x] Add a failing selector integration test proving all six distinct modules can be selected and duplicate types are skipped.
+- [x] Append Repair after the existing Repulsor choice to preserve existing scenario fixtures. Add concise descriptions and configured drain/activation values to selected slot labels; show repair status and configurable pulse radius.
+- [x] Add DRONE_MODULE_SMOKE native fixture exercising real slot selection, power use, repair, pulse, bomb dislodge, lock, pause and reset. Explicitly label synthetic damage/positions/XP.
+- [x] Run native fixture with DRONE_CAPTURE_DIR at both supported sizes; inspect saved screenshots and text bounds. Commit presentation and fixture.
 
 ### Task 3: Verification, review and delivery
 
 Files: README.md, docs/playtests.md, docs/playtests/dro-39-support-modules.md and selected evidence.
 
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
-- [ ] Record test/native evidence and limits; request independent code review, resolve actionable findings and rerun affected checks.
+- [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
+- [x] Record test/native evidence and limits; request independent code review, resolve actionable findings and rerun affected checks.
 - [ ] Commit documentation; push codex/dro-39-repair-repulsor and open PR against main with DRO-39 link and verification evidence.

@@ -1,0 +1,19 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-39-repair-repulsor)
+    Finished `test` profile [optimized + debuginfo] target(s) in 6.83s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 1 test
+
+thread 'combat::catalog_tests::catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots' (367726) panicked at src/combat/catalog_tests.rs:383:5:
+["1   OVERDRIVE", "1   SHIELD", "1   MOBILITY", "1   ROCKETS", "1   REPULSOR", "1   EMPTY"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test combat::catalog_tests::catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots ... FAILED
+
+failures:
+
+failures:
+    combat::catalog_tests::catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 464 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--bin drone-survivors`
