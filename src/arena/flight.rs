@@ -123,11 +123,25 @@ impl DroneFlight {
         seconds: f32,
         world: Option<&crate::world::WorldGeometry>,
     ) -> Vec<crate::world::MotionSegment> {
+        self.advance_in_environment(transform, input, config, arena, seconds, world, None)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn advance_in_environment(
+        &mut self,
+        transform: &mut Transform,
+        input: &FlightInput,
+        config: &FlightConfig,
+        arena: &Arena,
+        seconds: f32,
+        world: Option<&crate::world::WorldGeometry>,
+        environment: Option<&crate::world::environment::Environment>,
+    ) -> Vec<crate::world::MotionSegment> {
         let steps = (seconds / (1. / 120.)).ceil().max(1.) as u32;
         let dt = seconds / steps as f32;
         let mut path = Vec::new();
         for index in 0..steps {
-            for mut segment in self.step_in_world(
+            for mut segment in self.step_in_environment(
                 transform,
                 input,
                 config,
@@ -135,6 +149,7 @@ impl DroneFlight {
                 DRONE_HALF_EXTENTS,
                 dt,
                 world,
+                environment.map(|e| (e, e.elapsed + index as f64 * dt as f64)),
             ) {
                 segment.from = (index as f32 + segment.from) / steps as f32;
                 segment.to = (index as f32 + segment.to) / steps as f32;
@@ -173,6 +188,21 @@ impl DroneFlight {
         dt: f32,
         world: Option<&crate::world::WorldGeometry>,
     ) -> Vec<crate::world::MotionSegment> {
+        self.step_in_environment(transform, input, config, arena, local_half, dt, world, None)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn step_in_environment(
+        &mut self,
+        transform: &mut Transform,
+        input: &FlightInput,
+        config: &FlightConfig,
+        arena: &Arena,
+        local_half: Vec3,
+        dt: f32,
+        world: Option<&crate::world::WorldGeometry>,
+        environment: Option<(&crate::world::environment::Environment, f64)>,
+    ) -> Vec<crate::world::MotionSegment> {
         use crate::world::MotionSegment;
         let mut start = transform.translation;
         let old_rotation = transform.rotation;
@@ -186,7 +216,8 @@ impl DroneFlight {
             * config.acceleration_multiplier
             * dt
             * dt
-            / 8.;
+            / 8.
+            * if environment.is_some() { 1.4 } else { 1. };
         if let Some(world) = world {
             self.update_attitude(input, config, dt);
             let rotation = self.rotation();
@@ -228,7 +259,9 @@ impl DroneFlight {
             transform.rotation = rotation;
             let acceleration = self.acceleration(transform.rotation, input, config);
             self.integrate(transform, acceleration, input, config, dt);
-            let desired = transform.translation;
+            let displacement = transform.translation - start;
+            let desired =
+                start + environment.map_or(displacement, |(e, t)| e.travel(start, displacement, t));
             transform.translation = start;
             let collision_half = before.max(world_half_extents(transform.rotation, local_half))
                 + Vec3::splat(curve_pad);
@@ -280,7 +313,17 @@ impl DroneFlight {
             }
             path
         } else {
-            self.step(transform, input, config, arena, local_half, dt);
+            if let Some((environment, elapsed)) = environment {
+                self.update_attitude(input, config, dt);
+                transform.rotation = self.rotation();
+                let acceleration = self.acceleration(transform.rotation, input, config);
+                self.integrate(transform, acceleration, input, config, dt);
+                transform.translation =
+                    start + environment.travel(start, transform.translation - start, elapsed);
+                self.contain(transform, arena, local_half);
+            } else {
+                self.step(transform, input, config, arena, local_half, dt);
+            }
             let angular_pad = local_half.length()
                 * (config.yaw_rate.max(config.bank_yaw_rate)
                     + config.tilt_rate.max(config.leveling_rate))
