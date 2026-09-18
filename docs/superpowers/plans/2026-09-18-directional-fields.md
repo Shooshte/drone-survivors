@@ -32,7 +32,9 @@ and reset use existing gameplay phases. Human acceptance remains deferred.
   `src/combat/catalog/environment_validation.rs` and register via
   `DRONE_ENVIRONMENT_SMOKE`. Run `cargo dev -- --validate catalog` at both
   supported sizes; inspect screenshots and fix any presentation defects.
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, and
+- [x] Run `cargo fmt --check`, `cargo test --locked`, and
   `cargo clippy --locked --all-targets -- -D warnings`. Record evidence and
   limitations in `docs/playtests/dro-38-environment.md`, `docs/playtests.md`
   and README. Commit verified evidence, review diff, push, open PR to main.
+
+Delivered as [PR #30](https://github.com/Shooshte/drone-survivors/pull/30) against main.
