@@ -48,3 +48,5 @@ Logs: [1120×720](dro-39-native-1120x720.txt), [640×480](dro-39-native-640x480.
 ## Limits and next checks
 
 Numeric tuning remains provisional. Repulsion changes velocity; ordinary pursuit resumes and terrain constrains actual displacement. Repair is gradual and consumes finite power. Human counterplay/readability and contrasting-loadout balance still need playtesting, followed by DRO-41's combination comparisons. DRO-40 owns the six additional temporary upgrades. Neither this issue nor its automated evidence lifts the campaign introduction gate.
+
+Delivery: [PR #31](https://github.com/Shooshte/drone-survivors/pull/31) targets `main`; the isolated worktree is retained for review follow-up.

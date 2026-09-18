@@ -44,4 +44,6 @@ Files: README.md, docs/playtests.md, docs/playtests/dro-39-support-modules.md an
 
 - [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 - [x] Record test/native evidence and limits; request independent code review, resolve actionable findings and rerun affected checks.
-- [ ] Commit documentation; push codex/dro-39-repair-repulsor and open PR against main with DRO-39 link and verification evidence.
+- [x] Commit documentation; push codex/dro-39-repair-repulsor and open PR against main with DRO-39 link and verification evidence.
+
+Delivered as [PR #31](https://github.com/Shooshte/drone-survivors/pull/31) against main. Six coherent commits cover design, gameplay, presentation, review fix, evidence and delivery. Final verification: 478 passed, 5 ignored; formatting/strict Clippy clean; native checks at both window sizes; review fix rechecked at 640x480.
