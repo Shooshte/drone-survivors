@@ -14,6 +14,7 @@ mod environment_validation;
 mod module_validation;
 mod ordnance_validation;
 mod scene;
+mod upgrade_validation;
 mod validation;
 mod variant_validation;
 
@@ -23,6 +24,8 @@ struct CatalogArena {
     slots: [Option<ModuleKind>; 4],
     selecting: bool,
     duration: f64,
+    upgrades_page: bool,
+    preview: [Option<crate::upgrades::UpgradeKind>; 4],
 }
 
 struct Scenario {
@@ -124,6 +127,8 @@ pub(super) enum CatalogAction {
     Previous,
     Next,
     CycleSlot(usize),
+    ToggleUpgrades,
+    CycleUpgrade(usize),
     Launch,
     Return,
     Restart,
@@ -137,6 +142,12 @@ pub(super) fn install(app: &mut App, duration: f64) {
         slots: [None; 4],
         selecting: true,
         duration,
+        upgrades_page: false,
+        preview: [None; 4],
+    })
+    .insert_resource(crate::upgrades::UpgradePool {
+        catalog: true,
+        preview: Vec::new(),
     })
     .init_resource::<MissionBoundary>()
     .init_resource::<SpawnRoster>()
@@ -153,7 +164,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_MODULE_SMOKE").is_some() {
+    if std::env::var_os("DRONE_UPGRADE_SMOKE").is_some() {
+        upgrade_validation::install(app);
+    } else if std::env::var_os("DRONE_MODULE_SMOKE").is_some() {
         module_validation::install(app);
     } else if std::env::var_os("DRONE_ENVIRONMENT_SMOKE").is_some() {
         environment_validation::install(app);
@@ -194,6 +207,35 @@ fn cycle_slot(arena: &mut CatalogArena, slot: usize) {
     }
 }
 
+fn cycle_upgrade(arena: &mut CatalogArena, slot: usize) {
+    use crate::upgrades::UpgradeKind;
+    if slot >= 4 {
+        return;
+    }
+    let loadout = Loadout::new(arena.slots).expect("unique catalog modules");
+    let choices: Vec<_> = std::iter::once(None)
+        .chain(
+            UpgradeKind::CATALOG
+                .into_iter()
+                .filter(|kind| kind.eligible(&loadout))
+                .map(Some),
+        )
+        .collect();
+    let current = arena.preview[slot];
+    let index = choices
+        .iter()
+        .position(|kind| *kind == current)
+        .unwrap_or(0);
+    for offset in 1..=choices.len() {
+        let candidate = choices[(index + offset) % choices.len()];
+        if candidate.is_none() || !arena.preview.contains(&candidate) {
+            arena.preview[slot] = candidate;
+            break;
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn controls(
     keys: Res<ButtonInput<KeyCode>>,
     buttons: Query<(&CatalogAction, &Interaction), Changed<Interaction>>,
@@ -202,20 +244,29 @@ fn controls(
     mut modules: ResMut<Modules>,
     mut waves: ResMut<WaveConfig>,
     mut roster: ResMut<SpawnRoster>,
+    mut pool: ResMut<crate::upgrades::UpgradePool>,
 ) {
     *boundary = MissionBoundary::default();
     let keyboard = if arena.selecting {
-        if keys.just_pressed(KeyCode::Enter) {
+        if keys.just_pressed(KeyCode::KeyU) {
+            Some(CatalogAction::ToggleUpgrades)
+        } else if keys.just_pressed(KeyCode::Enter) {
             Some(CatalogAction::Launch)
-        } else if keys.just_pressed(KeyCode::ArrowLeft) {
+        } else if !arena.upgrades_page && keys.just_pressed(KeyCode::ArrowLeft) {
             Some(CatalogAction::Previous)
-        } else if keys.just_pressed(KeyCode::ArrowRight) {
+        } else if !arena.upgrades_page && keys.just_pressed(KeyCode::ArrowRight) {
             Some(CatalogAction::Next)
         } else {
             SLOT_KEYS
                 .iter()
                 .position(|key| keys.just_pressed(*key))
-                .map(CatalogAction::CycleSlot)
+                .map(|slot| {
+                    if arena.upgrades_page {
+                        CatalogAction::CycleUpgrade(slot)
+                    } else {
+                        CatalogAction::CycleSlot(slot)
+                    }
+                })
         }
     } else if keys.just_pressed(KeyCode::Tab) {
         Some(CatalogAction::Return)
@@ -232,7 +283,21 @@ fn controls(
         Some(CatalogAction::Next) if arena.selecting => {
             arena.scenario = (arena.scenario + 1) % SCENARIOS.len()
         }
-        Some(CatalogAction::CycleSlot(slot)) if arena.selecting => cycle_slot(&mut arena, slot),
+        Some(CatalogAction::ToggleUpgrades) if arena.selecting => {
+            arena.upgrades_page = !arena.upgrades_page
+        }
+        Some(CatalogAction::CycleUpgrade(slot)) if arena.selecting && arena.upgrades_page => {
+            cycle_upgrade(&mut arena, slot);
+        }
+        Some(CatalogAction::CycleSlot(slot)) if arena.selecting && !arena.upgrades_page => {
+            cycle_slot(&mut arena, slot);
+            let loadout = Loadout::new(arena.slots).expect("unique catalog modules");
+            for card in &mut arena.preview {
+                if card.is_some_and(|kind| !kind.eligible(&loadout)) {
+                    *card = None;
+                }
+            }
+        }
         Some(CatalogAction::Launch) if arena.selecting => {
             arena.selecting = false;
             boundary.reset = true;
@@ -250,6 +315,7 @@ fn controls(
         boundary.reset = true;
     }
     if boundary.reset {
+        pool.preview = arena.preview.iter().flatten().copied().collect();
         modules.loadout = Loadout::new(arena.slots).expect("arena keeps module types unique");
         waves.disable_authored_waves();
         waves.duration = arena.duration;
