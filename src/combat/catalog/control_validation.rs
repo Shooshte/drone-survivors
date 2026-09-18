@@ -64,6 +64,7 @@ fn drive(
     mut enemies: Enemies,
     text_nodes: Query<(&Text, &ComputedNode, &UiGlobalTransform)>,
     window: Single<&Window>,
+    hud: Single<(&ComputedNode, &UiGlobalTransform), With<crate::combat::CombatHudRoot>>,
     mut exit: MessageWriter<AppExit>,
 ) {
     keys.reset_all();
@@ -74,6 +75,20 @@ fn drive(
         "control fixture timeout at step {}",
         fixture.step
     );
+    // Check every rendered gameplay frame, including newly revealed status rows.
+    if *phase == GamePhase::Playing {
+        for (text, node, transform) in &text_nodes {
+            if text.0.starts_with("^ ") && node.size().y > 0. {
+                let top = (transform.translation.y - node.size().y / 2.) / window.scale_factor();
+                let hud_bottom =
+                    (hud.1.translation.y + hud.0.size().y / 2.) / window.scale_factor();
+                assert!(
+                    top >= hud_bottom,
+                    "navigation overlaps status HUD: top={top} hud={hud_bottom}"
+                );
+            }
+        }
+    }
     if elapsed < fixture.next {
         return;
     }
