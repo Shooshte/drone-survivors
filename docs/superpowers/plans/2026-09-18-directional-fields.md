@@ -15,19 +15,19 @@ and reset use existing gameplay phases. Human acceptance remains deferred.
 
 ## Tasks
 
-- [ ] Add failing integration tests in `src/combat/catalog_tests.rs` selecting
+- [x] Add failing integration tests in `src/combat/catalog_tests.rs` selecting
   environment practice (index 12), asserting active fixtures, repair usage,
   full-hull preservation, pause, restart and scenario isolation. Run
   `cargo test --locked environment` and confirm missing behavior fails.
-- [ ] Add `src/world/environment.rs` with `Environment` resource, field bounds,
+- [x] Add `src/world/environment.rs` with `Environment` resource, field bounds,
   bounded travel scale and repair state. Configure/reset/tick/repair from
   `src/combat/catalog/environment.rs`; append scenarios in catalog.rs. Add
   field math tests and implement minimum production behavior.
-- [ ] Integrate field sampling in `src/arena.rs` and `src/arena/flight.rs`, before
+- [x] Integrate field sampling in `src/arena.rs` and `src/arena/flight.rs`, before
   swept terrain resolution, retaining the existing entry points for AI and
   ordinary flight. Validate production movement, exit, collision and 30/60/120
   Hz comparisons. Commit gameplay increment after targeted tests pass.
-- [ ] Add cached mesh cues and compact status text in
+- [x] Add cached mesh cues and compact status text in
   `src/combat/catalog/environment_scene.rs`. Add opt-in native fixture in
   `src/combat/catalog/environment_validation.rs` and register via
   `DRONE_ENVIRONMENT_SMOKE`. Run `cargo dev -- --validate catalog` at both

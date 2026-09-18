@@ -1628,3 +1628,19 @@ nonrecursive child roster, share the existing cap/clearance checks, and cancel p
 launches on death. Repulsor's bomb-removal foundation is catalog-only; the full module
 work remains DRO-39. Campaign waves, module choices, upgrade offers and saves retain
 their existing behavior. [Rules, verification evidence and human follow-up](playtests/dro-37-bombs-mothership.md).
+
+## DRO-38 — Directional fields and hull-repair sites — 2026-09-18
+
+Added catalog-only Environment practice and Environment pressure. Both provide
+permanent/cycling eastward fields (+40% east, -40% west; neutral perpendicular
+travel; no lingering stats) and one 35-hull repair charge per round. Fields use
+bounded physics substeps and terrain sweeps; repair uses swept 3D proximity/LOS,
+respects the current maximum and cannot revive a destroyed drone. Full hull
+preserves the charge; pause/reset/return use the existing lifecycle.
+
+Twelve new behavioral checks exercise physics, overlap, pause/reset, repair,
+Mobility/beam composition and isolation. Native agent fixtures passed at 640×480
+and 1120×720; selected screenshots were inspected. Synthetic positioning, hull
+and XP make these rule/readability checks, not human playtest acceptance.
+[Detailed evidence, commands and remaining human checks](playtests/dro-38-environment.md).
+Campaign content remains unchanged and human-gated.
