@@ -124,7 +124,9 @@ and reset checks. The three-card capture includes the new Efficient coils card.
 Review found that the first configured preview opened after one gameplay update.
 A nonzero-time failing regression reproduced the timing error. The opener now
 runs after reset and before choice input/movement/combat, so previews consume no
-scenario time. The regression verifies reset hull/power/position/projectiles and
+scenario time. The regression verifies reset power/position/projectiles and
 paused time; the native fixture now asserts zero encounter time at every queued
 preview. Both native sizes were rerun successfully after the fix. Task and
 whole-branch re-review found no remaining actionable findings.
+
+Delivered as [PR #32](https://github.com/Shooshte/drone-survivors/pull/32) against main.

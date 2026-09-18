@@ -51,7 +51,7 @@ Files: README.md, docs/playtests.md, docs/playtests/dro-40-catalog-upgrades.md, 
 - [x] Review gameplay task and final branch independently; fix actionable findings and rerun affected checks.
 - [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 - [x] Record exact evidence, provisional tuning and known limits. Commit coherent documentation.
-- [ ] Push codex/dro-40-catalog-upgrades; open PR against main with Linear link and evidence.
+- [x] Push codex/dro-40-catalog-upgrades; open PR against main with Linear link and evidence.
 
 ## Progress
 
@@ -62,3 +62,5 @@ Task 2: implemented in 0c371b9; four new selector integration tests pass. Native
 Final automated verification: 495 passed / 5 ignored, formatting and strict Clippy clean. Native screenshots and logs recorded in docs/playtests/dro-40-catalog-upgrades.md.
 
 Task and final branch reviews: clean after the preview-opening timing fix. Native fixture additionally asserts zero encounter time throughout preview selection.
+
+Delivered as [PR #32](https://github.com/Shooshte/drone-survivors/pull/32) against main. Branch and isolated worktree retained for review follow-up.
