@@ -1,0 +1,15 @@
+    Finished `dev` profile [optimized + debuginfo] target(s) in 1.13s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
+COMBINATION FIXTURE: synthetic keyboard and normal four-card preview XP; no health, energy, damage or enemy overrides. Agent presentation check, not human acceptance.
+COMBINATION FIXTURE combined-setup: phase=Res(Hub) t=0.00 hull=100 kills=0 seen=[]
+COMBINATION FIXTURE combined-preview: phase=Res(Hub) t=0.00 hull=100 kills=0 seen=[]
+COMBINATION FIXTURE combined-choice: phase=Res(Choosing) t=0.00 hull=100 kills=0 seen=[]
+COMBINATION FIXTURE combined-choice: phase=Res(Choosing) t=0.00 hull=100 kills=0 seen=[]
+COMBINATION FIXTURE combined-choice: phase=Res(Choosing) t=0.00 hull=100 kills=0 seen=[]
+COMBINATION FIXTURE combined-choice: phase=Res(Choosing) t=0.00 hull=100 kills=0 seen=[]
+COMBINATION FIXTURE combined-wave: phase=Res(Playing) t=3.12 hull=100 kills=0 seen=[Fast, Bomber, Slower, Jammer, Mothership, Chaser, Rammer]
+COMBINATION FIXTURE combined-fields: phase=Res(Playing) t=10.12 hull=90 kills=6 seen=[Fast, Bomber, Slower, Jammer, Mothership, Chaser, Rammer]
+COMBINATION FIXTURE combined-pressure: phase=Res(Playing) t=20.02 hull=90 kills=7 seen=[Fast, Bomber, Slower, Jammer, Mothership, Chaser, Rammer]
+COMBINATION FIXTURE combined-return: phase=Res(Hub) t=0.00 hull=100 kills=0 seen=[Fast, Bomber, Slower, Jammer, Mothership, Chaser, Rammer]
+COMBINATION FIXTURE PASS at 1120x720: seven kinds, four-card build, real mixed combat/fields, reset/return and text bounds. Seen: [Fast, Bomber, Slower, Jammer, Mothership, Chaser, Rammer]
+2026-09-18T17:09:35.397943Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(49426809472)

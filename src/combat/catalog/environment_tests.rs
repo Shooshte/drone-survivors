@@ -56,6 +56,7 @@ fn environment_full_hull_preserves_charge_and_other_scenarios_have_no_repair() {
     step(&mut app, &[KeyCode::Tab]);
     step(&mut app, &[KeyCode::ArrowRight]);
     step(&mut app, &[KeyCode::ArrowRight]);
+    step(&mut app, &[KeyCode::ArrowRight]);
     step(&mut app, &[KeyCode::Enter]);
     app.world_mut().resource_mut::<PlayerHealth>().current = 80;
     app.world_mut()

@@ -1,0 +1,64 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-41-catalog-validation)
+    Finished `test` profile [optimized + debuginfo] target(s) in 6.08s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 3 tests
+
+thread 'TaskPool (7)' (765893) panicked at src/combat/catalog/combination_validation.rs:158:13:
+assertion `left == right` failed: combined round ended before all three combat captures completed
+  left: Dead
+ right: Playing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+COMBINATION FIXTURE combined-wave: phase=Res(Playing) t=3.00 hull=100 kills=0 seen=[Chaser, Fast, Rammer, Slower, Jammer, Bomber, Mothership]
+
+thread 'TaskPool (8)' (765894) panicked at src/combat/catalog/combination_validation.rs:174:13:
+assertion `left == right` failed: all combat captures must complete
+  left: 2
+ right: 3
+COMBINATION FIXTURE combined-fields: phase=Res(Playing) t=10.00 hull=100 kills=0 seen=[Chaser, Fast, Rammer, Slower, Jammer, Bomber, Mothership]
+COMBINATION FIXTURE combined-pressure: phase=Res(Playing) t=20.00 hull=100 kills=0 seen=[Chaser, Fast, Rammer, Slower, Jammer, Bomber, Mothership]
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+test combat::catalog::combination_validation::tests::combination_fixture_requires_all_checkpoints_before_lifecycle_validation ... ok
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+test combat::catalog::combination_validation::tests::combination_fixture_rejects_incomplete_capture_count_at_lifecycle_entry ... ok
+
+thread 'TaskPool (7)' (765893) panicked at src/combat/catalog/combination_validation.rs:158:13:
+assertion `left == right` failed: combined round ended before all three combat captures completed
+  left: Dead
+ right: Playing
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+
+thread 'TaskPool (7)' (765893) panicked at src/combat/catalog/combination_validation.rs:158:13:
+assertion `left == right` failed: combined round ended before all three combat captures completed
+  left: Dead
+ right: Playing
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+
+thread 'TaskPool (7)' (765893) panicked at src/combat/catalog/combination_validation.rs:158:13:
+assertion `left == right` failed: combined round ended before all three combat captures completed
+  left: Survived
+ right: Playing
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+
+thread 'TaskPool (7)' (765893) panicked at src/combat/catalog/combination_validation.rs:158:13:
+assertion `left == right` failed: combined round ended before all three combat captures completed
+  left: Survived
+ right: Playing
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+
+thread 'TaskPool (7)' (765893) panicked at src/combat/catalog/combination_validation.rs:158:13:
+assertion `left == right` failed: combined round ended before all three combat captures completed
+  left: Survived
+ right: Playing
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+Encountered a panic in system `<Enable the debug feature to see the name>`!
+test combat::catalog::combination_validation::tests::combination_fixture_rejects_premature_terminal_states_after_all_kinds_are_seen ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 502 filtered out; finished in 0.02s
+

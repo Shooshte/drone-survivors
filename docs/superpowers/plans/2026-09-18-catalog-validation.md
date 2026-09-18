@@ -1,0 +1,55 @@
+# Catalog Combination Validation Implementation Plan
+
+> **For agentic workers:** Use subagent-driven-development for the independent comparison probe and requesting-code-review before delivery.
+
+**Goal:** Complete DRO-41's repeatable agent combination evidence in the isolated arena.
+
+**Architecture:** One combined scenario uses existing catalog mechanics. A test-only
+probe drives production controls and records measurements; an opt-in native fixture
+checks presentation. Keep evidence separate from human acceptance.
+
+**Tech Stack:** Rust, Bevy 0.19.1, Cargo tests and native cargo dev.
+
+## Global Constraints
+
+- Catalog only: no campaign saves, spawns, shops or offer expansion.
+- Seven enemy kinds, six modules, twelve upgrades; at most four upgrades per run.
+- Combined catalog scenario index 14: all seven kinds, bursts (1,7), (16,7), (31,7), existing environment enabled.
+- Normal resource costs, damage, finite chargers and resets; synthetic input/preview XP disclosed.
+- Balance changes require measured justification; human acceptance remains pending.
+
+### Task 1: Combined scenario and native presentation
+
+Files: src/combat/catalog.rs, src/combat/catalog_tests.rs,
+src/combat/catalog/combination_validation.rs.
+
+- [x] Add failing selector test: cycle to Combined catalog, launch, assert all seven roster kinds and environment, restart/return reset, no campaign state.
+- [x] Add scenario using existing waves/roster/environment; update old scenario-wrap expectation.
+- [x] Add DRONE_COMBINATION_SMOKE fixture using keyboard configuration and normal preview choices; run a combined round, restart, return; check text bounds and capture setup/preview/HUD.
+- [x] Run native fixture at both supported window sizes, inspect captures, commit coherent increment.
+
+### Task 2: Measured comparison probe
+
+Files: src/combat/catalog/combination_tests.rs, one test-module registration in catalog_tests.rs;
+evidence and report in /tmp/dro-41-probe-report.md for final documentation.
+
+- [x] Use production catalog app at fixed 30 Hz with real geometry, hazard, resources and controls.
+- [x] Exercise Combined catalog with empty/single-module controls and contrasting four-slot/four-card builds. Cover all six modules and twelve upgrades across the matrix.
+- [x] Compare stationary and moving routes (including field/repair traversal), report active time/outcome/hull/kills/power, observed kinds and environment usage. Keep naturally earned offers and documented previews within four opportunities.
+- [x] Include controlled comparisons for tradeoffs that aggregate outcomes cannot establish; use existing meaningful regressions as supporting counterplay evidence.
+- [x] Run opt-in catalog_combination_probe and record exact command/results/limits. Reproduce any defect with a failing regression before changing production behavior.
+- [x] Self-review probe reliability and commit its independent files.
+
+### Task 3: Evidence, review and delivery
+
+Files: README.md, docs/playtests.md, docs/playtests/dro-41-catalog-validation.md,
+docs/playtests/evidence/dro-41/, selected images, this plan.
+
+- [x] Record measured results and limits, responses for all enemies, uses for six modules, twelve benefit/drawback comparisons, tuning decisions and pending human checks.
+- [x] Run cargo fmt --check, cargo test --locked, cargo clippy --locked --all-targets -- -D warnings, git diff --check.
+- [x] Independent review; resolve findings and rerun affected checks.
+- [x] Commit, push codex/dro-41-catalog-validation and open PR against main with Linear link.
+
+## Progress
+
+Baseline: 495 passed / 5 ignored. Task 1: a13258f; selector regression failed on missing Combined catalog, then 24 catalog tests passed. Both native sizes passed and captures visually inspected. Task review passed with no actionable findings. Task 2: 6e71d02; fourteen comparisons plus twelve card-config controls and four runtime checks pass reproducibly. Pause-duration accounting corrected during self-review. Full suite: 496 passed / 6 ignored; strict Clippy and formatting pass. No numeric tuning justified by this one route/policy. Final branch review passed with no actionable defects; all 37 measurement rows reproduced. Delivered as [PR #33](https://github.com/Shooshte/drone-survivors/pull/33) against main.

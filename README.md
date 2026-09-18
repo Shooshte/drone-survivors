@@ -47,7 +47,7 @@ scenario buttons cycle Flight practice (no enemies), Single pursuer (one chaser)
 Small swarm (three waves of five), Fast pursuer, Double-impact rammer,
 Mixed pursuers (two waves with one of each type), Slowing beam, Module jammer,
 Mixed control, Collision bomb, Mothership, Mixed ordnance, Environment practice,
-and Environment pressure. **1-4** or the slot buttons cycle each slot
+Environment pressure, and Combined catalog. **1-4** or the slot buttons cycle each slot
 through empty, the four campaign modules, Repulsor and Repair, skipping
 types equipped elsewhere.
 **Enter** or Launch starts a fresh round. The default round lasts **60 active
@@ -62,7 +62,8 @@ Launch, restart and return restore the drone, hull, battery, charger reserves,
 hazard cycle and run upgrades. Normal flight, damage, spawn warnings, energy and
 naturally earned upgrades remain active. This mode installs no campaign or save
 systems and awards no campaign resources. All six modules are available here;
-all twelve temporary upgrades are available; combination tuning remains DRO-41. New catalog
+all twelve temporary upgrades are available. Agent combination comparisons are
+recorded in [DRO-41 evidence](docs/playtests/dro-41-catalog-validation.md). New catalog
 content stays excluded from campaign shops, spawns and upgrade offers until the
 human playtest gate is lifted.
 
@@ -76,6 +77,25 @@ DRONE_CATALOG_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/catalog car
 The fixture drives synthetic keyboard input and grants 50 XP solely to display
 the upgrade panel. It checks transitions/text bounds, captures screenshots at
 1120×720 or 640×480 and exits. Ordinary arena play has no synthetic pilot; selecting upgrade previews grants the XP described below.
+
+### Combined catalog comparison
+
+The last scenario mixes all seven enemy kinds in waves at **1, 16 and 31 seconds**,
+with the existing 30-enemy shared cap, both directional fields and one hull-repair
+charge. From the initial selector, press **Left** once to reach it. Use **U** to
+compare up to four upgrade previews, then launch normally.
+
+```sh
+cargo test --locked catalog_combination_probe -- --ignored --nocapture
+DRONE_COMBINATION_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/combined cargo dev --locked -- --validate catalog
+DRONE_COMBINATION_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/combined-small cargo dev --locked -- --validate catalog
+```
+
+The opt-in probe compares fixed keyboard routes and loadouts at 30 Hz. The native
+fixture drives a four-card build through 20 seconds of real mixed combat, then
+checks restart/return and text bounds at each capture. Both use normal preview
+XP, without combat health/energy overrides. These are agent checks; human
+counterplay, balance acceptance and campaign introduction remain pending.
 
 ### Twelve temporary upgrades
 

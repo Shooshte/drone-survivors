@@ -1,0 +1,29 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-41-catalog-validation)
+    Finished `test` profile [optimized + debuginfo] target(s) in 22.07s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 3 tests
+COMBINATION FIXTURE combined-wave: phase=Res(Dead) t=2.00 hull=100 kills=0 seen=[Chaser, Fast, Rammer, Slower, Jammer, Bomber, Mothership]
+
+thread 'combat::catalog::combination_validation::tests::combination_fixture_rejects_incomplete_capture_count_at_lifecycle_entry' (765190) panicked at src/combat/catalog/combination_validation_tests.rs:91:5:
+incomplete captures reached restart validation
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+COMBINATION FIXTURE combined-wave: phase=Res(Playing) t=3.00 hull=100 kills=0 seen=[Chaser, Fast, Rammer, Slower, Jammer, Bomber, Mothership]
+
+thread 'combat::catalog::combination_validation::tests::combination_fixture_rejects_premature_terminal_states_after_all_kinds_are_seen' (765191) panicked at src/combat/catalog/combination_validation_tests.rs:49:13:
+Dead at 2s silently bypassed required captures
+COMBINATION FIXTURE combined-fields: phase=Res(Playing) t=10.00 hull=100 kills=0 seen=[Chaser, Fast, Rammer, Slower, Jammer, Bomber, Mothership]
+COMBINATION FIXTURE combined-pressure: phase=Res(Playing) t=20.00 hull=100 kills=0 seen=[Chaser, Fast, Rammer, Slower, Jammer, Bomber, Mothership]
+test combat::catalog::combination_validation::tests::combination_fixture_requires_all_checkpoints_before_lifecycle_validation ... ok
+test combat::catalog::combination_validation::tests::combination_fixture_rejects_premature_terminal_states_after_all_kinds_are_seen ... FAILED
+test combat::catalog::combination_validation::tests::combination_fixture_rejects_incomplete_capture_count_at_lifecycle_entry ... FAILED
+
+failures:
+
+failures:
+    combat::catalog::combination_validation::tests::combination_fixture_rejects_incomplete_capture_count_at_lifecycle_entry
+    combat::catalog::combination_validation::tests::combination_fixture_rejects_premature_terminal_states_after_all_kinds_are_seen
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 502 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--bin drone-survivors`

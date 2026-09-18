@@ -1681,3 +1681,30 @@ including an ordinary three-card offer. These are explicit synthetic-input/XP
 checks, not a human balance verdict. [Detailed rules, measurements, logs and
 screenshots](playtests/dro-40-catalog-upgrades.md). DRO-41 combination tuning,
 human acceptance and campaign introduction remain gated.
+
+## DRO-41 — Catalog combinations and measured tradeoffs — 2026-09-18
+
+Added **Combined catalog** as the fifteenth selectable isolated scenario: all
+seven enemy kinds in waves at 1/16/31 seconds, both directional fields and the
+single hull-repair site. The existing cap, warnings, resource costs, preview
+choices and reset lifecycle remain in use. Campaign introduction is still gated.
+
+An opt-in fixed-30-Hz agent probe compares fourteen rounds: stationary versus
+moving empty loadouts, four single-module card/control pairs, and offense/support
+four-slot builds with and without four previews. It exercises all six modules and
+twelve cards, records normal gameplay-earned offers but skips them to keep builds
+fixed, and separately measures every card's effective benefit/drawback. Four
+controlled micro-fixtures demonstrate activation, range, paid repair and pulse
+reach/cooldown differences. Synthetic input, preview XP and micro-fixture setup
+are explicitly disclosed.
+
+In the recorded route, Hot Overdrive and Rapid Repair improved final hull while
+reducing powered time. Wider Rockets/Repulsor lost against surviving base-card
+controls, and the four-card support build finished with less hull than its
+control. These are route/power-policy observations, not a universal ranking;
+there is no demonstrated general dominance/redundancy sufficient to change the
+current numeric tuning. Native checks passed at 1120×720 and 640×480, including
+four-card setup, ordinary mixed combat/HUD and reset/return. Human acceptance and
+campaign introduction remain pending.
+
+[Commands, measured tables, counterplay, logs, screenshots and limits](playtests/dro-41-catalog-validation.md).
