@@ -18,7 +18,7 @@ pub(crate) fn present(
     for (row, mut text, mut color) in &mut rows {
         let i = row.0;
         let value = if let Some(kind) = modules.loadout.slots()[i] {
-            let enabled = modules.enabled[i];
+            let enabled = modules.enabled[i] && modules.disabled_for[i] <= 0.;
             let state = if enabled {
                 "ON"
             } else if energy.current == 0. {
@@ -53,19 +53,30 @@ pub(crate) fn present(
             } else {
                 String::new()
             };
-            format!(
-                "{} {} {state} {drain:.0}/{:.0}/s{detail}{rejection}",
-                i + 1,
-                kind.name(),
-                config.drain(kind)
-            )
+            if modules.disabled_for[i] > 0. {
+                format!(
+                    "{} {} LOCK {:.1}s 0/s",
+                    i + 1,
+                    kind.name(),
+                    modules.disabled_for[i]
+                )
+            } else {
+                format!(
+                    "{} {} {state} {drain:.0}/{:.0}/s{detail}{rejection}",
+                    i + 1,
+                    kind.name(),
+                    config.drain(kind)
+                )
+            }
         } else {
             format!("{} EMPTY SLOT  0/s", i + 1)
         };
         if text.0 != value {
             text.0 = value;
         }
-        color.0 = if modules.rejected_for[i] > 0. {
+        color.0 = if modules.disabled_for[i] > 0. {
+            Color::srgb(0.85, 0.6, 1.)
+        } else if modules.rejected_for[i] > 0. {
             Color::srgb(1., 0.65, 0.3)
         } else if modules.enabled[i] {
             Color::srgb(0.4, 1., 0.8)

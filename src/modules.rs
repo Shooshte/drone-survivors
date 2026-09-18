@@ -106,6 +106,8 @@ pub(crate) struct Modules {
     pub loadout: Loadout,
     pub enabled: [bool; 4],
     pub rejected_for: [f64; 4],
+    pub disabled_for: [f64; 4],
+    pub jam_grace: f64,
     pub shield: Shield,
 }
 impl Default for Modules {
@@ -119,6 +121,8 @@ impl Modules {
             loadout,
             enabled: [false; 4],
             rejected_for: [0.; 4],
+            disabled_for: [0.; 4],
+            jam_grace: 0.,
             shield: Shield {
                 blocks: config.shield_blocks,
                 remaining: 0.,
@@ -129,15 +133,15 @@ impl Modules {
         self.loadout
             .0
             .iter()
-            .zip(self.enabled)
-            .any(|(slot, on)| *slot == Some(kind) && on)
+            .enumerate()
+            .any(|(i, slot)| *slot == Some(kind) && self.enabled[i] && self.disabled_for[i] <= 0.)
     }
     pub fn drain(&self, config: &ModuleConfig) -> f64 {
         self.loadout
             .0
             .iter()
-            .zip(self.enabled)
-            .filter_map(|(kind, on)| kind.filter(|_| on))
+            .enumerate()
+            .filter_map(|(i, kind)| kind.filter(|_| self.enabled[i] && self.disabled_for[i] <= 0.))
             .map(|kind| config.drain(kind))
             .sum::<f64>()
             .max(0.)
@@ -145,7 +149,7 @@ impl Modules {
     pub fn toggle(&mut self, keys: &ButtonInput<KeyCode>, energy: f64, activation: f64, dt: f64) {
         for (index, key) in SLOT_KEYS.into_iter().enumerate() {
             self.rejected_for[index] = (self.rejected_for[index] - dt).max(0.);
-            if self.loadout.0[index].is_none() {
+            if self.loadout.0[index].is_none() || self.disabled_for[index] > 0. {
                 self.enabled[index] = false;
                 continue;
             }
@@ -160,6 +164,33 @@ impl Modules {
                 }
             }
         }
+    }
+    /// Locks are global-bounded: one slot, no refresh, then an immunity window.
+    pub fn jam(&mut self, slot: usize) -> bool {
+        if !self.can_be_jammed() || self.loadout.0.get(slot).copied().flatten().is_none() {
+            return false;
+        }
+        self.enabled[slot] = false;
+        self.rejected_for[slot] = 0.;
+        self.disabled_for[slot] = 3.;
+        true
+    }
+    pub fn can_be_jammed(&self) -> bool {
+        self.jam_grace <= 0. && self.disabled_for.iter().all(|&t| t <= 0.)
+    }
+    pub fn advance_jam(&mut self, dt: f64) {
+        let locked = self.disabled_for.iter().copied().fold(0., f64::max);
+        for remaining in &mut self.disabled_for {
+            *remaining = (*remaining - dt).max(0.);
+            if *remaining < 1e-7 {
+                *remaining = 0.;
+            }
+        }
+        self.jam_grace = if locked > 0. && self.disabled_for.iter().all(|&t| t == 0.) {
+            (3. - (dt - locked).max(0.)).max(0.)
+        } else {
+            (self.jam_grace - dt).max(0.)
+        };
     }
     pub fn recharge_shield(&mut self, seconds: f64, config: &ModuleConfig) {
         if self.active(ModuleKind::Shield) && self.shield.blocks == 0 {

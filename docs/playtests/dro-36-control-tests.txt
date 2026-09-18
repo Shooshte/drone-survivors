@@ -1,0 +1,35 @@
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.72s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 16 tests
+test combat::control::tests::control_hitch_cannot_skip_a_new_warning ... ok
+test combat::control::tests::committed_beam_slows_its_final_movement_interval_before_expiring ... ok
+CONTROL ESCAPE 30Hz Slower flee=false: slowed=1.767s lock=false end=Vec3(0.0, 90.0, 0.0)
+test combat::control::tests::control_slow_clamps_existing_speed_and_jammed_mobility_cannot_boost_it ... ok
+CONTROL ESCAPE 30Hz Slower flee=true: slowed=0.000s lock=false end=Vec3(30.074398, 90.0, 698.74603)
+test combat::control::tests::control_pause_freezes_attacks_and_lock_reset_clears_all ... ok
+test combat::control::tests::lethal_hit_on_beam_delivery_frame_preserves_unslowed_motion ... ok
+test combat::control::tests::control_wall_prevents_jam_and_killing_windup_source_prevents_delivery ... ok
+test combat::control::tests::control_dead_sources_and_empty_loadouts_do_not_apply_effects ... ok
+test combat::control::tests::surviving_jammer_commits_after_damage_and_stays_off_without_further_drain ... ok
+test combat::control::tests::terminal_frame_does_not_deliver_surviving_sources_attack ... ok
+test combat::control::tests::lethal_hit_on_jam_delivery_frame_preserves_module_intent_and_power ... ok
+test combat::control::tests::control_sources_approach_before_warning_even_inside_sustain_range ... ok
+test combat::control::tests::control_breaking_sight_or_range_cancels_warning_and_active_beam ... ok
+CONTROL ESCAPE 30Hz Jammer flee=false: slowed=0.000s lock=true end=Vec3(0.0, 90.0, 0.0)
+test combat::control::tests::control_jammer_keeps_warned_slot_and_forces_manual_restart_without_active_drain ... ok
+test combat::control::tests::control_overlapping_jammers_cannot_chain_or_extend_a_lock ... ok
+CONTROL ESCAPE 30Hz Jammer flee=true: slowed=0.000s lock=false end=Vec3(30.074398, 90.0, 698.74603)
+CONTROL ESCAPE 60Hz Slower flee=false: slowed=1.783s lock=false end=Vec3(0.0, 90.0, 0.0)
+CONTROL ESCAPE 60Hz Slower flee=true: slowed=0.000s lock=false end=Vec3(30.074398, 90.0, 698.74603)
+test combat::control::tests::control_beam_warns_slows_without_stacking_then_recovers_across_frame_rates ... ok
+CONTROL ESCAPE 60Hz Jammer flee=false: slowed=0.000s lock=true end=Vec3(0.0, 90.0, 0.0)
+CONTROL ESCAPE 60Hz Jammer flee=true: slowed=0.000s lock=false end=Vec3(30.074398, 90.0, 698.74603)
+CONTROL ESCAPE 144Hz Slower flee=false: slowed=1.792s lock=false end=Vec3(0.0, 90.0, 0.0)
+CONTROL ESCAPE 144Hz Slower flee=true: slowed=0.000s lock=false end=Vec3(31.056229, 90.0, 698.6752)
+CONTROL ESCAPE 144Hz Jammer flee=false: slowed=0.000s lock=true end=Vec3(0.0, 90.0, 0.0)
+CONTROL ESCAPE 144Hz Jammer flee=true: slowed=0.000s lock=false end=Vec3(31.056229, 90.0, 698.6752)
+test combat::control::tests::control_keyboard_escape_breaks_attacks_in_both_isolated_scenarios ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 411 filtered out; finished in 0.41s
+

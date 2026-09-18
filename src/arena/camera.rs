@@ -225,6 +225,21 @@ fn separate_labels(labels: &mut [Label], bounds: Rect) {
     }
 }
 
+// Computed HUD layout comes from the previous frame; keep one line of slack
+// when a transient status adds a row before this frame's UI layout runs.
+fn place_clear_of_hud(labels: &mut Vec<Label>, mut bounds: Rect, hud_bottom: f32) {
+    bounds.min.y = bounds.min.y.max(hud_bottom + 24. + 14.);
+    if bounds.height() < 136. {
+        labels.clear();
+        return;
+    }
+    for label in labels.iter_mut() {
+        label.placement.position = label.placement.position.clamp(bounds.min, bounds.max);
+    }
+    separate_labels(labels, bounds);
+}
+
+#[allow(clippy::too_many_arguments)]
 fn update_indicators(
     phase: Res<GamePhase>,
     camera: Single<(&Camera, &Transform), With<ArenaCamera>>,
@@ -232,6 +247,12 @@ fn update_indicators(
     chargers: Query<(&ChargingNode, Option<&ChargingNodeLabel>)>,
     warnings: Query<(&SpawnWarning, &Transform)>,
     mut indicators: Query<(&IndicatorKind, &mut Text, &mut Node, &mut TextFont)>,
+    hud: Query<
+        (&ComputedNode, &UiGlobalTransform, Option<&Children>),
+        With<crate::combat::CombatHudRoot>,
+    >,
+    hud_children: Query<(&Node, &ComputedNode), Without<IndicatorKind>>,
+    windows: Query<&Window>,
 ) {
     let (camera, transform) = *camera;
     // This camera is an unparented scene root. Its current transform is ready
@@ -292,7 +313,27 @@ fn update_indicators(
                 }
             }
         }
-        separate_labels(&mut labels, bounds);
+        let scale = windows.single().map_or(1., Window::scale_factor);
+        let hud_bottom = hud
+            .iter()
+            .map(|(node, transform, _)| (transform.translation.y + node.size().y / 2.) / scale)
+            .fold(0., f32::max);
+        // A newly revealed status can add several lines. Its zero-sized old
+        // layout is not a usable measurement; defer indicators for this frame.
+        let awaiting_layout = hud.iter().any(|(_, _, children)| {
+            children.is_some_and(|children| {
+                children.iter().any(|child| {
+                    hud_children.get(child).is_ok_and(|(node, computed)| {
+                        node.display != Display::None && computed.size().y == 0.
+                    })
+                })
+            })
+        });
+        if awaiting_layout {
+            labels.clear();
+        } else {
+            place_clear_of_hud(&mut labels, bounds, hud_bottom);
+        }
     }
     for (kind, mut text, mut node, mut font) in &mut indicators {
         if let Some(label) = labels.iter().find(|label| label.kind == *kind) {
@@ -307,5 +348,33 @@ fn update_indicators(
         } else {
             node.display = Display::None;
         }
+    }
+}
+
+#[cfg(test)]
+mod hud_clearance_tests {
+    use super::*;
+
+    #[test]
+    fn expanded_status_band_keeps_navigation_labels_below_hud() {
+        let bounds =
+            indicator_bounds(Rect::from_corners(Vec2::ZERO, Vec2::new(640., 480.))).unwrap();
+        let mut labels = vec![Label {
+            kind: IndicatorKind::Charger(IndicatorEdge::Top),
+            text: "^ CHG NW/NE".into(),
+            placement: IndicatorPlacement {
+                position: Vec2::new(320., bounds.min.y),
+                edge: IndicatorEdge::Top,
+            },
+            compact: true,
+        }];
+        place_clear_of_hud(&mut labels, bounds, 145.);
+        assert_eq!(labels.len(), 1);
+        assert!(labels[0].placement.position.y - 14. >= 153.);
+        place_clear_of_hud(&mut labels, bounds, 300.);
+        assert!(
+            labels.is_empty(),
+            "no safe area: hide rather than overlap HUD/footer"
+        );
     }
 }

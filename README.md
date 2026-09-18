@@ -44,8 +44,9 @@ cargo dev -- --validate catalog --seconds 90
 
 This isolated arena opens a scenario/loadout selector. **Left/Right** or the
 scenario buttons cycle Flight practice (no enemies), Single pursuer (one chaser),
-Small swarm (three waves of five), Fast pursuer, Double-impact rammer, and
-Mixed pursuers (two waves with one of each type). **1-4** or the slot buttons cycle each slot
+Small swarm (three waves of five), Fast pursuer, Double-impact rammer,
+Mixed pursuers (two waves with one of each type), Slowing beam, Module jammer,
+and Mixed control. **1-4** or the slot buttons cycle each slot
 through empty and the four existing modules, skipping types equipped elsewhere.
 **Enter** or Launch starts a fresh round. The default round lasts **60 active
 seconds**; `--seconds` accepts 1–600. A short limit can finish before later waves.
@@ -103,6 +104,43 @@ It observes the rammer's natural warning/charge/retreat/two-impact cycle, checks
 restart and mixed spawning, captures screenshots and exits. No hull damage, kills
 or XP are granted. These checks do not replace human balance/counterplay testing.
 [DRO-35 evidence and remaining human checks](docs/playtests/dro-35-enemy-variants.md).
+
+### Slowing beam and module jammer
+
+The catalog also offers **Slowing beam**, **Module jammer**, and **Mixed control**
+(both plus a fast pursuer). These enemies have 40 hull, approach to 240 units,
+and warn for 1.2 active seconds. Breaking clear sight or moving beyond 320 units
+cancels a warning; destroying the source also prevents its attack, including a
+lethal projectile or hazard hit on the delivery frame. New beams begin slowing
+movement on the following frame after damage resolves. Shield blocks
+contact damage but does not block control attacks. All tuning is provisional.
+
+- **Cross emitter / BEAM:** a 2-second beam reduces horizontal speed and
+  acceleration to 60%. Multiple beams do not multiply this penalty. Break sight
+  or range to end it immediately. Vertical controls and steering stay available.
+- **Antenna / JAM:** the warning names one equipped slot, preferring enabled
+  modules, then the lowest slot. The pulse locks that slot OFF for 3 seconds,
+  with zero module drain/effects. The target stays fixed through the warning.
+  Locks cannot stack or refresh; after expiry there are 3 seconds of jam immunity.
+  **Press the slot key again to enable it** after recovery, with the usual battery
+  threshold. A delivered lock still expires normally if its source dies.
+
+Yellow expanding rings and thin lines warn; solid lines mark active attacks;
+small blue rings mark 3-second enemy recovery. HUD text names each phase and
+jam target. Locks and enemy timers pause during upgrade selection; R and arena
+return clear them. Basic fire remains free. Campaign content is unchanged.
+
+```sh
+DRONE_CONTROL_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/control cargo dev --locked -- --validate catalog
+DRONE_CONTROL_SMOKE=1 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/control-small cargo dev --locked -- --validate catalog
+cargo test --locked control_keyboard_escape -- --nocapture
+```
+
+The native fixture selects the new scenarios using synthetic input, suppresses
+basic auto-fire, and repositions each single source once while resetting its
+attack phase. It observes production warnings, slowing, lock expiry and manual
+reactivation. The escape test compares idle with ordinary banking input at
+30/60/144 Hz; neither is human acceptance. See [DRO-36 evidence](docs/playtests/dro-36-control-enemies.md).
 
 ## Campaign mission selection
 
