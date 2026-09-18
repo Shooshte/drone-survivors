@@ -133,6 +133,7 @@ type Cues<'w, 's> = Query<
 pub(super) fn present(
     assets: Res<Assets>,
     bomb: Res<BombState>,
+    modules: Res<crate::modules::ModuleConfig>,
     phase: Res<GamePhase>,
     warnings: Query<&SpawnParent>,
     mut bodies: Query<(
@@ -163,7 +164,10 @@ pub(super) fn present(
                 bomb.remaining.is_some()
             }
             Cue::Pulse => {
-                transform.scale = Vec3::splat(1. + (1. - bomb.pulse_flash as f32 / 0.3) * 4.);
+                transform.scale = Vec3::splat(
+                    1. + (1. - bomb.pulse_flash as f32 / 0.3)
+                        * (modules.repulsor_radius / 26. - 1.),
+                );
                 bomb.pulse_flash > 0.
             }
             Cue::Launch => {

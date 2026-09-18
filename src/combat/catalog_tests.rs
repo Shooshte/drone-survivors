@@ -369,3 +369,34 @@ fn catalog_selects_bomb_mothership_and_mixed_ordnance() {
 
 #[path = "catalog/environment_tests.rs"]
 mod environment_tests;
+
+#[test]
+fn catalog_cycles_all_six_modules_with_readable_limits_and_unique_slots() {
+    let mut app = app();
+    let mut names = Vec::new();
+    for _ in 0..6 {
+        step(&mut app, &[KeyCode::Digit1]);
+        let text = app
+            .world_mut()
+            .query::<&Text>()
+            .iter(app.world())
+            .find(|t| t.0.starts_with("1   "))
+            .unwrap()
+            .0
+            .clone();
+        names.push(text);
+    }
+    assert!(names[5].contains("REPAIR"), "{names:?}");
+    assert!(names[5].contains("6 hull/s"));
+    assert!(names[5].contains("12 energy/s"));
+    assert!(names[4].contains("180"));
+    assert!(names[4].contains("2s"));
+    for _ in 0..6 {
+        step(&mut app, &[KeyCode::Digit2]);
+    }
+    step(&mut app, &[KeyCode::Enter]);
+    let slots = app.world().resource::<Modules>().loadout.slots();
+    assert_eq!(slots[0].unwrap().name(), "REPAIR");
+    assert_eq!(slots[1], None, "cycling must skip Repair already in slot 1");
+    assert_eq!(app.world().resource::<Modules>().enabled, [false; 4]);
+}
