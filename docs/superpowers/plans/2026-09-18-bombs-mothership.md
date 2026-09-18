@@ -36,11 +36,12 @@ No human playtest claim. Commit each coherent increment.
 - [x] Run `cargo fmt --check`, `cargo test --locked`,
   `cargo clippy --locked --all-targets -- -D warnings`, and `git diff --check`.
 - [x] Obtain independent code review, fix findings and rerun affected checks.
-- [ ] Record commands/results/known limits in docs/playtests.md and dedicated
+- [x] Record commands/results/known limits in docs/playtests.md and dedicated
   evidence file. Commit, push codex/dro-37-bombs-mothership, open PR against main.
 
 
 Implementation: `831863f`. Independent review found no actionable findings.
 Verification: 447 tests passed, 5 existing probes ignored; format/strict Clippy
 pass. Native fixtures cover both sizes and simultaneous bomb/jammer states.
-Final evidence/PR commit remains in progress until the delivery checkbox is complete.
+Delivery: [PR #29](https://github.com/Shooshte/drone-survivors/pull/29) against main.
+Branch and worktree are retained for review. Human acceptance remains pending.
