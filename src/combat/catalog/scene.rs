@@ -15,6 +15,7 @@ pub(super) enum Copy {
     Instruction,
     Slot(usize),
     Duration,
+    PowerRules,
 }
 
 fn label(parent: &mut ChildSpawnerCommands, value: &str, size: f32) -> Entity {
@@ -51,7 +52,7 @@ fn button(parent: &mut ChildSpawnerCommands, action: CatalogAction, value: &str)
             BorderColor::all(CYAN),
         ))
         .with_children(|parent| {
-            text = label(parent, value, 14.);
+            text = label(parent, value, 13.);
         });
     text
 }
@@ -68,7 +69,7 @@ pub(super) fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
             justify_content: JustifyContent::Center, ..default() }, BackgroundColor(INK)))
         .with_children(|root| {
             root.spawn((Node { width: percent(100), max_width: px(740), padding: UiRect::all(px(12)),
-                flex_direction: FlexDirection::Column, row_gap: px(7), ..default() }, BackgroundColor(PANEL)))
+                flex_direction: FlexDirection::Column, row_gap: px(4), ..default() }, BackgroundColor(PANEL)))
                 .with_children(|panel| {
                     label(panel, "COMBAT TEST ARENA", 24.);
                     label(panel, "Practice and compare. Campaign progress is separate; this arena does not save.", 13.);
@@ -83,6 +84,7 @@ pub(super) fn setup(mut commands: Commands, mut windows: Query<&mut Window>) {
                         let entity = button(panel, CatalogAction::CycleSlot(slot), "");
                         panel.commands().entity(entity).insert(Copy::Slot(slot));
                     }
+                    let entity = label(panel, "", 12.); panel.commands().entity(entity).insert(Copy::PowerRules);
                     let entity = label(panel, "", 13.); panel.commands().entity(entity).insert(Copy::Duration);
                     button(panel, CatalogAction::Launch, "ENTER  Launch scenario");
                     label(panel, "In a round: 1-4 toggle modules / R restart / TAB return / ESC quit", 12.);
@@ -131,6 +133,8 @@ type LayoutNodes<'w, 's> = Query<
 pub(super) fn present(
     arena: Res<CatalogArena>,
     phase: Res<GamePhase>,
+    config: Res<crate::modules::ModuleConfig>,
+    energy: Res<crate::energy::EnergyConfig>,
     mut nodes: LayoutNodes,
     mut labels: Query<(&Copy, &mut Text)>,
     mut buttons: Query<(&Interaction, &mut BackgroundColor), With<CatalogAction>>,
@@ -167,10 +171,19 @@ pub(super) fn present(
                 SCENARIOS[arena.scenario].name
             ),
             Copy::Instruction => SCENARIOS[arena.scenario].instruction.to_owned(),
-            Copy::Slot(slot) => format!(
-                "{}   {}",
-                slot + 1,
-                arena.slots[*slot].map_or("EMPTY", ModuleKind::name)
+            Copy::Slot(slot) => match arena.slots[*slot] {
+                Some(kind) => format!(
+                    "{}   {} | {} | {:.0} energy/s",
+                    slot + 1,
+                    kind.name(),
+                    module_summary(kind, &config),
+                    config.drain(kind)
+                ),
+                None => format!("{}   EMPTY", slot + 1),
+            },
+            Copy::PowerRules => format!(
+                "Start OFF; need {:.0} energy to switch ON. Drain while ON, even at full hull.",
+                energy.activation
             ),
             Copy::Duration => format!(
                 "Round: {:.0} active seconds. Fresh hull, battery, chargers and upgrades on launch.",
@@ -187,5 +200,28 @@ pub(super) fn present(
         } else {
             Color::srgb(0.10, 0.22, 0.25)
         };
+    }
+}
+
+fn module_summary(kind: ModuleKind, config: &crate::modules::ModuleConfig) -> String {
+    match kind {
+        ModuleKind::Repair => format!("{:.0} hull/s; capped at max hull", config.repair_rate),
+        ModuleKind::Repulsor => format!(
+            "Push range {:.0} / {:.0}s; cover blocks; removes bombs; no damage",
+            config.repulsor_radius, config.repulsor_interval
+        ),
+        ModuleKind::Overdrive => format!("x{:.0} basic fire", config.overdrive_multiplier),
+        ModuleKind::Shield => format!(
+            "{} hit block / {:.0}s powered recharge",
+            config.shield_blocks, config.shield_recharge
+        ),
+        ModuleKind::Mobility => format!(
+            "+{:.0}% horizontal thrust/speed",
+            (config.mobility_multiplier - 1.) * 100.
+        ),
+        ModuleKind::Rocket => format!(
+            "{} damage / {:.0}s; radius {:.0}",
+            config.rocket_damage, config.rocket_interval, config.rocket_radius
+        ),
     }
 }

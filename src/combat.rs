@@ -11,6 +11,7 @@ mod hazards;
 mod mothership;
 mod ordnance_scene;
 mod scene;
+pub(crate) mod support;
 pub(crate) use scene::{CombatHudRoot, CombatScenePlugin, CombatSceneSetup};
 mod enemies;
 mod feedback;
@@ -125,6 +126,7 @@ impl Plugin for CombatPlugin {
             .init_resource::<GamePhase>()
             .init_resource::<Weapon>()
             .init_resource::<bombs::BombState>()
+            .init_resource::<support::RepairState>()
             .init_resource::<control::ControlEffects>()
             .init_resource::<rockets::RocketLauncher>()
             .init_resource::<WaveConfig>()
@@ -147,7 +149,7 @@ impl Plugin for CombatPlugin {
             )
             .add_systems(
                 Update,
-                (control::reset, bombs::reset)
+                (control::reset, bombs::reset, support::reset)
                     .in_set(GameplaySet::Reset)
                     .run_if(crate::game::reset_requested),
             )
@@ -158,7 +160,10 @@ impl Plugin for CombatPlugin {
                     .run_if(resource_exists::<crate::game::MissionBoundary>),
             )
             .add_systems(Update, feedback::clear.in_set(GameplaySet::Reset))
-            .add_systems(Update, bombs::cleanup.in_set(GameplaySet::Cleanup))
+            .add_systems(
+                Update,
+                (bombs::cleanup, support::cleanup).in_set(GameplaySet::Cleanup),
+            )
             .add_systems(
                 Update,
                 (lifecycle::restart, hazards::reset)
@@ -179,6 +184,7 @@ impl Plugin for CombatPlugin {
                     waves::finish,
                     control::resolve,
                     bombs::resolve,
+                    support::repair,
                     mothership::update,
                     waves::update,
                     crate::energy::update,
@@ -205,3 +211,6 @@ mod slice_tests;
 
 #[cfg(test)]
 mod catalog_tests;
+
+#[cfg(test)]
+mod support_tests;

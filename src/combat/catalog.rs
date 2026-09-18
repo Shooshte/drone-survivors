@@ -11,6 +11,7 @@ mod control_validation;
 mod environment;
 mod environment_scene;
 mod environment_validation;
+mod module_validation;
 mod ordnance_validation;
 mod scene;
 mod validation;
@@ -152,7 +153,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_ENVIRONMENT_SMOKE").is_some() {
+    if std::env::var_os("DRONE_MODULE_SMOKE").is_some() {
+        module_validation::install(app);
+    } else if std::env::var_os("DRONE_ENVIRONMENT_SMOKE").is_some() {
         environment_validation::install(app);
     } else if std::env::var_os("DRONE_ORDNANCE_SMOKE").is_some() {
         ordnance_validation::install(app);
@@ -176,6 +179,7 @@ fn cycle_slot(arena: &mut CatalogArena, slot: usize) {
         Some(ModuleKind::Mobility),
         Some(ModuleKind::Rocket),
         Some(ModuleKind::Repulsor),
+        Some(ModuleKind::Repair),
     ];
     let current = choices
         .iter()

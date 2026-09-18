@@ -9,7 +9,6 @@ use bevy::prelude::*;
 
 pub(super) const FUSE: f64 = 3.;
 pub(super) const DAMAGE: u32 = 25;
-pub(super) const PULSE_INTERVAL: f64 = 2.;
 
 #[derive(Resource, Default)]
 pub(crate) struct BombState {
@@ -46,13 +45,35 @@ pub(super) fn resolve(
     mut health: ResMut<PlayerHealth>,
     mut phase: ResMut<GamePhase>,
     mut outcomes: ResMut<CombatOutcomes>,
+    drone: Single<&Transform, With<crate::arena::Drone>>,
+    world: Option<Res<crate::world::WorldGeometry>>,
+    mut enemies: Query<
+        (&super::Enemy, &Transform, &mut crate::arena::DroneFlight),
+        Without<crate::arena::Drone>,
+    >,
 ) {
     if *phase != GamePhase::Playing {
         return;
     }
     if power.modules.active(ModuleKind::Repulsor) && bomb.pulse_cooldown <= 1e-7 {
-        bomb.pulse_cooldown = PULSE_INTERVAL;
+        bomb.pulse_cooldown = modules.repulsor_interval;
         bomb.pulse_flash = 0.3;
+        for (enemy, transform, mut flight) in &mut enemies {
+            let offset = transform.translation - drone.translation;
+            if enemy.health > 0
+                && offset.length_squared() <= modules.repulsor_radius.powi(2)
+                && world
+                    .as_deref()
+                    .is_none_or(|w| w.line_clear(drone.translation, transform.translation))
+            {
+                // Keep displacement in the normal swept flight integrator.
+                // Coincident centers receive a deterministic upward impulse.
+                let outward = offset.try_normalize().unwrap_or(Vec3::Y);
+                // Reverse closing motion without stacking speed on later pulses.
+                let radial = flight.velocity.dot(outward);
+                flight.velocity += outward * (modules.repulsor_impulse - radial).max(0.);
+            }
+        }
         if bomb.remaining.take().is_some() {
             bomb.notice = "BOMB DISLODGED";
             bomb.notice_for = 2.;

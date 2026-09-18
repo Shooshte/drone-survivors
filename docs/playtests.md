@@ -1644,3 +1644,18 @@ and 1120×720; selected screenshots were inspected. Synthetic positioning, hull
 and XP make these rule/readability checks, not human playtest acceptance.
 [Detailed evidence, commands and remaining human checks](playtests/dro-38-environment.md).
 Campaign content remains unchanged and human-gated.
+
+## DRO-39 — Repair and Repulsor modules — 2026-09-18
+
+The isolated catalog now offers all six modules in four unique slots. Repair
+restores capped hull from supplied power time; Repulsor pushes visible nearby
+enemies without damage and dislodges bombs. Selector/HUD copy exposes benefits,
+drain and limits. Campaign shops, saves and upgrade offers remain unchanged.
+
+**478 tests passed, 5 existing probes ignored**; formatting and strict Clippy
+passed. Native agent fixtures passed at 1120×720 and 640×480, including all 14
+scenario descriptions with four modules selected. Independent review exposed a
+fractional repair-credit edge after environmental healing; a failing integration
+regression and cleanup fix resolved it, and re-review found no remaining findings.
+[Rules, logs, screenshots and human follow-up](playtests/dro-39-support-modules.md).
+Human balance acceptance and campaign introduction remain gated.

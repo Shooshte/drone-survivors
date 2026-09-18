@@ -7,6 +7,7 @@ use crate::{
 #[derive(Component)]
 pub(crate) struct ModuleHud(pub usize);
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn present(
     modules: Res<Modules>,
     config: Res<ModuleConfig>,
@@ -14,6 +15,8 @@ pub(crate) fn present(
     battery_config: Res<EnergyConfig>,
     phase: Res<GamePhase>,
     bomb: Res<crate::combat::bombs::BombState>,
+    health: Res<crate::combat::PlayerHealth>,
+    combat: Res<crate::combat::CombatConfig>,
     mut rows: Query<(&ModuleHud, &mut Text, &mut TextColor)>,
 ) {
     for (row, mut text, mut color) in &mut rows {
@@ -41,6 +44,20 @@ pub(crate) fn present(
                         modules.shield.remaining,
                         if enabled && *phase == GamePhase::Playing {
                             " recharge"
+                        } else {
+                            " paused"
+                        }
+                    )
+                }
+            } else if kind == ModuleKind::Repair {
+                if health.current >= combat.player_health {
+                    " FULL".into()
+                } else {
+                    format!(
+                        " +{:.0} hull/s{}",
+                        config.repair_rate,
+                        if enabled && *phase == GamePhase::Playing {
+                            ""
                         } else {
                             " paused"
                         }

@@ -1,0 +1,30 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-39-repair-repulsor)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 13.14s
+     Running `/Users/shooshte/projects/drone-survivors/target/debug/drone-survivors --validate catalog`
+MODULE FIXTURE: synthetic keyboard, hull damage, target spawn, bomb attachment and XP=50; auto-fire suppressed. Real power, repair, pulse, jam, pause and reset. Agent evidence, not a human/balance playtest.
+MODULE FIXTURE support-selector: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-pulse: hull=40, battery=99.83, cooldown=2.00, phase=Res(Playing)
+MODULE FIXTURE push distance=213.0, target hull=20
+MODULE FIXTURE support-repair: hull=43, battery=89.67, cooldown=1.49, phase=Res(Playing)
+MODULE FIXTURE support-locked: hull=44, battery=75.50, cooldown=0.18, phase=Res(Playing)
+MODULE FIXTURE support-choice: hull=44, battery=73.03, cooldown=1.87, phase=Res(Choosing)
+MODULE FIXTURE support-full: hull=100, battery=96.30, cooldown=0.00, phase=Res(Playing)
+MODULE FIXTURE support-brownout: hull=50, battery=0.00, cooldown=0.00, phase=Res(Playing)
+MODULE FIXTURE support-reset: hull=100, battery=100.00, cooldown=0.00, phase=Res(Playing)
+MODULE FIXTURE support-return: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-scenario-sweep: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE support-pressure-selector: hull=100, battery=100.00, cooldown=0.00, phase=Res(Hub)
+MODULE FIXTURE PASS at 640x480: six-module selection, configured limits, paid repair/cap, non-damaging push, bomb dislodge, jammer lock, upgrade pause, brownout and restart/return.
+2026-09-18T11:48:15.494949Z  WARN bevy_winit::state: Skipped event Destroyed for unknown winit Window Id WindowId(41539814016)

@@ -57,6 +57,8 @@ pub(crate) struct Energy {
 pub(crate) struct PowerFrame {
     pub energy: Energy,
     pub modules: Modules,
+    /// Paid Repair duration, retained even when this interval depletes the battery.
+    pub repair_seconds: f64,
     pub chargers: Vec<(Entity, ChargerReserve)>,
 }
 
@@ -204,6 +206,7 @@ pub(crate) fn prepare(
         return;
     }
     let dt = time.delta_secs_f64();
+    pending.repair_seconds = 0.;
     pending.energy = energy.clone();
     pending.modules = modules.clone();
     pending
@@ -235,6 +238,9 @@ pub(crate) fn prepare(
         },
         &mut pending.chargers,
     );
+    if pending.modules.active(crate::modules::ModuleKind::Repair) {
+        pending.repair_seconds = result.powered_seconds;
+    }
     pending
         .modules
         .recharge_shield(result.powered_seconds, &module_config);

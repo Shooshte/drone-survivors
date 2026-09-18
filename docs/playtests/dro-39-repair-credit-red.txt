@@ -1,0 +1,21 @@
+   Compiling drone-survivors v0.1.0 (/Users/shooshte/projects/drone-survivors/.worktrees/dro-39-repair-repulsor)
+    Finished `test` profile [optimized + debuginfo] target(s) in 6.53s
+     Running unittests src/main.rs (/Users/shooshte/projects/drone-survivors/target/debug/build/drone-survivors/cf31ea6cf867e7c7/out/drone_survivors-cf31ea6cf867e7c7)
+
+running 1 test
+
+thread 'combat::catalog_tests::environment_tests::environment_full_hull_repair_discards_paid_module_credit_before_next_damage' (383416) panicked at src/combat/catalog/environment_tests.rs:336:5:
+assertion `left == right` failed
+  left: 0.9000000000000001
+ right: 0.0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test combat::catalog_tests::environment_tests::environment_full_hull_repair_discards_paid_module_credit_before_next_damage ... FAILED
+
+failures:
+
+failures:
+    combat::catalog_tests::environment_tests::environment_full_hull_repair_discards_paid_module_credit_before_next_damage
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 482 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--bin drone-survivors`

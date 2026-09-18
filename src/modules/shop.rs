@@ -27,7 +27,7 @@ pub(crate) fn price(kind: ModuleKind) -> Amounts {
             salvage: 15,
             components: 0,
         },
-        ModuleKind::Repulsor => Amounts::default(),
+        ModuleKind::Repulsor | ModuleKind::Repair => Amounts::default(),
         ModuleKind::Rocket => Amounts {
             salvage: 25,
             components: 1,
