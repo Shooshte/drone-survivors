@@ -9,6 +9,8 @@ use bevy::prelude::*;
 
 mod control_validation;
 mod environment;
+mod environment_scene;
+mod environment_validation;
 mod ordnance_validation;
 mod scene;
 mod validation;
@@ -128,6 +130,7 @@ pub(super) enum CatalogAction {
 
 pub(super) fn install(app: &mut App, duration: f64) {
     environment::install(app);
+    environment_scene::install(app);
     app.insert_resource(CatalogArena {
         scenario: 0,
         slots: [None; 4],
@@ -149,7 +152,9 @@ pub(super) fn install(app: &mut App, duration: f64) {
     app.world_mut()
         .resource_mut::<WaveConfig>()
         .disable_authored_waves();
-    if std::env::var_os("DRONE_ORDNANCE_SMOKE").is_some() {
+    if std::env::var_os("DRONE_ENVIRONMENT_SMOKE").is_some() {
+        environment_validation::install(app);
+    } else if std::env::var_os("DRONE_ORDNANCE_SMOKE").is_some() {
         ordnance_validation::install(app);
     } else if std::env::var_os("DRONE_CONTROL_SMOKE").is_some() {
         control_validation::install(app);
