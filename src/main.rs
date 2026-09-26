@@ -58,7 +58,6 @@ fn main() {
     } else {
         app.add_plugins((
             mission::MissionPlugin,
-            mission::blockout_scene::BlockoutScenePlugin,
             mission::objective_scene::ObjectiveScenePlugin,
             mission::scene::MissionScenePlugin,
             economy::scene::EconomyScenePlugin,
@@ -68,6 +67,15 @@ fn main() {
         } else {
             app.add_plugins((save::SavePlugin::default(), save::scene::SaveScenePlugin));
         }
+    }
+    // Native fixtures install MissionPlugin themselves; their map renderer must
+    // follow mission selection just as it does in normal play.
+    if app
+        .world()
+        .contains_resource::<mission::blockout::BlockoutRun>()
+        && !app.is_plugin_added::<mission::blockout_scene::BlockoutScenePlugin>()
+    {
+        app.add_plugins(mission::blockout_scene::BlockoutScenePlugin);
     }
     app.run();
 }

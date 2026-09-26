@@ -69,7 +69,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
         Feedback("Discover the Reserve battery"),
         Key(KeyCode::Backspace),
         Phase(GamePhase::Hub),
-        // Act 1: all NW travel is physical through the production keyboard pilot.
+        // Mission 04 shared Act 1 arena: all NW travel is physical through the production keyboard pilot.
         Key(KeyCode::Enter),
         Phase(GamePhase::Briefing),
         Profile(0),
@@ -82,7 +82,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
         SkipChoices,
         Capture("northwest-blueprint", "Reserve battery blueprint unlocked"),
         Deadline,
-        Result(true, 0),
+        Result(true, 3),
         Key(KeyCode::Enter),
         Phase(GamePhase::Hub),
         Key(KeyCode::KeyU),
@@ -106,11 +106,12 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
         Phase(GamePhase::Playing),
         Capacity(125.),
         Deadline,
-        Result(true, 0),
+        Result(true, 3),
         Battery(true),
-        Capture("battery-success-retained", "Reserve battery retained"),
+        Capture("battery-success", "Next: return to hub"),
         Key(KeyCode::Enter),
         Phase(GamePhase::Hub),
+        Capture("battery-success-retained", "Reserve battery active"),
         Key(KeyCode::Enter),
         Phase(GamePhase::Briefing),
         Key(KeyCode::Enter),
@@ -120,7 +121,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
         Battery(false),
         Capacity(100.),
         Die,
-        Result(false, 0),
+        Result(false, 3),
         Battery(false),
         Capture("battery-defeat-forfeited", "Reserve battery forfeited"),
         Key(KeyCode::Enter),
@@ -140,7 +141,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
         Phase(GamePhase::Playing),
         Capacity(125.),
         Die,
-        Result(false, 0),
+        Result(false, 3),
         Battery(false),
         Key(KeyCode::Enter),
         Phase(GamePhase::Hub),
@@ -219,6 +220,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
     })
     .add_systems(Startup, setup)
     .add_systems(PreUpdate, drive.after(InputSystems));
+    crate::mission::validation::select_shared_survival(app);
 }
 
 fn setup(mut fixture: ResMut<Fixture>, mut window: Single<&mut Window>) {

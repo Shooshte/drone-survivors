@@ -47,6 +47,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
     })
     .add_systems(Startup, resize)
     .add_systems(PreUpdate, drive.after(InputSystems));
+    crate::mission::validation::select_shared_survival(app);
 }
 fn resize(mut fixture: ResMut<Fixture>, mut window: Single<&mut Window>) {
     fixture.start = Instant::now();
