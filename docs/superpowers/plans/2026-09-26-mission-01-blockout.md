@@ -51,11 +51,12 @@
 - [x] Run route pilot without combat and with fields; record loadout, travel time and clearance. Run bounded pressure probe and native captures.
 - [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
 - [x] Review branch against issue; fix substantive findings and verify affected checks.
-- [ ] Commit evidence, push `codex/dro-42-mission-blockout`, open PR against main and attach it to this task. Record outstanding human acceptance honestly.
+- [x] Commit evidence, push `codex/dro-42-mission-blockout`, open PR against main and attach it to this task. Record outstanding human acceptance honestly.
 
 ## Validation outcome
 
 Implementation and independent review are complete. See
 [the DRO-42 report](../../playtests/dro-42-mission01-blockout.md) for measured
 flight, bounded pressure, native captures, compatibility checks and the explicit
-remaining human acceptance questions. Delivery is tracked by the final PR.
+remaining human acceptance questions. Delivered as [PR #34](https://github.com/Shooshte/drone-survivors/pull/34)
+against `main`; the isolated workspace is retained for review follow-up.
