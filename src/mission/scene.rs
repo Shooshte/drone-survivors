@@ -367,9 +367,14 @@ fn present(
                 format!("{battery}\nDiscoveries save immediately. Free mission replays.")
             },
             (MenuCopy::Note, GamePhase::Briefing) => {
-                let instructions = "Caches: fly within 50u for loot +30 XP; secrets save immediately.\nWin: +10 salvage/+1 component. Loss: keep 25% loot.\nDefeat or R restart forfeits Reserve battery; R also discards loot.";
+                let discovery = if session.selected_mission.index() == 0 {
+                    format!("Hidden reward: within {:.0}u for +{} components, no XP.", super::blockout::HIDDEN_RADIUS, super::blockout::HIDDEN_COMPONENTS)
+                } else {
+                    "Caches: fly within 50u for loot +30 XP; secrets save immediately.".to_string()
+                };
+                let instructions = format!("{discovery}\nWin: +10 salvage/+1 component. Loss: keep 25% loot.\nDefeat or R restart forfeits Reserve battery; R also discards loot.");
                 if session.purchase_feedback.is_empty() {
-                    instructions.into()
+                    instructions
                 } else {
                     format!("{}\n{instructions}", session.purchase_feedback)
                 }
@@ -481,6 +486,40 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n");
         assert!(!text.contains("Replay mission briefing"));
+    }
+
+    #[test]
+    fn briefing_notes_match_selected_map_rewards_and_preserve_launch_feedback() {
+        let mut app = app();
+        for index in [0, 1, 0] {
+            app.world_mut()
+                .resource_mut::<MissionSession>()
+                .selected_mission = super::super::campaign::MissionId::ALL[index];
+            app.world_mut()
+                .resource_mut::<MissionSession>()
+                .purchase_feedback = "Clear slot 4".into();
+            *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Briefing;
+            app.update();
+            let note = app
+                .world_mut()
+                .query::<(&MenuCopy, &Text)>()
+                .iter(app.world())
+                .find(|(part, _)| matches!(part, MenuCopy::Note))
+                .unwrap()
+                .1
+                .0
+                .clone();
+            assert!(note.contains("Clear slot 4"));
+            if index == 0 {
+                assert!(note.contains("350u"), "{note}");
+                assert!(note.contains("no XP"), "{note}");
+                assert!(!note.contains("50u for loot +30 XP"));
+                assert!(!note.contains("secrets save immediately"));
+            } else {
+                assert!(note.contains("50u for loot +30 XP"));
+                assert!(note.contains("secrets save immediately"));
+            }
+        }
     }
 
     #[test]

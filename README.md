@@ -388,8 +388,9 @@ DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/mission01-small cargo dev -- --mi
 ```
 
 This explicit native check uses scripted positions, disables contact damage,
-skips earned upgrade choices and never opens the campaign save. It captures
-1120×720 or 640×480 presentation and exits after about 55 seconds. It does not
+skips earned upgrade choices and never opens the campaign save. It also drains
+the battery and empties one charger to capture their visible states. It captures
+1120×720 or 640×480 presentation and exits after about 58 seconds. It does not
 measure a natural run or establish human acceptance. See [DRO-42 evidence and
 remaining human checks](docs/playtests/dro-42-mission01-blockout.md).
 

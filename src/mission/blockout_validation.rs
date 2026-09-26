@@ -58,8 +58,8 @@ fn drive(world: &mut World) {
         {
             check.frame_ms.push(time.delta_secs_f64() * 1000.);
         }
-        const TIMES: [f64; 17] = [
-            2., 3., 4., 5., 6., 8., 10., 11., 12., 13., 14., 16., 18., 48., 50., 52., 55.,
+        const TIMES: [f64; 21] = [
+            2., 3., 4., 5., 6., 8., 10., 11., 12., 13., 14., 16., 18., 48., 49., 50., 51., 52., 53., 55., 58.,
         ];
         let elapsed = check.started.elapsed().as_secs_f64();
         if check.step >= TIMES.len() || elapsed < TIMES[check.step] {
@@ -70,6 +70,7 @@ fn drive(world: &mut World) {
         world.resource_mut::<ButtonInput<KeyCode>>().reset_all();
         match step {
             0 | 2 => world.resource_mut::<ButtonInput<KeyCode>>().press(KeyCode::Enter),
+            1 => check.pending = Some("briefing"),
             4 => {
                 check.pending = Some("launch");
                 world.resource_mut::<crate::combat::CombatConfig>().contact_damage = 0;
@@ -83,9 +84,20 @@ fn drive(world: &mut World) {
             11 => teleport(world, map::challenge()),
             12 => check.pending = Some("holdout"),
             13 => check.pending = Some("holdout-complete"),
-            14 => teleport(world, map::delivery()),
-            15 => check.pending = Some("result"),
+            14 => {
+                teleport(world, map::chargers()[0].1 + Vec3::Y * 90.);
+                world.resource_mut::<crate::energy::Energy>().current = 0.;
+            }
+            15 => check.pending = Some("charger-charging"),
             16 => {
+                let charger = world.resource::<crate::energy::Energy>().charging
+                    .expect("native charger pose must recharge");
+                world.get_mut::<crate::energy::ChargerReserve>(charger).unwrap().remaining = 0.;
+            }
+            17 => check.pending = Some("charger-empty"),
+            18 => teleport(world, map::delivery()),
+            19 => check.pending = Some("result"),
+            20 => {
                 let success = *world.resource::<GamePhase>() == GamePhase::Survived;
                 let result = world.resource::<super::MissionSession>().result.as_ref();
                 check.frame_ms.sort_by(f64::total_cmp);
@@ -97,7 +109,7 @@ fn drive(world: &mut World) {
                         frames[frames.len() * 95 / 100], frames[frames.len() - 1]
                     );
                 }
-                eprintln!("Mission01 native check: success={success}, result={result:?}; scripted poses, contact damage disabled, no save access");
+                eprintln!("Mission01 native check: success={success}, result={result:?}; scripted poses, contact damage disabled, synthetic battery drain/charger depletion, no save access");
                 world.write_message(if success { AppExit::Success } else { AppExit::error() });
             }
             _ => {}

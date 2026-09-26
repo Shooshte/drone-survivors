@@ -161,3 +161,39 @@ A human should still assess:
 
 These are acceptance questions, not claims resolved by synthetic screenshots or
 headless performance measurements.
+
+## PR review follow-up: briefing and live charger feedback
+
+Both reported issues were valid. Mission 01's briefing note now states the
+actual hidden-reward proximity and component amount from the gameplay constants
+(350 units, three components, no XP). Other missions keep their shared-cache
+instructions. Launch rejection feedback and settlement/restart guidance remain.
+
+The six existing charger assemblies now follow their live charger entities.
+Their local field, core, rings and reserve gauge move together on map changes;
+two disabled Mission 01 nodes hide their complete assemblies. The authored map
+no longer hides these visuals or draws duplicate static charger rings. Charging
+still selects the original active material, and depletion empties the gauge
+inside its persistent outline. Reset and returning to a shared mission restore
+normal reserve displays without allocating new scene assets.
+
+Both regressions failed before the fixes. The new scene checks cover map-specific
+briefing notes/feedback, Mission 01 → Mission 04 → Mission 01 relocation and
+visibility, real recharge/highlight, depletion, reset and stable gauge/mesh counts.
+Final verification: **533 passed, seven opt-in diagnostics ignored**; formatting,
+strict all-target Clippy and independent follow-up review passed.
+
+The native fixture now captures briefing and occupied charging/depleted states
+before delivery and exits at about 58 seconds. Its additional overrides are an
+empty player battery and an explicitly emptied charger reserve, solely to show
+both visual states; the existing scripted poses, zero contact damage and absent
+save plugin remain. These captures are presentation evidence, not balance data.
+
+Native follow-up passed at 1120×720 and 640×480, with the charging highlight and
+partially filled gauge visibly distinct from the idle depleted field and empty
+outline. These two presentation runs were concurrent, so their frame intervals
+are not compared with the earlier performance measurements.
+
+- [Corrected compact briefing](../images/dro-42-640x480-briefing.png)
+- [Compact charger supplying power](../images/dro-42-640x480-charger-charging.png)
+- [Compact depleted charger and empty reserve gauge](../images/dro-42-640x480-charger-empty.png)

@@ -160,25 +160,6 @@ fn setup(
         Transform::from_translation(map::hidden()).with_scale(Vec3::new(55., 30., 55.)),
         Visibility::Hidden,
     ));
-    for (_, position) in map::chargers() {
-        let ring = meshes.add(Torus::new(86., 90.));
-        commands.spawn((
-            MapVisual,
-            Mesh3d(ring),
-            MeshMaterial3d(cyan.clone()),
-            Transform::from_translation(position.with_y(3.)),
-            Visibility::Hidden,
-        ));
-        for scale in [Vec3::new(40., 3., 8.), Vec3::new(8., 3., 40.)] {
-            commands.spawn((
-                MapVisual,
-                Mesh3d(cube.clone()),
-                MeshMaterial3d(cyan.clone()),
-                Transform::from_translation(position.with_y(3.)).with_scale(scale),
-                Visibility::Hidden,
-            ));
-        }
-    }
     for (east, south) in [
         (640., 825.),
         (65., 470.),
