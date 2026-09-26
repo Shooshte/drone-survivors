@@ -5,6 +5,7 @@ fn wall_app() -> (App, Entity) {
     let (mut app, drone) = empty_app();
     quiet(&mut app);
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(100., 150., 0.),
             half: Vec3::new(10., 150., 100.),

@@ -49,6 +49,7 @@ fn run(app: &mut App, seconds: f32, hz: u32) {
 }
 fn wall(app: &mut App) {
     app.insert_resource(crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![crate::world::Solid {
             center: Vec3::new(-120., 90., 0.),
             half: Vec3::new(10., 150., 500.),
@@ -377,6 +378,7 @@ fn lethal_hit(app: &mut App, id: Entity, hit: LethalHit) {
     let position = app.world().get::<Transform>(id).unwrap().translation;
     if matches!(hit, LethalHit::Hazard) {
         app.insert_resource(crate::world::WorldGeometry {
+            navigation: None,
             solids: vec![],
             hazard: Some(crate::world::Solid {
                 center: position,

@@ -183,6 +183,7 @@ mod tests {
     #[test]
     fn rotation_correction_does_not_expose_actor_to_field_across_wall() {
         let world = WorldGeometry {
+            navigation: None,
             solids: vec![Solid {
                 center: Vec3::new(0., 150., 0.),
                 half: Vec3::new(1., 150., 270.),

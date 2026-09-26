@@ -236,6 +236,7 @@ fn bomb_carrier_cannot_attach_through_cover() {
         .translation = position;
     app.world_mut().get_mut::<Enemy>(id).unwrap().previous = position;
     app.insert_resource(crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![crate::world::Solid {
             center: Vec3::new(15., 90., 0.),
             half: Vec3::new(1., 200., 300.),

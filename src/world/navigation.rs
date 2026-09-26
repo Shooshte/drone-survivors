@@ -4,6 +4,86 @@ use super::{
 };
 use bevy::prelude::*;
 
+/// Built once for an immutable blockout. Pairwise swept-body visibility and
+/// shortest-path distances are reused by every pursuer, including spawn checks.
+pub(crate) struct NavigationGraph {
+    points: Vec<Vec3>,
+    distances: Vec<Vec<f32>>,
+    clearance: Vec3,
+}
+impl NavigationGraph {
+    pub(crate) fn build(world: &WorldGeometry, points: Vec<Vec3>, clearance: Vec3) -> Self {
+        let count = points.len();
+        let mut distances = vec![vec![f32::INFINITY; count]; count];
+        for (i, a) in points.iter().enumerate() {
+            distances[i][i] = 0.;
+            for (j, b) in points.iter().enumerate().skip(i + 1) {
+                if world.clear_body(*a, *b, clearance) {
+                    distances[i][j] = a.distance(*b);
+                    distances[j][i] = distances[i][j];
+                }
+            }
+        }
+        for via in 0..count {
+            for a in 0..count {
+                for b in 0..count {
+                    distances[a][b] = distances[a][b].min(distances[a][via] + distances[via][b]);
+                }
+            }
+        }
+        Self {
+            points,
+            distances,
+            clearance,
+        }
+    }
+    fn next(&self, world: &WorldGeometry, start: Vec3, target: Vec3, half: Vec3) -> Option<Vec3> {
+        // Larger future actors need their own clearance graph; never silently
+        // route them down an edge checked for a smaller body.
+        if half.cmpgt(self.clearance).any() {
+            return None;
+        }
+        let from: Vec<_> = self
+            .points
+            .iter()
+            .map(|&point| {
+                let distance = start.distance(point);
+                if distance > 1. && world.clear_body(start, point, half) {
+                    distance
+                } else {
+                    f32::INFINITY
+                }
+            })
+            .collect();
+        let to: Vec<_> = self
+            .points
+            .iter()
+            .map(|&point| {
+                if world.clear_body(point, target, half) {
+                    point.distance(target)
+                } else {
+                    f32::INFINITY
+                }
+            })
+            .collect();
+        let mut best = f32::INFINITY;
+        let mut next = None;
+        for (a, from_cost) in from.iter().enumerate() {
+            if !from_cost.is_finite() {
+                continue;
+            }
+            for (b, to_cost) in to.iter().enumerate() {
+                let cost = from_cost + self.distances[a][b] + to_cost;
+                if cost < best {
+                    best = cost;
+                    next = Some(self.points[a]);
+                }
+            }
+        }
+        next
+    }
+}
+
 /// A dozen authored turning points. High cruise altitude clears both low blocks;
 /// every connection is still checked against the caller's whole body.
 pub(crate) fn next_point(
@@ -27,6 +107,9 @@ pub(crate) fn next_point(
     }
     if world.clear_body(start, target, half + Vec3::splat(12.)) {
         return Some(target);
+    }
+    if let Some(graph) = &world.navigation {
+        return graph.next(world, start, target, half);
     }
     let mut points = vec![start, target];
     for x in [-CHARGER_X, DETOUR_LEFT_X, DETOUR_RIGHT_X, CHARGER_X] {

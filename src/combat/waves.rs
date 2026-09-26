@@ -471,6 +471,7 @@ mod terrain_tests {
                 ..default()
             })
             .insert_resource(WorldGeometry {
+                navigation: None,
                 solids: vec![Solid {
                     center: Vec3::new(0., 150., 0.),
                     half: Vec3::new(480., 150., 270.),
@@ -510,6 +511,7 @@ mod terrain_tests {
         let half = spawn_half(&CombatConfig::default());
         for world in [
             WorldGeometry {
+                navigation: None,
                 solids: Vec::new(),
                 hazard: Some(Solid {
                     center: position,
@@ -517,6 +519,7 @@ mod terrain_tests {
                 }),
             },
             WorldGeometry {
+                navigation: None,
                 solids: vec![Solid {
                     center: Vec3::new(0., 150., 0.),
                     half: Vec3::new(5., 150., arena.half_size.z),
@@ -724,6 +727,7 @@ mod expanded_floor_tests {
                     half: Vec3::splat(30.),
                 };
                 let world = WorldGeometry {
+                    navigation: None,
                     solids: if hazard { vec![] } else { vec![blocker] },
                     hazard: if hazard { Some(blocker) } else { None },
                 };

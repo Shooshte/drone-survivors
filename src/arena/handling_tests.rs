@@ -195,6 +195,7 @@ fn handling_fast_build_motion_envelope_contains_the_curved_midpoint() {
             half_size: Vec3::splat(100_000.),
         };
         let world = crate::world::WorldGeometry {
+            navigation: None,
             solids: vec![],
             hazard: None,
         };

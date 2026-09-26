@@ -1,4 +1,4 @@
-//! Catalog-only ground-travel fields and single-use hull repair state.
+//! Ground-travel fields and catalog single-use hull repair state.
 use super::Solid;
 use bevy::prelude::*;
 
@@ -10,6 +10,7 @@ pub(crate) const REPAIR_AMOUNT: u32 = 35;
 pub(crate) struct DirectionalField {
     pub bounds: Solid,
     pub cycling: bool,
+    pub direction: Vec3,
 }
 impl DirectionalField {
     pub fn active(self, elapsed: f64) -> bool {
@@ -37,6 +38,7 @@ impl Environment {
                         half: Vec3::new(220., 150., 125.),
                     },
                     cycling: i == 1,
+                    direction: Vec3::X,
                 })
                 .collect();
             self.repair_ready = true;
@@ -45,19 +47,21 @@ impl Environment {
     pub fn enabled(&self) -> bool {
         !self.fields.is_empty()
     }
-    /// Both authored fields point east. Union membership prevents overlap stacking.
+    /// First active field wins in overlaps; only the horizontal parallel component changes.
     /// Apply to this substep's displacement only, never the stored rotor velocity.
     pub fn travel(&self, position: Vec3, displacement: Vec3, elapsed: f64) -> Vec3 {
-        if self
+        let Some(field) = self
             .fields
             .iter()
-            .any(|f| f.active(elapsed) && f.bounds.overlaps(position, Vec3::ZERO))
-        {
-            displacement.with_x(displacement.x * if displacement.x >= 0. { 1.4 } else { 0.6 })
-        } else {
-            displacement
-        }
+            .find(|f| f.active(elapsed) && f.bounds.overlaps(position, Vec3::ZERO))
+        else {
+            return displacement;
+        };
+        let direction = field.direction.with_y(0.).normalize_or_zero();
+        let parallel = displacement.dot(direction);
+        displacement + direction * parallel * if parallel >= 0. { 0.4 } else { -0.4 }
     }
+
     pub fn cycle(&self) -> (bool, f64) {
         let phase = self.elapsed.rem_euclid(10.);
         (
@@ -92,6 +96,31 @@ mod tests {
         assert_eq!(env.travel(at + Vec3::X * 221., positive, 0.), positive);
         assert_eq!(env.travel(at + Vec3::Y * 151., negative, 0.), negative);
     }
+    #[test]
+    fn environment_arbitrary_direction_changes_only_parallel_motion_and_first_overlap_wins() {
+        let mut env = Environment::default();
+        env.reset(true);
+        let at = env.fields[0].bounds.center;
+        for direction in [Vec3::NEG_X, Vec3::new(-3., 7., 4.)] {
+            env.fields[0].direction = direction;
+            let axis = direction.with_y(0.).normalize();
+            let across = Vec3::new(-axis.z, 0., axis.x) * 7. + Vec3::Y * 3.;
+            for (along, expected) in [(10., 14.), (-10., -6.)] {
+                assert!(
+                    env.travel(at, axis * along + across, 0.)
+                        .distance(axis * expected + across)
+                        < 0.0001
+                );
+            }
+            assert!(env.travel(at, across, 0.).distance(across) < 0.0001);
+        }
+        env.fields[0].direction = Vec3::NEG_X;
+        let mut overlap = env.fields[0];
+        overlap.direction = Vec3::X;
+        env.fields.push(overlap);
+        assert_eq!(env.travel(at, Vec3::X * 10., 0.), Vec3::X * 6.);
+    }
+
     #[test]
     fn environment_cycle_boundaries_and_repair_limits() {
         let mut env = Environment::default();

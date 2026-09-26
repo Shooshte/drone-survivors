@@ -173,6 +173,7 @@ fn support_repulsor_obeys_three_dimensional_range_and_cover() {
     let far = enemy(&mut app, Vec3::new(150., 120., 0.));
     let blocked = enemy(&mut app, Vec3::new(-100., 0., 0.));
     app.insert_resource(crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![crate::world::Solid {
             center: Vec3::new(-60., 90., 0.),
             half: Vec3::new(1., 200., 300.),
@@ -223,6 +224,7 @@ fn support_repulsor_impulse_uses_collision_aware_enemy_movement() {
         half: Vec3::new(1., 150., 1000.),
     };
     app.insert_resource(crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![wall],
         hazard: None,
     });

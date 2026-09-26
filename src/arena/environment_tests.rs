@@ -54,6 +54,7 @@ fn environment_boost_respects_swept_terrain_and_actual_player_path() {
     let mut environment = Environment::default();
     environment.reset(true);
     let world = WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(-300., 150., -190.),
             half: Vec3::new(5., 150., 125.),

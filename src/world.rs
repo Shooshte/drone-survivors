@@ -5,6 +5,7 @@ mod geometry;
 pub(crate) use contact::proximity_contact;
 pub(crate) mod hazard;
 pub(crate) mod layout;
+pub(crate) mod mission01;
 pub(crate) mod navigation;
 pub(crate) mod regions;
 pub(crate) mod scene;

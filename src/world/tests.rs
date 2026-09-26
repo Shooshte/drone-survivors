@@ -54,6 +54,7 @@ fn neutral() -> FlightInput {
 #[test]
 fn terrain_stops_boosted_crossings_and_preserves_sliding_at_all_frame_rates() {
     let world = WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(0., 150., 0.),
             half: Vec3::new(1., 150., 270.),
@@ -82,6 +83,7 @@ fn terrain_stops_boosted_crossings_and_preserves_sliding_at_all_frame_rates() {
 #[test]
 fn turning_beside_wall_never_expands_body_into_solid() {
     let world = WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(0., 150., 0.),
             half: Vec3::new(1., 150., 270.),
@@ -111,6 +113,7 @@ fn turning_beside_wall_never_expands_body_into_solid() {
 fn low_cover_can_be_flown_over_but_full_height_wall_cannot() {
     for (height, y, blocked) in [(60., 90., false), (300., 280., true), (300., 20., true)] {
         let world = WorldGeometry {
+            navigation: None,
             solids: vec![Solid {
                 center: Vec3::new(0., height / 2., 0.),
                 half: Vec3::new(5., height / 2., 100.),
@@ -134,6 +137,7 @@ fn low_cover_can_be_flown_over_but_full_height_wall_cannot() {
 #[test]
 fn corner_contacts_stop_both_inward_components_without_penetration() {
     let world = WorldGeometry {
+        navigation: None,
         solids: vec![
             Solid {
                 center: Vec3::new(0., 150., 0.),
@@ -201,6 +205,7 @@ fn authored_routes_fit_scout_and_keep_spawn_and_chargers_clear() {
 #[test]
 fn wall_contact_allows_banking_away_from_rest() {
     let world = WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(0., 150., 0.),
             half: Vec3::new(1., 150., 270.),
@@ -247,6 +252,7 @@ fn wall_contact_allows_banking_away_from_rest() {
 #[test]
 fn rotation_contact_does_not_create_timed_translation_for_stationary_actors() {
     let world = WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(0., 150., 0.),
             half: Vec3::new(1., 150., 270.),

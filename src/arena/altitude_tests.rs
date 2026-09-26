@@ -208,6 +208,7 @@ fn altitude_hold_accepts_obstacle_top_and_underside_contact_without_stale_target
             let mut pilot = Pilot::new(start, 1., 1.);
             pilot.arena = Arena::default();
             pilot.world = Some(WorldGeometry {
+                navigation: None,
                 solids: vec![Solid {
                     center: Vec3::new(0., 150., 0.),
                     half: Vec3::new(600., 20., 1000.),
@@ -275,6 +276,7 @@ fn altitude_hold_slides_along_obstacle_side_and_can_bank_away() {
     for hz in [30, 60, 120, 144] {
         let mut pilot = Pilot::new(137., 1.25, 0.675);
         pilot.world = Some(WorldGeometry {
+            navigation: None,
             solids: vec![Solid {
                 center: Vec3::new(100., 150., 0.),
                 half: Vec3::new(1., 150., 1000.),

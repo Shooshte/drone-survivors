@@ -104,6 +104,7 @@ fn line_of_sight_is_checked_at_the_crossing_not_the_frame_endpoint() {
     );
     // The endpoint is behind a wall; the trigger crossing happened before it.
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(2., 0., 0.),
             half: Vec3::splat(0.1),
@@ -120,6 +121,7 @@ fn line_of_sight_is_checked_at_the_crossing_not_the_frame_endpoint() {
         [false; 3],
     );
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(0., 0.4, 0.),
             half: Vec3::new(10., 0.1, 10.),

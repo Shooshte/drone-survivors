@@ -316,6 +316,7 @@ fn variant_sweeps_catch_crossings_but_reject_contact_across_a_wall() {
         .is_some()
     );
     let wall = WorldGeometry {
+        navigation: None,
         solids: vec![Solid {
             center: Vec3::new(0., 150., 0.),
             half: Vec3::new(1., 150., 100.),
@@ -346,6 +347,7 @@ fn new_enemy_flight_and_committed_charges_respect_solid_geometry_at_all_rates() 
         for kind in [EnemyKind::Fast, EnemyKind::Rammer] {
             let mut app = app();
             app.insert_resource(WorldGeometry {
+                navigation: None,
                 solids: vec![Solid {
                     center: Vec3::new(-100., 150., 0.),
                     half: Vec3::new(10., 150., 500.),
@@ -468,6 +470,7 @@ fn missed_charge_retreats_without_spending_budget_and_terminal_states_freeze_fli
 #[test]
 fn rammer_retreat_can_leave_a_wall_contact_with_its_physical_hull() {
     let world = crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![crate::world::Solid {
             center: Vec3::new(0., 150., 0.),
             half: Vec3::new(10., 150., 500.),

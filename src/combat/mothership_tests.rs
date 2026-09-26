@@ -190,6 +190,7 @@ fn admission_requires_player_arena_and_world_clearance() {
             }
             2 => {
                 app.insert_resource(WorldGeometry {
+                    navigation: None,
                     solids: vec![Solid {
                         center: PARENT_POSITION,
                         half: Vec3::new(200., 100., 200.),

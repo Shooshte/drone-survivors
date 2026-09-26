@@ -514,6 +514,7 @@ fn hazard_kills_award_xp_once_and_can_open_upgrade_choices() {
     let (mut app, _) = upgrade_app();
     let center = START + Vec3::X * 200.;
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![],
         hazard: Some(Solid {
             center,
@@ -545,6 +546,7 @@ fn upgrade_choice_freezes_hazard_then_resumes_remaining_warning() {
     };
     let (mut app, _) = upgrade_app();
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![],
         hazard: Some(Solid {
             center: START,

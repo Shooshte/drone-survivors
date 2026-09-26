@@ -163,6 +163,7 @@ fn visits_require_three_dimensional_proximity_and_clear_line_of_sight() {
     );
     assert_eq!(app.world().resource::<ObjectiveRun>().count(), 0);
     let mut geometry = crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![],
         ..default()
     };
