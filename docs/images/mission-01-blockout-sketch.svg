@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1200" viewBox="0 0 1500 1200" role="img" aria-labelledby="title desc">
+  <title id="title">Mission 01 — payload delivery blockout sketch</title>
+  <desc id="desc">Interpretation of the supplied hand-drawn map. Southeast start, western pickup, northeast delivery, full-height solid terrain, numbered encounters and chargers. Schematic only; target main-route travel time is 180 seconds.</desc>
+  <defs>
+    <pattern id="hatch" width="13" height="13" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="13" height="13" fill="#33414b"/><path d="M0 0V13" stroke="#53616b" stroke-width="4"/></pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10" fill="none" stroke="#178d91" stroke-width="2"/></marker>
+    <marker id="routeArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c98326"/></marker>
+    <g id="charger"><circle r="17" fill="#fff" stroke="#178d91" stroke-width="3"/><path d="M1-11L-7 2H0L-2 11L8-3H1Z" fill="#178d91"/></g>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#263640; }
+      .num { font-size:26px; font-weight:700; text-anchor:middle; dominant-baseline:central; }
+      .label { font-size:18px; }
+      .note { font-size:16px; fill:#5c6a70; }
+      .small { font-size:14px; fill:#5c6a70; }
+      .enemy { fill:#fff3ef; stroke:#bd6246; stroke-width:2.5; }
+      .solid { fill:url(#hatch); stroke:#263640; stroke-width:3; stroke-linejoin:round; }
+    </style>
+  </defs>
+  <rect width="1500" height="1200" fill="#f5f2e9"/>
+  <text x="50" y="57" font-size="34" font-weight="750">MISSION 01 / PAYLOAD DELIVERY</text>
+  <text x="50" y="91" class="label">Sketch interpretation · DRO-42 · 25 September 2026</text>
+  <text x="50" y="121" class="note">Target: 180 seconds of ordinary main-route travel, excluding combat and optional detours.</text>
+  <g transform="translate(50 160)">
+    <rect width="1000" height="1000" fill="#fffdf6" stroke="#263640" stroke-width="4"/>
+    <!-- Solids preserve the drawing's main connections and pockets. -->
+    <path class="solid" d="M0 255L55 242L127 267L190 315L205 347L170 389L84 410L0 409Z"/>
+    <path class="solid" d="M308 143L377 126L428 154L479 205L505 269L470 302L398 299L337 273L315 211Z"/>
+    <path class="solid" d="M1000 520L816 520L666 515L570 475L437 438L332 437L282 460L257 508L285 548L360 574L448 611L570 631L574 692L599 755L726 776L870 760L1000 781Z"/>
+    <path class="solid" d="M192 650L231 669L279 704L326 720L373 706L430 689L448 724L404 756L334 776L276 759L222 721L186 682Z"/>
+    <path class="solid" d="M0 660L65 688L117 738L132 795L117 853L77 903L138 1000L0 1000Z"/>
+    <path class="solid" d="M298 1000L331 938L350 862L390 796L437 774L508 777L572 786L568 836L575 890L509 888L475 916L471 1000Z"/>
+    <path class="solid" d="M600 1000L627 964L672 944L699 909L711 855L743 837L772 851L783 921L817 959L875 1000Z"/>
+    <!-- Optional challenge zone; illustrative extent. -->
+    <ellipse cx="235" cy="855" rx="94" ry="113" fill="#dce9db" fill-opacity="0.65" stroke="#6b8b65" stroke-width="2" stroke-dasharray="7 7"/>
+    <!-- Illustrative traversal, not a route restriction or validated flight path. -->
+    <path d="M860 831L687 801L552 748L527 671L507 636L407 600L229 566L141 573" fill="none" stroke="#c98326" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#routeArrow)"/>
+    <path d="M145 554L206 449L258 393L362 346L557 339L711 266L832 199" fill="none" stroke="#c98326" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#routeArrow)"/>
+    <!-- Authored arrow locations. Field extents are not specified by the sketch. -->
+    <g fill="none" stroke="#178d91" stroke-width="7" marker-end="url(#arrow)">
+      <path d="M305 66H440"/><path d="M190 215L267 289"/>
+      <path d="M407 653L326 687"/><path d="M281 637L230 605"/>
+    </g>
+    <use href="#charger" x="30" y="435"/><use href="#charger" x="568" y="312"/>
+    <use href="#charger" x="195" y="964"/><use href="#charger" x="577" y="965"/>
+    <!-- Major objective circles -->
+    <circle cx="875" cy="850" r="48" fill="#e0e9ee" stroke="#496e85" stroke-width="3"/><text class="num" x="875" y="850">1</text>
+    <circle cx="125" cy="575" r="47" fill="#fff0c8" stroke="#c98326" stroke-width="3"/><text class="num" x="125" y="575">2</text>
+    <circle cx="860" cy="180" r="66" fill="#deeadc" stroke="#668960" stroke-width="3"/><text class="num" x="860" y="180">3</text>
+    <text x="875" y="916" text-anchor="middle" class="small">START</text><text x="125" y="639" text-anchor="middle" class="small">PICKUP</text><text x="860" y="266" text-anchor="middle" class="small">DELIVERY</text>
+    <!-- Fixed encounters -->
+    <circle class="enemy" cx="640" cy="825" r="30"/><text class="num" x="640" y="825">4</text>
+    <circle class="enemy" cx="65" cy="470" r="27"/><text class="num" x="65" y="470">4</text>
+    <circle class="enemy" cx="515" cy="690" r="34"/><text class="num" x="515" y="690">6</text>
+    <circle class="enemy" cx="685" cy="115" r="33"/><text class="num" x="685" y="115">9</text>
+    <circle class="enemy" cx="860" cy="385" r="33"/><text class="num" x="860" y="385">10</text>
+    <!-- Optional reward and challenge -->
+    <circle cx="535" cy="935" r="27" fill="#fff0c8" stroke="#c98326" stroke-width="2.5"/><text class="num" x="535" y="935">5</text>
+    <circle cx="235" cy="855" r="43" fill="#e2ecdf" stroke="#6b8b65" stroke-width="2.5"/><text class="num" x="235" y="855">7</text>
+    <!-- Permanent spawn points -->
+    <g fill="#eedeea" stroke="#996784" stroke-width="3"><rect x="38" y="43" width="84" height="84" rx="16"/><rect x="924" y="29" width="72" height="72" rx="16"/></g>
+    <text class="num" x="80" y="85">8</text><text class="num" x="960" y="65">11</text>
+  </g>
+  <g transform="translate(1090 175)">
+    <text font-size="22" font-weight="750">MAP KEY</text>
+    <g class="label">
+      <text y="43">1  Player start</text><text y="75">2  Payload pickup</text><text y="107">3  Delivery / instant win</text>
+      <text y="151">4  10 chasers per group</text><text y="183">5  Hidden reward</text><text y="215">6  20 chasers</text>
+      <text y="247">7  30-second holdout / 3 waves</text><text y="291">8  Permanent spawn point</text>
+      <text y="323">9  Guards: 2 slowers + chasers</text><text y="355">10  Guards: 2 slowers + chasers</text><text y="387">11  Spawns slowers + chasers</text>
+    </g>
+    <path d="M0 419H360" stroke="#c6cbc5"/>
+    <rect y="443" width="38" height="28" fill="url(#hatch)"/>
+    <text x="53" y="464" class="label">Blocks every altitude</text>
+    <use href="#charger" x="18" y="505"/><text x="53" y="512" class="label">Charging site</text>
+    <path d="M0 548H34" stroke="#178d91" stroke-width="4" marker-end="url(#arrow)"/><text x="53" y="555" class="label">Directional boost</text>
+    <path d="M0 590H37" stroke="#c98326" stroke-width="4" stroke-dasharray="7 5"/><text x="53" y="597" class="label">Illustrative main route</text>
+    <path d="M0 626H360" stroke="#c6cbc5"/>
+    <text y="660" font-size="20" font-weight="750">AGREED RULES</text>
+    <g class="note">
+      <text y="694">One slot reserved before launch.</text><text y="721">Three slots remain for equipment.</text>
+      <text y="762">Fixed groups activate on proximity.</text><text y="789">Both spawn points activate on pickup.</text><text y="816">Neither spawn point can be destroyed.</text>
+      <text y="850">7: survive inside for 30 seconds.</text><text y="877">Three timed waves; no kill quota.</text><text y="904">Leaving early forfeits that attempt.</text>
+      <text y="925">Delivery wins even on a lethal hit.</text><text y="966" font-weight="700">SCHEMATIC · NOT TO WORLD SCALE</text>
+    </g>
+  </g>
+</svg>
