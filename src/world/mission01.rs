@@ -298,6 +298,21 @@ mod tests {
     }
 
     #[test]
+    fn mission01_navigation_preserves_body_clear_final_approach_beside_ridge() {
+        let world = geometry();
+        let start = point(440., 430.);
+        let target = point(440., 439.1225);
+        let half = Vec3::splat(24.);
+        assert!(world.clear_body(start, target, half));
+        assert!(!world.clear_body(start, target, half + Vec3::splat(12.)));
+        assert_eq!(
+            super::super::navigation::next_point(&world, start, target, half),
+            Some(target),
+            "a clear final approach must not detour to a cached anchor"
+        );
+    }
+
+    #[test]
     fn mission01_ordinary_rotor_flight_calibrates_main_route() {
         use crate::arena::{DroneFlight, FlightConfig, FlightInput, VerticalControl};
         let world = geometry();

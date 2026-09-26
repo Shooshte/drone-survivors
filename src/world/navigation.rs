@@ -109,6 +109,11 @@ pub(crate) fn next_point(
         return Some(target);
     }
     if let Some(graph) = &world.navigation {
+        // Turn padding protects graph corners, not the final physical approach.
+        // A target beside terrain can fit the body without the extra padding.
+        if world.clear_body(start, target, half) {
+            return Some(target);
+        }
         return graph.next(world, start, target, half);
     }
     let mut points = vec![start, target];
