@@ -64,8 +64,9 @@ naturally earned upgrades remain active. This mode installs no campaign or save
 systems and awards no campaign resources. All six modules are available here;
 all twelve temporary upgrades are available. Agent combination comparisons are
 recorded in [DRO-41 evidence](docs/playtests/dro-41-catalog-validation.md). New catalog
-content stays excluded from campaign shops, spawns and upgrade offers until the
-human playtest gate is lifted.
+content stays excluded from campaign shops and upgrade offers. DRO-42 explicitly
+introduces slowing beams and directional fields in Mission 01; broader catalog
+acceptance remains pending.
 
 For the explicit native UI fixture:
 
@@ -190,7 +191,8 @@ Fields affect player ground travel without changing stored flight velocity.
 Leaving removes the modifier by the next physics substep (at most 1/120 second).
 Terrain still blocks movement, and ordinary Mobility/beam effects compose with
 fields. Choices pause the cycle and repair. R restores both fixtures; returning
-or choosing an ordinary scenario removes them. Campaign layouts remain unchanged.
+or choosing an ordinary scenario removes them. Mission 01 uses four permanent
+fields with authored arrow directions; other campaign layouts remain unchanged.
 Numeric tuning is provisional. The repair site is independent of the Repair module.
 
 ```sh
@@ -256,7 +258,8 @@ contact damage but does not block control attacks. All tuning is provisional.
 Yellow expanding rings and thin lines warn; solid lines mark active attacks;
 small blue rings mark 3-second enemy recovery. HUD text names each phase and
 jam target. Locks and enemy timers pause during upgrade selection; R and arena
-return clear them. Basic fire remains free. Campaign content is unchanged.
+return clear them. Basic fire remains free. Mission 01 also uses slowing beams;
+jammers remain catalog-only.
 
 ```sh
 DRONE_CONTROL_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/control cargo dev --locked -- --validate catalog
@@ -309,11 +312,11 @@ It validates presentation and production rules, not difficulty or human acceptan
 
 ## Campaign mission selection
 
-All **12 missions** are playable placeholders using the **same arena layout,
-waves, charger locations and hazards**. Each act has a distinct resource profile
-(see Exploration below). Each has its own completion record.
-Mission **02 is reconnaissance**, mission **03 is cargo extraction**; the other
-ten retain the five-minute survival objective.
+Mission **01 is an authored payload blockout** described below. Missions **02–12**
+retain the shared placeholder arena, waves, chargers and hazards. Each act has
+a resource profile (see Exploration below), and each mission has its own
+completion record. Mission **02 is reconnaissance**, mission **03 is cargo
+extraction**; the other nine retain the five-minute survival objective.
 
 | Act | Introduction | Branches, either order | Finale |
 | --- | --- | --- | --- |
@@ -337,9 +340,9 @@ shortcut uses the selection you last made. Briefings and results identify the
 mission; R restarts the active mission. Menus pause gameplay.
 
 Progress saves between missions; secret discoveries also save immediately during play.
-Continue resumes in the hub. The ten survival missions
-total 50 minutes before pauses/retries; reconnaissance and extraction have no
-time limit. The roughly 90-minute campaign target awaits authored content.
+Continue resumes in the hub. The nine survival missions
+total 45 minutes before pauses/retries; payload, reconnaissance and extraction
+have no time limit. The roughly 90-minute campaign target awaits authored content.
 
 ```sh
 DRONE_CAPTURE_DIR=/tmp/dro17-normal cargo dev -- --validate campaign
@@ -353,6 +356,42 @@ It checks text bounds at each captured screen and exits after about 65 seconds
 (default timeout 90). It grants no loot or funds; 13 synthetic wins yield 130
 salvage/13 components across 14 results. This validates campaign behavior and
 presentation, not combat balance. [DRO-17 evidence](docs/playtests/dro-17-campaign.md).
+
+## Mission 01: sketch-based payload blockout
+
+Fly from southeast **1** to western pickup **2**, then deliver to northeast **3**.
+Pickup and delivery trigger automatically by proximity. Delivery wins immediately
+with the payload; there is no survival deadline. The main route measures about
+**175 seconds** of ordinary flight without combat or optional detours. Hatched
+terrain is solid at every altitude. Use the minimap and four finite chargers to
+plan a route around the ridges.
+
+**Slot 4 is reserved before launch**, leaving three equipment slots. Empty
+loadouts are valid. A saved four-module loadout stays intact, but briefing asks
+you to clear slot 4 in the module shop before launching Mission 01.
+
+Nearby groups activate once. Guards at **9/10** each include two slowing beams
+and five chasers. Picking up the payload permanently activates indestructible
+sources **8/11**; their spawning continues until the attempt ends, under a
+96-enemy/warning cap. Arrow fields give **+40% with / −40% against** their
+horizontal direction; perpendicular and vertical motion are unchanged.
+
+The southern pocket hides **3 components**. Optional challenge **7** awards
+**5 components** for staying inside for 30 active seconds, with waves at 0/10/20.
+Leaving early consumes the attempt; killing every enemy is unnecessary. Choices
+pause the timer, and restart restores the challenge and all mission-local state.
+These rewards use the ordinary unbanked success/failure rules.
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/mission01 cargo dev -- --mission01-check
+DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/mission01-small cargo dev -- --mission01-check
+```
+
+This explicit native check uses scripted positions, disables contact damage,
+skips earned upgrade choices and never opens the campaign save. It captures
+1120×720 or 640×480 presentation and exits after about 55 seconds. It does not
+measure a natural run or establish human acceptance. See [DRO-42 evidence and
+remaining human checks](docs/playtests/dro-42-mission01-blockout.md).
 
 ## Two-mission vertical slice
 
@@ -368,7 +407,9 @@ cargo test --locked vertical_slice_probe -- --ignored --nocapture
 
 This opt-in agent probe completes fresh mission 01 → reward → purchase/equip →
 save/reload → mission 02 loops with Overdrive and Shield, plus an empty-loadout
-control. It runs production gameplay at fixed 30 Hz without rendering, using
+control. Mission 01 now follows the payload route; it earns a real replay if
+the chosen module costs more than the first payout. It runs production gameplay
+at fixed 30 Hz without rendering, using
 scripted keyboard steering and isolated temporary saves. No wins, funds, health,
 XP or objective progress are granted. It is an accelerated agent check; **human
 validation is deferred**, and content expansion remains behind that later gate.
@@ -414,7 +455,7 @@ DRONE_CAPTURE_DIR=/tmp/dro19-compact DRONE_CAPTURE_MINIMUM=1 cargo dev -- --vali
 
 ## Exploration, regions, and secrets
 
-The placeholder arena layout is shared across all acts. Reusable content pieces
+Missions 02–12 share the placeholder arena across all acts. Reusable content pieces
 assemble the same six chargers and three cache locations. Briefing summaries
 and runtime resources use the same profile data:
 
@@ -657,7 +698,7 @@ weapon automatically fires yellow projectiles at the nearest enemy within
 can miss; each disappears after its first hit, after one second, or on leaving
 the arena. Keep moving to avoid contact.
 
-The five-minute encounter starts with three quiet seconds, then five enemies
+The shared placeholder encounter (missions 02–12) starts with three quiet seconds, then five enemies
 every eight seconds.
 Pressure increases through larger bursts and shorter intervals:
 
@@ -690,7 +731,7 @@ affected enemy; a small amber burst marks a kill. Contact deals 10 hull damage,
 followed by 0.75 seconds of shared invulnerability. The HUD flashes red on damage
 and shows cyan **HULL PROTECTED** during that protection window.
 
-At zero hull, the mission fails. Survive until 5:00 to succeed; remaining enemies
+At zero hull, the mission fails. In survival missions, survive until 5:00 to succeed; remaining enemies
 do not need to be cleared. Both outcomes freeze gameplay and open mission results.
 R restarts during combat or lulls, clearing enemies, shots,
 warnings, effects, kills, timers, and flight momentum. Balance values are
@@ -704,7 +745,7 @@ until collected or the attempt ends. Fly within **100 world units in 3D** with
 clear line of sight to attract it; once attracted it follows at 900 units/second.
 There is no interaction key or despawn timer. Solid cover blocks collection.
 
-Three purple caches each contain **1 component** (or **2 in Act 2**) and
+In missions 02–12, three purple caches each contain **1 component** (or **2 in Act 2**) and
 **30 run XP**, collected once per attempt within **50 world units in 3D**
 with clear line of sight. Fast crossings count along the actual flight path. Look near the northwest and southeast spawn
 perimeter, and inside the central electrical passage. Descend to reach them;

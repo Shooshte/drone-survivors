@@ -22,33 +22,40 @@
 ### Task 1: Authored geometry, navigation and directional fields
 **Files:** new src/world/mission01.rs; src/world/navigation.rs, geometry.rs, environment.rs and focused tests.
 **Interface:** mission01::point(east: f32, south: f32) -> Vec3; geometry() -> WorldGeometry; arena() -> Arena; start() -> Vec3; chargers() -> [(&'static str, Vec3); 4]. Supply named pickup/delivery/hidden/challenge landmarks and route waypoints. Mission geometry carries precomputed navigation, default geometry preserves existing behavior.
-- [ ] Add failing route/body clearance and arbitrary-direction field tests; run targeted tests and observe missing behavior.
-- [ ] Implement schematic solids and graph with bounded runtime work; flight at any altitude cannot cross terrain. Keep coordinates and scale centralized.
-- [ ] Implement field projection: `d + direction * (d.dot(direction) * if d.dot(direction) >= 0. { 0.4 } else { -0.4 })`; choose one overlapping field deterministically.
-- [ ] Measure actual flight route, validate all landmark approaches and graph pursuit; tune scale toward 180 seconds.
-- [ ] Run targeted tests, review and commit geometry/field work.
+- [x] Add failing route/body clearance and arbitrary-direction field tests; run targeted tests and observe missing behavior.
+- [x] Implement schematic solids and graph with bounded runtime work; flight at any altitude cannot cross terrain. Keep coordinates and scale centralized.
+- [x] Implement field projection: `d + direction * (d.dot(direction) * if d.dot(direction) >= 0. { 0.4 } else { -0.4 })`; choose one overlapping field deterministically.
+- [x] Measure actual flight route, validate all landmark approaches and graph pursuit; tune scale toward 180 seconds.
+- [x] Run targeted tests, review and commit geometry/field work.
 
 ### Task 2: Payload, equipment and map lifecycle
 **Files:** src/mission/blockout.rs and focused tests; mission.rs/objectives.rs; modules UI/input; arena/energy/economy setup and scene refresh.
 **Interface:** BlockoutRun resource identifies enabled mission and stores cargo/holdout state. Configuration runs in Baseline before resets; map presentation refreshes on resource changes.
-- [ ] Add failing launch, no-timer-win, payload, ordered lethal delivery, empty-loadout, restart and map-switch tests.
-- [ ] Add Mission 01 objective and slot-4 reservation. Refuse incompatible launch with actionable text, retain ownership and saved equipment until user edits.
-- [ ] Select Mission 01 geometry, start, chargers and component reward; restore defaults for other missions. Reuse scene assets and replace stale map visuals.
-- [ ] Resolve actual motion-segment pickup/delivery and contact in travel order; tie favors delivery.
-- [ ] Verify normal mission lifecycle, progression/save replay, cleanup; commit.
+- [x] Add failing launch, no-timer-win, payload, ordered lethal delivery, empty-loadout, restart and map-switch tests.
+- [x] Add Mission 01 objective and slot-4 reservation. Refuse incompatible launch with actionable text, retain ownership and saved equipment until user edits.
+- [x] Select Mission 01 geometry, start, chargers and component reward; restore defaults for other missions. Reuse scene assets and replace stale map visuals.
+- [x] Resolve actual motion-segment pickup/delivery and contact in travel order; tie favors delivery.
+- [x] Verify normal mission lifecycle, progression/save replay, cleanup; commit.
 
 ### Task 3: Authored encounters and optional holdout
 **Files:** new src/combat/mission01.rs and tests, combat scheduling; blockout run challenge state and HUD.
 **Interface:** consume mission01 landmarks and BlockoutRun payload/holdout state, spawn existing enemy kinds through existing enemy constructor.
-- [ ] Add failing proximity/count/cap/source-fairness/holdout timing tests.
-- [ ] Activate each group once and preserve every authored request. Permanently enable both sources on pickup; bounded active cap and coalesced pending source requests with round-robin admission.
-- [ ] Start challenge on first entry; emit three timed waves; exit consumes attempt; completion credits components once while enemies can remain. Reset clears all state.
-- [ ] Ensure spawned enemies give normal XP, collision-safe spawn and pursuit, no shared global bursts; test and commit.
+- [x] Add failing proximity/count/cap/source-fairness/holdout timing tests.
+- [x] Activate each group once and preserve every authored request. Permanently enable both sources on pickup; bounded active cap and coalesced pending source requests with round-robin admission.
+- [x] Start challenge on first entry; emit three timed waves; exit consumes attempt; completion credits components once while enemies can remain. Reset clears all state.
+- [x] Ensure spawned enemies give normal XP, collision-safe spawn and pursuit, no shared global bursts; test and commit.
 
 ### Task 4: Readability, full validation and delivery
 **Files:** map scene/minimap or guidance, docs/playtests.md, validation fixtures/screenshots.
-- [ ] Show payload reservation, pickup/delivery, source and challenge state, terrain and directional arrows at both window sizes.
-- [ ] Run route pilot without combat and with fields; record loadout, travel time and clearance. Run bounded pressure probe and native captures.
-- [ ] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
-- [ ] Review branch against issue; fix substantive findings and verify affected checks.
+- [x] Show payload reservation, pickup/delivery, source and challenge state, terrain and directional arrows at both window sizes.
+- [x] Run route pilot without combat and with fields; record loadout, travel time and clearance. Run bounded pressure probe and native captures.
+- [x] Run `cargo fmt --check`, `cargo test --locked`, `cargo clippy --locked --all-targets -- -D warnings`.
+- [x] Review branch against issue; fix substantive findings and verify affected checks.
 - [ ] Commit evidence, push `codex/dro-42-mission-blockout`, open PR against main and attach it to this task. Record outstanding human acceptance honestly.
+
+## Validation outcome
+
+Implementation and independent review are complete. See
+[the DRO-42 report](../../playtests/dro-42-mission01-blockout.md) for measured
+flight, bounded pressure, native captures, compatibility checks and the explicit
+remaining human acceptance questions. Delivery is tracked by the final PR.

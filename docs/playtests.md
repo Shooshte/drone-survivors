@@ -1708,3 +1708,22 @@ four-card setup, ordinary mixed combat/HUD and reset/return. Human acceptance an
 campaign introduction remain pending.
 
 [Commands, measured tables, counterplay, logs, screenshots and limits](playtests/dro-41-catalog-validation.md).
+
+
+## DRO-42 — Mission 01 sketch blockout — 2026-09-26
+
+Mission 01 now follows the southeast launch → west payload → northeast delivery
+route on full-height sketch terrain. Slot 4 is reserved, nearby encounters fire
+once, pickup activates two permanent bounded sources, and the southern pocket
+and optional 30-second holdout award components. Other missions retain their
+shared layouts and the campaign save schema is unchanged.
+
+The real rotor route took **174.84 seconds** without equipment or combat.
+Navigation, chronological delivery/death, fixed counts, source fairness, holdout
+exit/pause/restart and old-save equipment preservation have regression coverage.
+Native captures completed at **1120×720 and 640×480** with disclosed scripted
+positions and contact damage disabled. Human acceptance of route feel, slowing
+beams and directional fields remains pending; this does not pass the older
+DRO-21/DRO-22 human gates.
+
+[Detailed rules, measurements, screenshots and remaining human checks](playtests/dro-42-mission01-blockout.md).
