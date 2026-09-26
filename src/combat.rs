@@ -8,6 +8,7 @@ mod collision;
 pub(crate) mod control;
 mod control_scene;
 mod hazards;
+mod mission01;
 mod mothership;
 mod ordnance_scene;
 mod scene;
@@ -121,6 +122,7 @@ pub(crate) struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
+        mission01::install(app);
         app.add_plugins(crate::energy::EnergyPlugin)
             .init_resource::<CombatConfig>()
             .init_resource::<GamePhase>()

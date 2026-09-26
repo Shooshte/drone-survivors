@@ -134,3 +134,52 @@ fn thirty_pursuers_do_not_stall_at_walls_when_target_changes_sides() {
         }
     }
 }
+
+#[test]
+fn mission01_actual_pursuer_rounds_full_height_ridge_and_reaches_hidden_pocket() {
+    let map = crate::world::mission01::geometry();
+    let arena = crate::world::mission01::arena();
+    let combat = CombatConfig::default();
+    let half = Vec3::splat(combat.enemy_half_size);
+    let mut t = Transform::from_translation(crate::world::mission01::point(80., 85.));
+    let mut f = DroneFlight::default();
+    for goal in [
+        crate::world::mission01::pickup(),
+        crate::world::mission01::hidden(),
+    ] {
+        for _ in 0..360 * 30 {
+            if t.translation.distance(goal) < 45. {
+                break;
+            }
+            let next = next_point(
+                &map,
+                t.translation,
+                goal,
+                world_half_extents(t.rotation, half),
+            )
+            .expect("connected Mission 01 route");
+            for _ in 0..4 {
+                let input = pilot(t.translation, &f, next, &combat.enemy_flight, Vec3::ZERO);
+                f.step_in_world(
+                    &mut t,
+                    &input,
+                    &combat.enemy_flight,
+                    &arena,
+                    half,
+                    1. / 120.,
+                    Some(&map),
+                );
+                assert!(
+                    map.solids
+                        .iter()
+                        .all(|s| !s.overlaps(t.translation, world_half_extents(t.rotation, half)))
+                );
+            }
+        }
+        assert!(
+            t.translation.distance(goal) < 45.,
+            "pursuer stalled at {:?} toward {goal:?}",
+            t.translation
+        );
+    }
+}
