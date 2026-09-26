@@ -77,15 +77,19 @@ fn cruise(position: Vec3, flight: &DroneFlight, target: Vec3) -> Vec<KeyCode> {
 }
 
 fn play(app: &mut App, recon: bool) {
-    let route = [
-        Vec3::new(-560., 90., -900.),
-        Vec3::new(-560., 90., 410.),
-        Vec3::new(560., 90., 410.),
-        Vec3::new(560., 90., -900.),
-        Vec3::new(560., 90., 900.),
-        Vec3::new(-560., 90., 900.),
-    ];
-    let mut waypoint = 0;
+    let route = if recon {
+        vec![
+            Vec3::new(-560., 90., -900.),
+            Vec3::new(-560., 90., 410.),
+            Vec3::new(560., 90., 410.),
+            Vec3::new(560., 90., -900.),
+            Vec3::new(560., 90., 900.),
+            Vec3::new(-560., 90., 900.),
+        ]
+    } else {
+        crate::world::mission01::route()
+    };
+    let mut waypoint = usize::from(!recon);
     let mut choice_release = true;
     let mut enabled_seconds = 0.;
     let mut sampled_charge_decreases = 0;
@@ -122,46 +126,30 @@ fn play(app: &mut App, recon: bool) {
                 .single(app.world())
                 .map(|(t, f)| (t.translation, *f))
                 .unwrap();
-            if recon {
-                if position.distance(route[waypoint]) < 45. && waypoint + 1 < route.len() {
-                    waypoint += 1;
-                }
-                keys.extend(cruise(position, &flight, route[waypoint]));
-                // Conserve power between contacts. Overdrive uses weapon range;
-                // shield is reserved for close threats instead of draining in transit.
-                let nearest = app
-                    .world_mut()
-                    .query_filtered::<&Transform, With<Enemy>>()
-                    .iter(app.world())
-                    .map(|enemy| position.distance(enemy.translation))
-                    .min_by(f32::total_cmp)
-                    .unwrap_or(f32::INFINITY);
-                let modules = app.world().resource::<Modules>();
-                let should_enable = match modules.loadout.slots()[0] {
-                    Some(ModuleKind::Overdrive) => nearest <= 400.,
-                    Some(ModuleKind::Shield) => nearest <= 180.,
-                    _ => false,
-                };
-                if modules.enabled[0] != should_enable {
-                    keys.push(KeyCode::Digit1);
-                }
-                if modules.enabled[0] {
-                    enabled_seconds += 1. / 30.;
-                }
-            } else {
-                // Continuous southern circuit avoids stopping in approaching swarms.
-                let elapsed = app.world().resource::<Encounter>().elapsed;
-                let theta = elapsed as f32 * 0.5;
-                let target = Vec3::new(650. * theta.cos(), 60., 1000. + 440. * theta.sin());
-                keys.extend(cruise(position, &flight, target));
-                if ((elapsed * 30.).round() as usize).is_multiple_of(900) {
-                    println!(
-                        "SLICE trace t={elapsed:.1} position={position:?} speed={:.1} hull={} kills={}",
-                        flight.velocity.length(),
-                        app.world().resource::<PlayerHealth>().current,
-                        app.world().resource::<Encounter>().kills
-                    );
-                }
+            let arrival = if recon { 45. } else { 120. };
+            if position.distance(route[waypoint]) < arrival && waypoint + 1 < route.len() {
+                waypoint += 1;
+            }
+            keys.extend(cruise(position, &flight, route[waypoint]));
+            // Conserve power between contacts using ordinary module input.
+            let nearest = app
+                .world_mut()
+                .query_filtered::<&Transform, With<Enemy>>()
+                .iter(app.world())
+                .map(|enemy| position.distance(enemy.translation))
+                .min_by(f32::total_cmp)
+                .unwrap_or(f32::INFINITY);
+            let modules = app.world().resource::<Modules>();
+            let should_enable = match modules.loadout.slots()[0] {
+                Some(ModuleKind::Overdrive) => nearest <= 400.,
+                Some(ModuleKind::Shield) => nearest <= 180.,
+                _ => false,
+            };
+            if modules.enabled[0] != should_enable {
+                keys.push(KeyCode::Digit1);
+            }
+            if modules.enabled[0] {
+                enabled_seconds += 1. / 30.;
             }
         } else {
             panic!("unexpected phase {phase:?}");
@@ -178,8 +166,8 @@ fn play(app: &mut App, recon: bool) {
         app.world().resource::<UpgradeRun>().selected
     );
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Survived);
-    assert!(app.world().resource::<Encounter>().spawns.requested > 0);
     if recon {
+        assert!(app.world().resource::<Encounter>().spawns.requested > 0);
         assert!(
             app.world()
                 .resource::<crate::mission::objectives::ObjectiveRun>()
@@ -199,13 +187,27 @@ fn vertical_slice_probe() {
         key(&mut app, KeyCode::KeyN);
         launch(&mut app);
         play(&mut app, false);
+        // The short payload route can pay only the 10-salvage success bonus.
+        // Earn another real replay if a chosen module costs more; never grant funds.
+        while module.is_some_and(|kind| {
+            app.world().resource::<Campaign>().wallet.salvage
+                < crate::modules::shop::price(kind).salvage
+        }) {
+            key(&mut app, KeyCode::Enter);
+            launch(&mut app);
+            play(&mut app, false);
+        }
+        let payload_wins = app.world().resource::<Campaign>().history.len();
         let reward_bank = app.world().resource::<Campaign>().wallet;
         // Reload immediately after settlement: no second payout and completion survives.
         drop(app);
         let mut app = self::app(&path);
         key(&mut app, KeyCode::Enter);
         assert_eq!(app.world().resource::<Campaign>().wallet, reward_bank);
-        assert_eq!(app.world().resource::<Campaign>().history.len(), 1);
+        assert_eq!(
+            app.world().resource::<Campaign>().history.len(),
+            payload_wins
+        );
         assert!(
             app.world()
                 .resource::<Campaign>()
@@ -252,13 +254,16 @@ fn vertical_slice_probe() {
         assert_eq!(app.world().resource::<Modules>().loadout.slots()[0], module);
         play(&mut app, true);
         let campaign = app.world().resource::<Campaign>();
-        assert_eq!(campaign.history.len(), 2);
+        assert_eq!(campaign.history.len(), payload_wins + 1);
         assert!(campaign.progress.completed(MissionId::ALL[1]));
         let wallet = campaign.wallet;
         drop(app);
         let mut app = self::app(&path);
         key(&mut app, KeyCode::Enter);
         assert_eq!(app.world().resource::<Campaign>().wallet, wallet);
-        assert_eq!(app.world().resource::<Campaign>().history.len(), 2);
+        assert_eq!(
+            app.world().resource::<Campaign>().history.len(),
+            payload_wins + 1
+        );
     }
 }

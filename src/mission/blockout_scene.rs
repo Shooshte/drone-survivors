@@ -270,7 +270,7 @@ fn setup(
         ))
         .with_children(|panel| {
             panel.spawn((
-                Text::new("MISSION 01 / N ↑"),
+                Text::new("MISSION 01 / N ^"),
                 TextFont::from_font_size(11.),
                 TextColor(Color::srgb(0.7, 0.85, 0.88)),
             ));
