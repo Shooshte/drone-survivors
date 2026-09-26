@@ -97,7 +97,9 @@ fn present(
         &mut MeshMaterial3d<StandardMaterial>,
     )>,
 ) {
-    let active = !run.survival() && matches!(*phase, GamePhase::Playing | GamePhase::Choosing);
+    let active = !run.survival()
+        && run.kind != ObjectiveKind::Payload
+        && matches!(*phase, GamePhase::Playing | GamePhase::Choosing);
     for (Marker(index), mut transform, mut visibility, mut mesh, mut material) in &mut markers {
         let done = index.is_some_and(|i| run.visited[i]);
         *visibility = if active && !(run.kind == ObjectiveKind::Extraction && done) {
@@ -142,6 +144,7 @@ fn labels(
     for (MarkerLabel(index), mut text, mut node) in &mut labels {
         node.display = Display::None;
         if run.survival()
+            || run.kind == ObjectiveKind::Payload
             || !matches!(*phase, GamePhase::Playing | GamePhase::Choosing)
             || (run.kind == ObjectiveKind::Extraction && index.is_some_and(|i| run.visited[i]))
         {

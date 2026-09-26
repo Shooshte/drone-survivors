@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    arena::{ArenaPlugin, DRONE_START, Drone},
+    arena::{ArenaPlugin, Drone},
     combat::{CombatPlugin, Encounter, PlayerHealth},
     energy::Energy,
     game::GamePhase,
@@ -65,7 +65,7 @@ fn launch_and_choice_restart_restore_baseline_without_completing_interrupted_att
             .query_filtered::<&Transform, With<Drone>>()
             .single(app.world())
             .unwrap(),
-        &DRONE_START
+        &Transform::from_translation(crate::world::mission01::start())
     );
     app.world_mut().resource_mut::<PlayerHealth>().current = 9;
     app.world_mut().resource_mut::<Energy>().current = 8.;
@@ -87,7 +87,7 @@ fn terminal_results_are_stable_deduplicated_and_campaign_retains_success() {
     launch(&mut app);
     app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
     app.world_mut().resource_mut::<Encounter>().kills = 3;
-    tick(&mut app, 0., &[]);
+    win(&mut app);
     let first = app
         .world()
         .resource::<MissionSession>()
@@ -153,6 +153,7 @@ fn held_click_cannot_follow_a_reused_buttons_new_action() {
 #[test]
 fn objective_and_virtual_clock_resume_without_catching_up_choice_or_menu_time() {
     let mut app = app();
+    select_placeholder(&mut app, 3);
     tick(&mut app, 100., &[]);
     launch(&mut app);
     app.world_mut().resource_mut::<Encounter>().elapsed = 299.5;
@@ -226,8 +227,7 @@ fn purchased_secret_survives_success_but_restart_and_failure_forfeit_it() {
             .capacity,
         125.
     );
-    app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
-    tick(&mut app, 0., &[]);
+    win(&mut app);
     assert!(app.world().resource::<Campaign>().secrets.reserve_battery);
     tick(&mut app, 0., &[]);
     tick(&mut app, 0., &[KeyCode::Enter]);
@@ -288,4 +288,30 @@ fn death_forfeits_active_secret_and_blueprint_supports_repurchase_with_passive_b
     assert!(after.secrets.reserve_battery);
     assert_eq!(after.wallet.salvage, before.salvage - 20);
     assert_eq!(after.wallet.components, before.components - 1);
+}
+
+/// Explicitly select shared-arena content for tests of the legacy systems.
+pub(crate) fn select_placeholder(app: &mut App, index: usize) {
+    assert!(index > 0);
+    for id in &super::campaign::MissionId::ALL[..index] {
+        app.world_mut()
+            .resource_mut::<Campaign>()
+            .progress
+            .complete(*id);
+    }
+    app.world_mut()
+        .resource_mut::<MissionSession>()
+        .selected_mission = super::campaign::MissionId::ALL[index];
+}
+pub(crate) fn win(app: &mut App) {
+    if app
+        .world()
+        .resource::<super::objectives::ObjectiveRun>()
+        .survival()
+    {
+        app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
+        tick(app, 0., &[]);
+    } else {
+        super::objective_tests::finish_objective(app);
+    }
 }

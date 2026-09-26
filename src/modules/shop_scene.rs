@@ -382,10 +382,17 @@ fn present(
             continue;
         };
         let current = campaign.inventory.loadout().slots()[slot];
-        let value = current.map_or_else(
-            || format!("{}  SLOT {}  EMPTY", slot + 1, slot + 1),
-            |kind| format!("{}  SLOT {}  {}", slot + 1, slot + 1, kind.name()),
-        );
+        let value = if slot == 3 && session.selected_mission.index() == 0 {
+            current.map_or_else(
+                || "4  PAYLOAD / RESERVED".into(),
+                |kind| format!("4  RESERVED / CLEAR {}", kind.name()),
+            )
+        } else {
+            current.map_or_else(
+                || format!("{}  SLOT {}  EMPTY", slot + 1, slot + 1),
+                |kind| format!("{}  SLOT {}  {}", slot + 1, slot + 1, kind.name()),
+            )
+        };
         for child in children {
             if let Ok(mut text) = slot_text.get_mut(*child) {
                 text.0 = value.clone();

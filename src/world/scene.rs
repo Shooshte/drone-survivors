@@ -53,6 +53,7 @@ fn setup(
     for solid in &world.solids {
         commands.spawn((
             WorldVisual,
+            crate::mission::blockout_scene::SharedMapVisual,
             Mesh3d(cube.clone()),
             MeshMaterial3d(if solid.half.y > 100. {
                 tall.clone()
@@ -73,6 +74,7 @@ fn setup(
                     scale[axis] = solid.half[axis] * 2.;
                     commands.spawn((
                         WorldVisual,
+                        crate::mission::blockout_scene::SharedMapVisual,
                         Mesh3d(cube.clone()),
                         MeshMaterial3d(edge.clone()),
                         Transform::from_translation(center).with_scale(scale),
@@ -105,6 +107,7 @@ fn setup(
     if let Some(field) = world.hazard {
         commands.spawn((
             WorldVisual,
+            crate::mission::blockout_scene::SharedMapVisual,
             HazardVisual,
             Mesh3d(cube.clone()),
             MeshMaterial3d(volumes[0].clone()),
@@ -115,6 +118,7 @@ fn setup(
                 let center = field.center + Vec3::new(x * field.half.x, 0., z * field.half.z);
                 commands.spawn((
                     WorldVisual,
+                    crate::mission::blockout_scene::SharedMapVisual,
                     Mesh3d(cube.clone()),
                     MeshMaterial3d(lines[0].clone()),
                     Transform::from_translation(center).with_scale(Vec3::new(
@@ -127,6 +131,7 @@ fn setup(
                     let base = center + Vec3::Y * (y * (field.half.y - 3.));
                     commands.spawn((
                         WorldVisual,
+                        crate::mission::blockout_scene::SharedMapVisual,
                         Mesh3d(cube.clone()),
                         MeshMaterial3d(edge.clone()),
                         Transform::from_translation(base).with_scale(Vec3::new(12., 6., 12.)),
@@ -138,6 +143,7 @@ fn setup(
             for z in [-1., 1.] {
                 commands.spawn((
                     WorldVisual,
+                    crate::mission::blockout_scene::SharedMapVisual,
                     Mesh3d(cube.clone()),
                     MeshMaterial3d(lines[0].clone()),
                     Transform::from_translation(
@@ -149,6 +155,7 @@ fn setup(
             for x in [-1., 1.] {
                 commands.spawn((
                     WorldVisual,
+                    crate::mission::blockout_scene::SharedMapVisual,
                     Mesh3d(cube.clone()),
                     MeshMaterial3d(lines[0].clone()),
                     Transform::from_translation(
@@ -162,6 +169,7 @@ fn setup(
             let z = -field.half.z + (i as f32 + 0.5) * field.half.z * 2. / 7.;
             commands.spawn((
                 WorldVisual,
+                crate::mission::blockout_scene::SharedMapVisual,
                 HazardVisual,
                 HazardBeam(i),
                 Visibility::Hidden,
@@ -202,6 +210,7 @@ fn setup(
             for i in 0..=steps {
                 commands.spawn((
                     WorldVisual,
+                    crate::mission::blockout_scene::SharedMapVisual,
                     Mesh3d(cube.clone()),
                     MeshMaterial3d(material.clone()),
                     Transform::from_translation(pair[0].lerp(pair[1], i as f32 / steps as f32))
@@ -244,6 +253,7 @@ fn present(
     assets: Res<HazardMaterials>,
     mut hud: Single<(&mut Text, &mut TextColor), With<HazardHud>>,
     mut visuals: HazardVisuals,
+    blockout: Option<Res<crate::mission::blockout::BlockoutRun>>,
 ) {
     let (index, label) = match state.phase {
         HazardPhase::Inactive => (0, "OPEN"),
@@ -255,10 +265,14 @@ fn present(
     } else {
         " PAUSED"
     };
-    hud.0.0 = format!(
-        "SHORTCUT {label} {:.1}s{suffix} | Gold timed/Green detour | Low over/Tall around",
-        state.remaining()
-    );
+    hud.0.0 = if blockout.as_ref().is_some_and(|r| r.enabled) {
+        "SOLID TERRAIN / ALL ALTITUDES | Arrows: +40% with / -40% against".into()
+    } else {
+        format!(
+            "SHORTCUT {label} {:.1}s{suffix} | Gold timed/Green detour | Low over/Tall around",
+            state.remaining()
+        )
+    };
     hud.1.0 = if state.phase == HazardPhase::Active {
         Color::srgb(1., 0.42, 0.25)
     } else {

@@ -89,6 +89,7 @@ fn setup_scene(
     for (id, node) in &chargers {
         commands.spawn((
             FieldVisual(*id),
+            crate::mission::blockout_scene::SharedMapVisual,
             Mesh3d(cylinder.clone()),
             MeshMaterial3d(idle.clone()),
             Transform::from_translation(node.center + Vec3::Y * (node.height / 2.))
@@ -97,6 +98,7 @@ fn setup_scene(
         let ring = meshes.add(Annulus::new(node.radius - 1.5, node.radius));
         for height in [0.3, node.height] {
             commands.spawn((
+                crate::mission::blockout_scene::SharedMapVisual,
                 Mesh3d(ring.clone()),
                 MeshMaterial3d(edge.clone()),
                 Transform::from_translation(node.center + Vec3::Y * height)
@@ -105,6 +107,7 @@ fn setup_scene(
         }
         for axis in [Vec3::X, Vec3::NEG_X, Vec3::Z, Vec3::NEG_Z] {
             commands.spawn((
+                crate::mission::blockout_scene::SharedMapVisual,
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(edge.clone()),
                 Transform::from_translation(
@@ -114,6 +117,7 @@ fn setup_scene(
             ));
         }
         commands.spawn((
+            crate::mission::blockout_scene::SharedMapVisual,
             Mesh3d(cylinder.clone()),
             MeshMaterial3d(core.clone()),
             Transform::from_translation(node.center + Vec3::Y).with_scale(Vec3::new(16., 2., 16.)),
@@ -121,6 +125,7 @@ fn setup_scene(
         let gauge_center = node.center + Vec3::new(0., 2., WORLD_RESERVE_Z);
         commands.spawn((
             WorldReserveFill(*id),
+            crate::mission::blockout_scene::SharedMapVisual,
             Mesh3d(cube.clone()),
             MeshMaterial3d(core.clone()),
             Transform::from_translation(gauge_center).with_scale(Vec3::new(
@@ -132,6 +137,7 @@ fn setup_scene(
         for z in [-1., 1.] {
             commands.spawn((
                 WorldReserveOutline,
+                crate::mission::blockout_scene::SharedMapVisual,
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(edge.clone()),
                 Transform::from_translation(
@@ -148,6 +154,7 @@ fn setup_scene(
         for x in [-1., 1.] {
             commands.spawn((
                 WorldReserveOutline,
+                crate::mission::blockout_scene::SharedMapVisual,
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(edge.clone()),
                 Transform::from_translation(
@@ -281,6 +288,12 @@ fn charger_status(reserve: &ChargerReserve, config: &ChargerConfig, active: bool
     }
 }
 
+type EnergyBar<'w, 's> = Single<
+    'w,
+    's,
+    (&'static mut Node, &'static mut BackgroundColor),
+    (With<EnergyFill>, Without<ChargerHud>),
+>;
 #[allow(clippy::too_many_arguments)]
 fn present(
     energy: Res<Energy>,
@@ -291,10 +304,10 @@ fn present(
     module_config: Res<ModuleConfig>,
     materials: Res<FieldMaterials>,
     mut hud: Single<&mut Text, (With<EnergyHud>, Without<ChargerHud>)>,
-    mut fill: Single<(&mut Node, &mut BackgroundColor), With<EnergyFill>>,
+    mut fill: EnergyBar,
     mut fields: Query<(&FieldVisual, &mut MeshMaterial3d<StandardMaterial>)>,
     chargers: Query<(&ChargingNode, &ChargerReserve, Option<&ChargingNodeLabel>)>,
-    mut charger_hud: Query<(&ChargerHud, &mut Text, &mut TextColor), Without<EnergyHud>>,
+    mut charger_hud: Query<(&ChargerHud, &mut Text, &mut TextColor, &mut Node), Without<EnergyHud>>,
     mut world_fill: Query<(&WorldReserveFill, &mut Transform)>,
 ) {
     let active = *phase == GamePhase::Playing;
@@ -344,9 +357,14 @@ fn present(
             material.0 = desired.clone();
         }
     }
-    for (marker, mut text, mut color) in &mut charger_hud {
+    for (marker, mut text, mut color, mut node_ui) in &mut charger_hud {
         let Ok((node, reserve, label)) = chargers.get(marker.0) else {
             continue;
+        };
+        node_ui.display = if node.radius > 0. {
+            Display::Flex
+        } else {
+            Display::None
         };
         let label = charging_node_name(node, label);
         let value = format!(

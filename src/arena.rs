@@ -159,11 +159,16 @@ fn move_drone(
 }
 
 fn reset_drone(
+    blockout: Option<Res<crate::mission::blockout::BlockoutRun>>,
     mut drones: Query<(&mut Transform, &mut DroneFlight), With<Drone>>,
     mut path: Option<ResMut<crate::world::PlayerPath>>,
 ) {
     for (mut transform, mut flight) in &mut drones {
-        *transform = DRONE_START;
+        *transform = if blockout.as_ref().is_some_and(|r| r.enabled) {
+            Transform::from_translation(crate::world::mission01::start())
+        } else {
+            DRONE_START
+        };
         *flight = DroneFlight::default();
     }
     if let Some(path) = path.as_mut() {

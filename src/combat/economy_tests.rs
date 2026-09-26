@@ -11,6 +11,7 @@ use crate::{
 };
 fn economy_app() -> App {
     let mut app = mission_app();
+    crate::mission::tests::select_placeholder(&mut app, 3);
     launch(&mut app);
     quiet(&mut app);
     app.world_mut().resource_mut::<WaveConfig>().bursts.clear();

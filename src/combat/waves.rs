@@ -4,7 +4,7 @@ use crate::game::GamePhase;
 use bevy::prelude::*;
 
 #[derive(Resource)]
-pub(super) struct WaveConfig {
+pub(crate) struct WaveConfig {
     pub duration: f64,
     pub cap: usize,
     pub warning_seconds: f64,
@@ -99,7 +99,7 @@ impl Default for WaveConfig {
 }
 
 impl WaveConfig {
-    pub(super) fn disable_authored_waves(&mut self) {
+    pub(crate) fn disable_authored_waves(&mut self) {
         self.bursts.clear();
         self.phases.clear();
     }

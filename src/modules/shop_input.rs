@@ -46,6 +46,10 @@ pub(crate) fn apply(
             .inventory
             .purchase(selected, &mut campaign.wallet)
             .map(|()| format!("{} purchased. Choose a slot to equip it.", selected.name())),
+        MissionAction::AssignModule(3) if session.selected_mission.index() == 0 => {
+            session.purchase_feedback = "Slot 4 is reserved for the Mission 01 payload. Equip slots 1–3; owned modules are kept.".into();
+            return true;
+        }
         MissionAction::AssignModule(slot) => {
             campaign.inventory.assign(slot, Some(selected)).map(|()| {
                 format!(

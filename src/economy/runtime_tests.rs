@@ -234,6 +234,7 @@ fn drop_projection_rests_on_floor_or_top_of_cover() {
 #[test]
 fn authored_caches_are_reachable_and_reset_without_accumulation() {
     let mut app = crate::mission::tests::app();
+    crate::mission::tests::select_placeholder(&mut app, 1);
     app.world_mut().init_resource::<WorldGeometry>();
     for _ in 0..3 {
         if *app.world().resource::<GamePhase>() == GamePhase::Hub {

@@ -17,11 +17,14 @@ use bevy::{
 };
 
 fn main() {
-    let validation = combat::validation::ValidationConfig::parse(std::env::args().skip(1))
-        .unwrap_or_else(|error| {
-            eprintln!("{error}");
-            std::process::exit(2);
-        });
+    let args: Vec<_> = std::env::args().skip(1).collect();
+    let mission_check = args == ["--mission01-check"];
+    let validation =
+        combat::validation::ValidationConfig::parse(if mission_check { vec![] } else { args })
+            .unwrap_or_else(|error| {
+                eprintln!("{error}");
+                std::process::exit(2);
+            });
     let mut app = App::new();
     app.init_resource::<world::WorldGeometry>()
         .init_resource::<world::PlayerPath>()
@@ -55,12 +58,16 @@ fn main() {
     } else {
         app.add_plugins((
             mission::MissionPlugin,
+            mission::blockout_scene::BlockoutScenePlugin,
             mission::objective_scene::ObjectiveScenePlugin,
             mission::scene::MissionScenePlugin,
             economy::scene::EconomyScenePlugin,
-            save::SavePlugin::default(),
-            save::scene::SaveScenePlugin,
         ));
+        if mission_check {
+            mission::blockout_validation::install(&mut app);
+        } else {
+            app.add_plugins((save::SavePlugin::default(), save::scene::SaveScenePlugin));
+        }
     }
     app.run();
 }

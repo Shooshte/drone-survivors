@@ -14,6 +14,7 @@ use crate::{
 #[test]
 fn launch_resets_dirty_baseline_transients_cooldowns_and_all_run_bookkeeping() {
     let mut app = mission_app();
+    crate::mission::tests::select_placeholder(&mut app, 3);
     let drone = app
         .world_mut()
         .query_filtered::<Entity, With<Drone>>()
@@ -154,6 +155,7 @@ fn launch_resets_dirty_baseline_transients_cooldowns_and_all_run_bookkeeping() {
 #[test]
 fn fatal_contact_beats_deadline_and_pending_upgrade_then_cleans_entities_once() {
     let mut app = mission_app();
+    crate::mission::tests::select_placeholder(&mut app, 3);
     launch(&mut app);
     app.world_mut().resource_mut::<Encounter>().elapsed = 299.99;
     app.world_mut().resource_mut::<PlayerHealth>().current = 1;
@@ -178,6 +180,7 @@ fn fatal_contact_beats_deadline_and_pending_upgrade_then_cleans_entities_once() 
 #[test]
 fn restart_beats_fatal_contact_and_deadline_and_replacement_has_new_identity() {
     let mut app = mission_app();
+    crate::mission::tests::select_placeholder(&mut app, 3);
     launch(&mut app);
     app.world_mut().resource_mut::<Encounter>().elapsed = 299.99;
     app.world_mut().resource_mut::<PlayerHealth>().current = 1;

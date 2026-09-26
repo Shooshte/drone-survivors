@@ -267,6 +267,7 @@ fn update_indicators(
         for edge in IndicatorEdge::ALL {
             let mut projected: Vec<_> = chargers
                 .iter()
+                .filter(|(node, _)| node.radius > 0.)
                 .filter_map(|(node, label)| {
                     project_indicator(camera, &transform, node.center)
                         .filter(|placement| placement.edge == edge)

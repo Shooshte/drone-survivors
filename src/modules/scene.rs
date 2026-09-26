@@ -17,11 +17,25 @@ pub(crate) fn present(
     bomb: Res<crate::combat::bombs::BombState>,
     health: Res<crate::combat::PlayerHealth>,
     combat: Res<crate::combat::CombatConfig>,
+    objective: Option<Res<crate::mission::objectives::ObjectiveRun>>,
     mut rows: Query<(&ModuleHud, &mut Text, &mut TextColor)>,
 ) {
     for (row, mut text, mut color) in &mut rows {
         let i = row.0;
-        let value = if let Some(kind) = modules.loadout.slots()[i] {
+        let value = if i == 3
+            && objective
+                .as_ref()
+                .is_some_and(|o| o.kind == crate::mission::objectives::ObjectiveKind::Payload)
+        {
+            format!(
+                "4 PAYLOAD / {}",
+                if objective.as_ref().unwrap().ready() {
+                    "LOADED"
+                } else {
+                    "RESERVED"
+                }
+            )
+        } else if let Some(kind) = modules.loadout.slots()[i] {
             let enabled = modules.enabled[i] && modules.disabled_for[i] <= 0.;
             let state = if enabled {
                 "ON"

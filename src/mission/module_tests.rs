@@ -263,6 +263,7 @@ fn launch_preview_ignores_stale_attempt_tuning_and_matches_permanent_launch_valu
         upgrades::runtime::Baseline,
     };
     let mut app = app();
+    super::tests::select_placeholder(&mut app, 1);
     {
         let mut campaign = app.world_mut().resource_mut::<Campaign>();
         campaign.wallet = crate::economy::Amounts {
@@ -314,4 +315,63 @@ fn launch_preview_ignores_stale_attempt_tuning_and_matches_permanent_launch_valu
         .map(|kind| app.world().resource::<ModuleConfig>().drain(*kind))
         .sum();
     assert_eq!(drain, preview.potential_drain);
+}
+
+#[test]
+fn payload_slot_rejects_saved_equipment_without_deleting_ownership() {
+    use crate::modules::ModuleKind;
+    let mut app = app();
+    {
+        let mut campaign = app.world_mut().resource_mut::<Campaign>();
+        campaign.wallet.salvage = 10;
+        let Campaign {
+            inventory, wallet, ..
+        } = &mut *campaign;
+        inventory.purchase(ModuleKind::Overdrive, wallet).unwrap();
+        inventory.assign(3, Some(ModuleKind::Overdrive)).unwrap();
+    }
+    press(&mut app, &[KeyCode::Enter]);
+    press(&mut app, &[KeyCode::Enter]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Briefing);
+    assert!(
+        app.world()
+            .resource::<super::MissionSession>()
+            .purchase_feedback
+            .contains("slot 4")
+    );
+    assert!(
+        app.world()
+            .resource::<Campaign>()
+            .inventory
+            .owns(ModuleKind::Overdrive)
+    );
+    assert_eq!(
+        app.world()
+            .resource::<Campaign>()
+            .inventory
+            .loadout()
+            .slots()[3],
+        Some(ModuleKind::Overdrive)
+    );
+}
+
+#[test]
+fn mission_one_shop_reserves_slot_four_but_can_clear_old_equipment() {
+    let mut app = shop();
+    press(&mut app, &[KeyCode::KeyB]);
+    press(&mut app, &[KeyCode::Digit4]);
+    assert!(
+        app.world()
+            .resource::<Campaign>()
+            .inventory
+            .loadout()
+            .slots()[3]
+            .is_none()
+    );
+    assert!(
+        app.world()
+            .resource::<super::MissionSession>()
+            .purchase_feedback
+            .contains("payload")
+    );
 }

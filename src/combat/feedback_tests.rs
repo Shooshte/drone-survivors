@@ -341,6 +341,7 @@ fn mission_scene_app() -> App {
     app.world_mut()
         .resource_mut::<Time<Virtual>>()
         .set_max_delta(Duration::from_secs(60));
+    crate::mission::tests::select_placeholder(&mut app, 3);
     crate::mission::tests::launch(&mut app);
     quiet(&mut app);
     app

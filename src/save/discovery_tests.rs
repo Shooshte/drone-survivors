@@ -8,6 +8,7 @@ fn actual_cache_discoveries_save_during_play_and_upgrade_choice_without_banking_
     let path = dir.path().join("campaign.json");
     let mut app = app(&path);
     key(&mut app, KeyCode::KeyN);
+    crate::mission::tests::select_placeholder(&mut app, 1);
     launch(&mut app);
     let sites = app.world().resource::<EconomyConfig>().caches;
     let drone = app

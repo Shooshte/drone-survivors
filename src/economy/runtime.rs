@@ -123,6 +123,7 @@ fn reset(
     mut loot: ResMut<LootState>,
     pickups: Query<Entity, With<Pickup>>,
     notice: Option<ResMut<DiscoveryNotice>>,
+    blockout: Option<Res<crate::mission::blockout::BlockoutRun>>,
 ) {
     for entity in &pickups {
         commands.entity(entity).despawn();
@@ -130,6 +131,9 @@ fn reset(
     *loot = default();
     if let Some(mut notice) = notice {
         *notice = default();
+    }
+    if blockout.is_some_and(|r| r.enabled) {
+        return;
     }
     for (index, position) in config.caches.into_iter().enumerate() {
         commands.spawn((

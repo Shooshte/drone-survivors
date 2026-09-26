@@ -32,8 +32,7 @@ fn missing_save_new_campaign_and_reload_never_credit_result_twice() {
     key(&mut app, KeyCode::KeyN);
     assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Hub);
     launch(&mut app);
-    app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
-    tick(&mut app, 0., &[]);
+    crate::mission::tests::win(&mut app);
     let bank = app.world().resource::<Campaign>().wallet;
     assert_eq!(bank.salvage, 10);
     drop(app);
@@ -52,8 +51,7 @@ fn missing_save_new_campaign_and_reload_never_credit_result_twice() {
     tick(&mut restored, 500., &[]);
     assert_eq!(restored.world().resource::<Campaign>().wallet, bank);
     launch(&mut restored);
-    restored.world_mut().resource_mut::<Encounter>().elapsed = 300.;
-    tick(&mut restored, 0., &[]);
+    crate::mission::tests::win(&mut restored);
     let campaign = restored.world().resource::<Campaign>();
     assert_eq!(campaign.wallet.salvage, 20);
     assert_eq!(campaign.history[1].attempt, 2);
@@ -113,8 +111,7 @@ fn failed_autosave_blocks_launch_and_retry_commits_once() {
     key(&mut app, KeyCode::KeyN);
     launch(&mut app);
     std::fs::create_dir(path.with_extension("previous.json")).unwrap();
-    app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
-    tick(&mut app, 0., &[]);
+    crate::mission::tests::win(&mut app);
     assert_eq!(
         *app.world().resource::<GamePhase>(),
         GamePhase::CampaignMenu
@@ -225,8 +222,7 @@ fn cargo_victory_saves_once_and_interrupted_replay_restores_fresh_objectives() {
     let mut app = self::app(&path);
     key(&mut app, KeyCode::KeyN);
     launch(&mut app);
-    app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
-    tick(&mut app, 0., &[]);
+    crate::mission::tests::win(&mut app);
     key(&mut app, KeyCode::Enter);
     app.world_mut()
         .resource_mut::<MissionSession>()

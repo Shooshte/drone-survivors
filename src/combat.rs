@@ -28,7 +28,7 @@ mod waves;
 mod weapon;
 pub(crate) use waves::Encounter;
 pub(crate) use waves::SpawnWarning;
-use waves::WaveConfig;
+pub(crate) use waves::WaveConfig;
 
 #[cfg(test)]
 mod tests;
@@ -216,3 +216,6 @@ mod catalog_tests;
 
 #[cfg(test)]
 mod support_tests;
+
+#[cfg(test)]
+mod payload_tests;
