@@ -149,6 +149,7 @@ pub(super) fn chase(
     arena: Res<Arena>,
     config: Res<CombatConfig>,
     world_flight: Res<FlightConfig>,
+    blockout: Option<Res<crate::mission::blockout::BlockoutRun>>,
     world: Option<Res<crate::world::WorldGeometry>>,
     drone: Single<&Transform, With<Drone>>,
     mut enemies: PilotedEnemies,
@@ -169,6 +170,11 @@ pub(super) fn chase(
     positions.sort_by_key(|(id, _)| id.to_bits());
     for (id, mut enemy, mut transform, mut flight, mut rammer, control) in &mut enemies {
         let mut profile = base_profile;
+        if enemy.kind == crate::economy::runtime::EnemyKind::Chaser
+            && blockout.as_ref().is_some_and(|run| run.enabled)
+        {
+            profile.max_horizontal_speed = 340.;
+        }
         if enemy.kind == crate::economy::runtime::EnemyKind::Fast {
             profile.max_horizontal_speed = config.variants.fast_speed;
         }
@@ -276,3 +282,72 @@ fn separation(id: Entity, position: Vec3, neighbors: &[(Entity, Vec3)], radius: 
 #[cfg(test)]
 #[path = "terrain_tests.rs"]
 mod terrain_tests;
+
+#[cfg(test)]
+mod mission_speed_tests {
+    use super::*;
+    use crate::{economy::runtime::EnemyKind, mission::blockout::BlockoutRun};
+
+    #[test]
+    fn only_mission01_chasers_receive_the_340_speed_cap() {
+        for enabled in [false, true] {
+            for kind in [EnemyKind::Chaser, EnemyKind::Slower, EnemyKind::Fast] {
+                let mut app = App::new();
+                app.insert_resource(Time::<()>::default())
+                    .insert_resource(Arena {
+                        half_size: Vec3::splat(20000.),
+                    })
+                    .insert_resource(CombatConfig::default())
+                    .insert_resource(FlightConfig::default())
+                    .insert_resource(BlockoutRun {
+                        enabled,
+                        ..default()
+                    })
+                    .add_systems(Update, chase);
+                app.world_mut()
+                    .spawn((Drone, Transform::from_xyz(15000., 90., 0.)));
+                let id = app
+                    .world_mut()
+                    .spawn((
+                        Enemy {
+                            kind,
+                            health: 100,
+                            previous: Vec3::new(0., 90., 0.),
+                            path: vec![],
+                        },
+                        Transform::from_xyz(0., 90., 0.),
+                        DroneFlight::default(),
+                    ))
+                    .id();
+                for _ in 0..600 {
+                    app.world_mut()
+                        .resource_mut::<Time>()
+                        .advance_by(std::time::Duration::from_secs_f32(1. / 30.));
+                    app.update();
+                }
+                let config = app.world().resource::<CombatConfig>();
+                let expected = if enabled && kind == EnemyKind::Chaser {
+                    340.
+                } else if kind == EnemyKind::Fast {
+                    config.variants.fast_speed
+                } else {
+                    config.enemy_flight.max_horizontal_speed
+                };
+                let speed = app
+                    .world()
+                    .get::<DroneFlight>(id)
+                    .unwrap()
+                    .velocity
+                    .with_y(0.)
+                    .length();
+                eprintln!(
+                    "chaser tuning enabled={enabled} kind={kind:?} actual_speed={speed:.3} cap={expected}"
+                );
+                assert!(
+                    (expected * 0.9..=expected).contains(&speed),
+                    "enabled={enabled} kind={kind:?}, speed={speed}, expected={expected}"
+                );
+            }
+        }
+    }
+}

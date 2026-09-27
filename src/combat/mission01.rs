@@ -1,6 +1,6 @@
 //! Authored encounters and optional rewards for the schematic payload mission.
 use super::{
-    CombatConfig, Enemy, SpawnWarning,
+    CombatConfig, Encounter, Enemy, SpawnWarning, WaveConfig,
     enemies::spawn_enemy_kind,
     waves::{safe, spawn_half},
 };
@@ -19,7 +19,9 @@ use std::collections::VecDeque;
 
 const CAP: usize = 96;
 const ACTIVATION_RADIUS: f32 = 1200.;
-const SOURCE_INTERVAL: f64 = 5.;
+const LANES: usize = 9;
+const PATROL_LANE: usize = 8;
+const PATROL_INTERVAL: f64 = 8.;
 const SOURCE_BATCH: usize = 4;
 const HOLDOUT_WAVE: usize = 6;
 const ANCHORS: [(f32, f32); 8] = [
@@ -36,12 +38,14 @@ const ANCHORS: [(f32, f32); 8] = [
 #[derive(Resource, Default)]
 struct MissionEncounters {
     activated: [bool; 5],
-    // Lanes 0..6 retain every authored request. Repeat lanes 6..8 coalesce
+    // Lanes 0..6 retain every authored request. Repeat lanes 6..9 coalesce
     // missed intervals into at most one batch each; they never accrue a debt.
-    pending: [VecDeque<EnemyKind>; 8],
+    pending: [VecDeque<EnemyKind>; LANES],
     cursor: usize,
-    candidates: [usize; 8],
+    candidates: [usize; LANES],
     source_elapsed: Option<f64>,
+    source_next: f64,
+    patrol_elapsed: f64,
     reward_credited: bool,
 }
 pub(super) fn install(app: &mut App) {
@@ -175,6 +179,8 @@ fn update(
     world: Option<Res<WorldGeometry>>,
     arena: Res<Arena>,
     combat: Res<CombatConfig>,
+    waves: Res<WaveConfig>,
+    encounter: Res<Encounter>,
     player: Single<&Transform, With<Drone>>,
     occupants: Occupants,
 ) {
@@ -238,23 +244,27 @@ fn update(
         .as_ref()
         .is_some_and(|o| o.kind == ObjectiveKind::Payload && o.ready())
     {
-        let due = match state.source_elapsed.as_mut() {
-            None => {
-                state.source_elapsed = Some(0.);
-                true
-            }
-            Some(elapsed) => {
-                *elapsed += time.delta_secs_f64();
-                if *elapsed >= SOURCE_INTERVAL {
-                    *elapsed %= SOURCE_INTERVAL;
-                    true
-                } else {
-                    false
-                }
-            }
-        };
+        let elapsed = state
+            .source_elapsed
+            .map_or(0., |t| t + time.delta_secs_f64());
+        let due = state.source_elapsed.is_none() || elapsed + 1e-7 >= state.source_next;
+        state.source_elapsed = Some(elapsed);
         if due {
-            for (lane, pending) in state.pending.iter_mut().enumerate().skip(6) {
+            // Compute the next deadline directly: a long frame never loops over
+            // missed intervals or carries more than one batch per source.
+            let (start, end, interval) = if elapsed + 1e-7 < 20. {
+                (0., 20., 5.)
+            } else if elapsed + 1e-7 < 40. {
+                (20., 40., 4.)
+            } else if elapsed + 1e-7 < 60. {
+                (40., 60., 3.)
+            } else {
+                (60., f64::INFINITY, 2.)
+            };
+            state.source_next =
+                (start + ((elapsed - start + 1e-7) / interval).floor() * interval + interval)
+                    .min(end);
+            for (lane, pending) in state.pending.iter_mut().enumerate().take(8).skip(6) {
                 // Refill only an empty repeat batch, retaining its mixed order
                 // when capacity is scarce instead of dropping the slower.
                 if pending.is_empty() {
@@ -269,6 +279,15 @@ fn update(
             }
         }
     }
+    let before = state.patrol_elapsed;
+    state.patrol_elapsed += time.delta_secs_f64();
+    let patrol_due = state.patrol_elapsed + 1e-7 >= 3.
+        && (before + 1e-7 < 3.
+            || ((before - 3. + 1e-7) / PATROL_INTERVAL).floor()
+                < ((state.patrol_elapsed - 3. + 1e-7) / PATROL_INTERVAL).floor());
+    if patrol_due && state.pending[PATROL_LANE].is_empty() {
+        state.pending[PATROL_LANE].extend(std::iter::repeat_n(EnemyKind::Chaser, SOURCE_BATCH));
+    }
     let half = spawn_half(&combat);
     let mut occupied: Vec<_> = occupants
         .iter()
@@ -278,24 +297,38 @@ fn update(
         .map(|(id, t, _, _)| (id, t.translation, half))
         .collect();
     // At most 96 admissions, with at most 48 candidates checked per attempt.
-    // Stop after eight unsuccessful lanes. Direct
+    // Stop after a full unsuccessful round. Direct
     // admission has 220u drone clearance, shared terrain/body checks and the
     // map's visible dormant/source zones. No graph is built in this loop.
     let mut misses = 0;
-    while occupied.len() < CAP && misses < 8 {
+    while occupied.len() < CAP && misses < LANES {
         let lane = state.cursor;
-        state.cursor = (lane + 1) % 8;
+        state.cursor = (lane + 1) % LANES;
         let Some(&kind) = state.pending[lane].front() else {
             misses += 1;
             continue;
         };
-        let center = map::point(ANCHORS[lane].0, ANCHORS[lane].1);
+        let patrol = lane == PATROL_LANE;
+        let center = if patrol {
+            // The Scout can fly closer to floor/ceiling than a banking enemy
+            // hull fits. Keep the candidate's full hull inside legal airspace.
+            player.translation.with_y(player.translation.y.clamp(
+                arena.center().y - arena.half_size.y + half.y + 1.,
+                arena.center().y + arena.half_size.y - half.y - 1.,
+            ))
+        } else {
+            map::point(ANCHORS[lane].0, ANCHORS[lane].1)
+        };
         let mut selected = None;
         for _ in 0..48 {
             let n = state.candidates[lane];
             state.candidates[lane] = (n + 1) % 48;
             let angle = (n % 16) as f32 * std::f32::consts::TAU / 16.;
-            let radius = 360. + (n / 16) as f32 * 180.;
+            let radius = if patrol {
+                550. + (n / 16) as f32 * 150.
+            } else {
+                360. + (n / 16) as f32 * 180.
+            };
             let at = center + Vec3::new(angle.cos() * radius, 0., angle.sin() * radius);
             if safe(
                 at,
@@ -313,7 +346,18 @@ fn update(
         }
         if let Some(at) = selected {
             state.pending[lane].pop_front();
-            spawn_enemy_kind(&mut commands, &combat, at, player.translation, kind);
+            if patrol {
+                commands.spawn((
+                    SpawnWarning {
+                        ready_at: encounter.elapsed + waves.warning_seconds,
+                        kind,
+                        ..default()
+                    },
+                    Transform::from_translation(at),
+                ));
+            } else {
+                spawn_enemy_kind(&mut commands, &combat, at, player.translation, kind);
+            }
             occupied.push((Entity::PLACEHOLDER, at, half));
             misses = 0;
         } else {
@@ -352,6 +396,8 @@ mod tests {
                 ..default()
             })
             .insert_resource(CombatConfig::default())
+            .insert_resource(WaveConfig::default())
+            .init_resource::<Encounter>()
             .insert_resource(map::arena())
             .insert_resource(map::geometry())
             .add_systems(Update, update.run_if(crate::game::is_playing));
@@ -380,6 +426,158 @@ mod tests {
     fn enemies(app: &mut App) -> usize {
         app.world_mut().query::<&Enemy>().iter(app.world()).count()
     }
+    #[test]
+    fn patrol_requests_four_nearby_warnings_at_three_then_every_eight_seconds() {
+        let (mut app, drone) = app();
+        tick(&mut app, 2.5);
+        assert_eq!(
+            app.world_mut()
+                .query::<&SpawnWarning>()
+                .iter(app.world())
+                .count(),
+            0
+        );
+        tick(&mut app, 0.5);
+        let first: Vec<_> = app
+            .world_mut()
+            .query::<(Entity, &SpawnWarning, &Transform)>()
+            .iter(app.world())
+            .map(|(id, w, t)| (id, w.kind, t.translation))
+            .collect();
+        assert_eq!(first.len(), 4);
+        for (id, kind, p) in first {
+            assert_eq!(kind, EnemyKind::Chaser);
+            assert!((549.9..=850.1).contains(&p.distance(map::start())));
+            assert!(safe(
+                p,
+                spawn_half(&CombatConfig::default()),
+                &map::arena(),
+                &Transform::from_translation(map::start()),
+                220.,
+                &[],
+                None,
+                Some(&map::geometry())
+            ));
+            app.world_mut().despawn(id);
+        }
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Choosing;
+        tick(&mut app, 100.);
+        assert_eq!(
+            app.world_mut()
+                .query::<&SpawnWarning>()
+                .iter(app.world())
+                .count(),
+            0
+        );
+        *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Playing;
+        let next = map::start() - Vec3::X * 1000.;
+        at(&mut app, drone, next);
+        tick(&mut app, 7.5);
+        assert_eq!(
+            app.world_mut()
+                .query::<&SpawnWarning>()
+                .iter(app.world())
+                .count(),
+            0
+        );
+        tick(&mut app, 0.5);
+        let points: Vec<_> = app
+            .world_mut()
+            .query::<(&SpawnWarning, &Transform)>()
+            .iter(app.world())
+            .map(|(_, t)| t.translation)
+            .collect();
+        assert_eq!(points.len(), 4);
+        assert!(
+            points
+                .iter()
+                .all(|p| (549.9..=850.1).contains(&p.distance(next)))
+        );
+    }
+
+    #[test]
+    fn patrols_fit_the_arena_even_when_player_flies_at_floor_or_ceiling() {
+        for y in [10., 290.] {
+            let (mut app, drone) = app();
+            at(&mut app, drone, map::start().with_y(y));
+            tick(&mut app, 3.);
+            let warnings: Vec<_> = app
+                .world_mut()
+                .query_filtered::<&Transform, With<SpawnWarning>>()
+                .iter(app.world())
+                .map(|t| t.translation)
+                .collect();
+            assert_eq!(warnings.len(), 4, "patrol at player altitude {y}");
+            let half = spawn_half(&CombatConfig::default());
+            assert!(warnings.iter().all(|p| {
+                (p - map::arena().center())
+                    .abs()
+                    .cmple(map::arena().half_size - half)
+                    .all()
+            }));
+        }
+    }
+
+    #[test]
+    fn payload_sources_accelerate_at_twenty_second_boundaries_without_hitch_debt() {
+        let (mut app, _) = app();
+        app.world_mut().resource_mut::<ObjectiveRun>().visited[0] = true;
+        tick(&mut app, 0.);
+        assert_eq!(enemies(&mut app), 8);
+        for (dt, expected) in [
+            (5., 8),
+            (5., 8),
+            (5., 8),
+            (5., 8),
+            (3.5, 0),
+            (0.5, 8),
+            (16., 8),
+            (2.5, 0),
+            (0.5, 8),
+            (17., 8),
+            (1.5, 0),
+            (0.5, 8),
+            (10000., 8),
+        ] {
+            let ids: Vec<_> = app
+                .world_mut()
+                .query_filtered::<Entity, Or<(With<Enemy>, With<SpawnWarning>)>>()
+                .iter(app.world())
+                .collect();
+            for id in ids {
+                app.world_mut().despawn(id);
+            }
+            tick(&mut app, dt);
+            assert_eq!(enemies(&mut app), expected, "source interval delta={dt}");
+        }
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+    }
+
+    #[test]
+    fn near_boundary_clock_tolerance_never_reissues_a_batch_on_zero_delta() {
+        let (mut app, _) = app();
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(std::time::Duration::from_secs_f64(2.99999995));
+        app.update();
+        tick(&mut app, 0.);
+        assert_eq!(
+            app.world_mut()
+                .query::<&SpawnWarning>()
+                .iter(app.world())
+                .count(),
+            4
+        );
+        app.world_mut().resource_mut::<ObjectiveRun>().visited[0] = true;
+        tick(&mut app, 0.);
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(std::time::Duration::from_secs_f64(19.99999995));
+        app.update();
+        tick(&mut app, 0.);
+        assert_eq!(enemies(&mut app), 16);
+    }
+
     #[test]
     fn fixed_groups_activate_once_with_exact_counts_and_mixtures() {
         let (mut app, drone) = app();
@@ -458,11 +656,16 @@ mod tests {
         for excursion in [false, true] {
             let (mut app, drone) = app();
             let c = map::challenge();
-            let outside = c + Vec3::X * 3000.;
+            let outside = c + Vec3::X * (HOLDOUT_RADIUS + 200.);
             let paths = if excursion {
                 vec![segment(c, outside, 0., 0.5), segment(outside, c, 0.5, 1.)]
             } else {
-                vec![segment(c - Vec3::X * 3000., outside, 0., 1.)]
+                vec![segment(
+                    c - Vec3::X * (HOLDOUT_RADIUS + 200.),
+                    outside,
+                    0.,
+                    1.,
+                )]
             };
             at(&mut app, drone, if excursion { c } else { outside });
             app.world_mut().resource_mut::<PlayerPath>().segments = paths;
@@ -536,7 +739,7 @@ mod tests {
         assert_eq!(enemies(&mut app), 20);
     }
     #[test]
-    fn both_repeat_sources_keep_emitting_fairly_with_one_free_slot() {
+    fn both_sources_and_patrol_keep_emitting_fairly_with_one_free_slot() {
         let (mut app, _) = app();
         for _ in 0..95 {
             app.world_mut().spawn((
@@ -545,15 +748,20 @@ mod tests {
             ));
         }
         app.world_mut().resource_mut::<ObjectiveRun>().visited[0] = true;
-        let mut counts = [0, 0];
+        let mut counts = [0, 0, 0];
         let mut slowers = 0;
-        for _ in 0..1000 {
+        for _ in 0..999 {
             tick(&mut app, 5.);
             let spawned: Vec<_> = app
                 .world_mut()
-                .query::<(Entity, &Enemy, &Transform)>()
+                .query::<(Entity, Option<&Enemy>, Option<&SpawnWarning>, &Transform)>()
                 .iter(app.world())
-                .map(|(id, e, t)| (id, e.kind, t.translation))
+                .filter_map(|(id, e, w, t)| {
+                    e.map(|e| (id, e.kind, t.translation, false)).or_else(|| {
+                        w.filter(|w| w.ready_at > 0.)
+                            .map(|w| (id, w.kind, t.translation, true))
+                    })
+                })
                 .collect();
             assert_eq!(spawned.len(), 1);
             assert!(
@@ -563,16 +771,91 @@ mod tests {
                     .iter()
                     .map(VecDeque::len)
                     .sum::<usize>()
-                    <= 8
+                    <= 12
             );
-            for (id, kind, p) in spawned {
-                counts[usize::from(p.x > 0.)] += 1;
+            for (id, kind, p, patrol) in spawned {
+                counts[if patrol { 2 } else { usize::from(p.x > 0.) }] += 1;
                 slowers += usize::from(kind == crate::economy::runtime::EnemyKind::Slower);
                 app.world_mut().despawn(id);
             }
         }
-        assert_eq!(counts, [500, 500]);
+        assert_eq!(counts, [333, 333, 333]);
         assert!(slowers > 50);
+    }
+
+    #[test]
+    fn all_fixed_requests_survive_saturation_and_share_slots_with_repeat_lanes() {
+        let (mut app, drone) = app();
+        let blockers: Vec<_> = (0..CAP)
+            .map(|_| {
+                app.world_mut()
+                    .spawn((
+                        SpawnWarning::default(),
+                        Transform::from_translation(map::start()),
+                    ))
+                    .id()
+            })
+            .collect();
+        for &(x, z) in &ANCHORS[..5] {
+            at(&mut app, drone, map::point(x, z));
+            tick(&mut app, 1.);
+        }
+        assert_eq!(
+            app.world().resource::<MissionEncounters>().pending[..5]
+                .iter()
+                .map(VecDeque::len)
+                .collect::<Vec<_>>(),
+            [10, 10, 20, 7, 7]
+        );
+        at(&mut app, drone, map::start());
+        app.world_mut().resource_mut::<ObjectiveRun>().visited[0] = true;
+        app.world_mut().despawn(blockers[0]);
+        for _ in 0..9 {
+            tick(&mut app, 10000.);
+            let spawned: Vec<_> = app
+                .world_mut()
+                .query::<(Entity, Option<&Enemy>, Option<&SpawnWarning>)>()
+                .iter(app.world())
+                .filter(|(_, e, w)| e.is_some() || w.is_some_and(|w| w.ready_at > 0.))
+                .map(|(id, _, _)| id)
+                .collect();
+            assert_eq!(spawned.len(), 1);
+            for id in spawned {
+                app.world_mut().despawn(id);
+            }
+        }
+        let state = app.world().resource::<MissionEncounters>();
+        assert!(
+            state.pending[..5]
+                .iter()
+                .zip([10, 10, 20, 7, 7])
+                .all(|(queue, n)| queue.len() < n),
+            "no authored group can be starved by repeating pressure"
+        );
+        assert!(
+            state.pending[6..]
+                .iter()
+                .all(|queue| queue.len() <= SOURCE_BATCH)
+        );
+        for _ in 0..200 {
+            tick(&mut app, 10000.);
+            let spawned: Vec<_> = app
+                .world_mut()
+                .query::<(Entity, Option<&Enemy>, Option<&SpawnWarning>)>()
+                .iter(app.world())
+                .filter(|(_, e, w)| e.is_some() || w.is_some_and(|w| w.ready_at > 0.))
+                .map(|(id, _, _)| id)
+                .collect();
+            assert_eq!(spawned.len(), 1);
+            for id in spawned {
+                app.world_mut().despawn(id);
+            }
+        }
+        assert!(
+            app.world().resource::<MissionEncounters>().pending[..5]
+                .iter()
+                .all(VecDeque::is_empty)
+        );
     }
 
     #[test]
@@ -621,7 +904,7 @@ mod tests {
         let c = map::challenge();
         at(&mut app, drone, c);
         app.world_mut().resource_mut::<PlayerPath>().segments =
-            vec![segment(c + Vec3::X * 5600., c, 0., 1.)];
+            vec![segment(c + Vec3::X * (HOLDOUT_RADIUS * 2.), c, 0., 1.)];
         tick(&mut app, 10.);
         assert!(
             matches!(app.world().resource::<BlockoutRun>().holdout,Holdout::Active{elapsed,waves:1} if (elapsed-5.).abs()<0.0001)
@@ -670,6 +953,8 @@ mod tests {
         assert_eq!(state.activated, [false; 5]);
         assert!(state.pending.iter().all(VecDeque::is_empty));
         assert_eq!(state.source_elapsed, None);
+        assert_eq!(state.source_next, 0.);
+        assert_eq!(state.patrol_elapsed, 0.);
         // Baseline owns BlockoutRun and the economy resource reset.
         *app.world_mut().resource_mut::<BlockoutRun>() = BlockoutRun {
             enabled: true,
@@ -761,6 +1046,271 @@ mod tests {
         ));
     }
     #[test]
+    fn patrol_warning_activation_rechecks_player_and_restart_clears_pressure() {
+        use crate::mission::tests::{app as mission_app, launch, tick as frame};
+        let mut app = mission_app();
+        launch(&mut app);
+        frame(&mut app, 3., &[]);
+        let warning = app
+            .world_mut()
+            .query::<&SpawnWarning>()
+            .iter(app.world())
+            .count();
+        assert_eq!(warning, 4);
+        let position = app
+            .world_mut()
+            .query_filtered::<&Transform, With<SpawnWarning>>()
+            .iter(app.world())
+            .next()
+            .unwrap()
+            .translation;
+        let drone = app
+            .world_mut()
+            .query_filtered::<Entity, With<Drone>>()
+            .single(app.world())
+            .unwrap();
+        at(&mut app, drone, position);
+        frame(&mut app, 0.75, &[]);
+        assert!(app.world().resource::<Encounter>().spawns.cancelled >= 1);
+        assert!(enemies(&mut app) < 4);
+        app.world_mut().resource_mut::<ObjectiveRun>().visited[0] = true;
+        frame(&mut app, 60., &[]);
+        frame(&mut app, 0., &[KeyCode::KeyR]);
+        assert_eq!(enemies(&mut app), 0);
+        assert_eq!(
+            app.world_mut()
+                .query::<&SpawnWarning>()
+                .iter(app.world())
+                .count(),
+            0
+        );
+        let state = app.world().resource::<MissionEncounters>();
+        assert_eq!(state.patrol_elapsed, 0.);
+        assert_eq!(state.source_elapsed, None);
+        assert!(state.pending.iter().all(VecDeque::is_empty));
+    }
+
+    #[test]
+    #[ignore = "damage-enabled full-plugin Mission01 stationary and route measurement"]
+    fn mission01_stationary_and_moving_pressure_probe() {
+        use crate::{
+            arena::DroneFlight,
+            combat::{Encounter, PlayerHealth},
+            energy::Energy,
+            mission::tests::{app as mission_app, launch, tick as frame},
+        };
+        for moving in [false, true] {
+            let mut app = mission_app();
+            launch(&mut app);
+            let drone = app
+                .world_mut()
+                .query_filtered::<Entity, With<Drone>>()
+                .single(app.world())
+                .unwrap();
+            let route = map::route();
+            let mut waypoint = 1;
+            let mut first_warning = None;
+            let mut first_near = None;
+            let mut first_damage = None;
+            let mut minimum_health = 100;
+            let mut peak = 0;
+            let mut active_frames = 0;
+            let mut choice_armed = false;
+            for _ in 0..60 * 65 + 100 {
+                let phase = *app.world().resource::<GamePhase>();
+                if matches!(phase, GamePhase::Dead | GamePhase::Survived) {
+                    break;
+                }
+                let p = app.world().get::<Transform>(drone).unwrap().translation;
+                let flight = app.world().get::<DroneFlight>(drone).unwrap();
+                let keys = if phase == GamePhase::Choosing {
+                    choice_armed = !choice_armed;
+                    if choice_armed {
+                        vec![]
+                    } else {
+                        vec![KeyCode::Backspace]
+                    }
+                } else if moving {
+                    if p.distance(route[waypoint]) < 140. && waypoint + 1 < route.len() {
+                        waypoint += 1;
+                    }
+                    choice_armed = false;
+                    let delta = (route[waypoint] - p).with_y(0.);
+                    let desired =
+                        delta.normalize_or_zero() * 420_f32.min((200. * delta.length()).sqrt());
+                    let acceleration = (desired - flight.velocity.with_y(0.)) * 3.
+                        + flight.velocity.with_y(0.) * 0.25;
+                    let local = Quat::from_rotation_y(-flight.heading) * acceleration;
+                    let mut keys = Vec::new();
+                    if local.x.abs() > 15. {
+                        keys.push(if local.x > 0. {
+                            KeyCode::KeyE
+                        } else {
+                            KeyCode::KeyQ
+                        });
+                    }
+                    if local.z.abs() > 15. {
+                        keys.push(if local.z > 0. {
+                            KeyCode::KeyS
+                        } else {
+                            KeyCode::KeyW
+                        });
+                    }
+                    keys
+                } else {
+                    vec![]
+                };
+                frame(&mut app, 1. / 60., &keys);
+                if phase != GamePhase::Playing {
+                    continue;
+                }
+                active_frames += 1;
+                let elapsed = app.world().resource::<Encounter>().elapsed;
+                let warning_count = app
+                    .world_mut()
+                    .query::<&SpawnWarning>()
+                    .iter(app.world())
+                    .count();
+                let p = app.world().get::<Transform>(drone).unwrap().translation;
+                let near = app
+                    .world_mut()
+                    .query_filtered::<&Transform, With<Enemy>>()
+                    .iter(app.world())
+                    .map(|t| t.translation.distance(p))
+                    .fold(f32::INFINITY, f32::min);
+                if warning_count > 0 {
+                    first_warning.get_or_insert(elapsed);
+                }
+                if near <= 400. {
+                    first_near.get_or_insert(elapsed);
+                }
+                let hp = app.world().resource::<PlayerHealth>().current;
+                if hp < minimum_health {
+                    first_damage.get_or_insert(elapsed);
+                    minimum_health = hp;
+                }
+                peak = peak.max(enemies(&mut app));
+                if elapsed >= 60. {
+                    break;
+                }
+            }
+            eprintln!(
+                "M1 pressure moving={moving} scale={} overrides=none controls={} first_warning={first_warning:?} first_enemy_within400={first_near:?} first_damage={first_damage:?} min_hp={minimum_health} end={:.3}s phase={:?} peak={peak} kills={} energy={:.2} active_frames={active_frames} waypoint={waypoint}",
+                map::SCALE,
+                if moving {
+                    "route pilot, decline upgrades"
+                } else {
+                    "no movement, decline upgrades"
+                },
+                app.world().resource::<Encounter>().elapsed,
+                app.world().resource::<GamePhase>(),
+                app.world().resource::<Encounter>().kills,
+                app.world().resource::<Energy>().current
+            );
+            assert!(first_warning.is_some_and(|t| (3.0..3.05).contains(&t)));
+            if !moving {
+                assert!(
+                    first_near.is_some_and(|t| (5.0..8.1).contains(&t)),
+                    "early contact {first_near:?}"
+                );
+                assert!(
+                    first_damage.is_some(),
+                    "stationary real combat should deal damage"
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "isolated damage-enabled full-plugin beam and pursuit measurement"]
+    fn mission01_beam_pursuit_pressure_probe() {
+        use crate::{
+            arena::DroneFlight,
+            combat::control::{ControlAttack, ControlEffects},
+            mission::tests::{app as mission_app, launch, tick as frame},
+        };
+        let mut app = mission_app();
+        launch(&mut app);
+        // Controlled combat fixture: disable shooting, place two enemies. All
+        // movement, terrain, beam timing, health and damage remain production.
+        app.world_mut().resource_mut::<CombatConfig>().target_range = 0.;
+        let drone = app
+            .world_mut()
+            .query_filtered::<Entity, With<Drone>>()
+            .single(app.world())
+            .unwrap();
+        let p = app.world().get::<Transform>(drone).unwrap().translation;
+        let chaser = app
+            .world_mut()
+            .spawn((
+                Enemy {
+                    kind: EnemyKind::Chaser,
+                    health: 20,
+                    previous: p + Vec3::Z * 650.,
+                    path: vec![],
+                },
+                Transform::from_translation(p + Vec3::Z * 650.),
+                DroneFlight::default(),
+            ))
+            .id();
+        app.world_mut().spawn((
+            Enemy {
+                kind: EnemyKind::Slower,
+                health: 40,
+                previous: p - Vec3::Z * 180.,
+                path: vec![],
+            },
+            Transform::from_translation(p - Vec3::Z * 180.),
+            DroneFlight::default(),
+            ControlAttack::default(),
+        ));
+        let mut slow_frames = 0;
+        let mut first = None;
+        let mut last = None;
+        for index in 0..180 {
+            frame(
+                &mut app,
+                1. / 60.,
+                if index < 80 { &[] } else { &[KeyCode::KeyW] },
+            );
+            if index >= 80
+                && app
+                    .world()
+                    .resource::<ControlEffects>()
+                    .movement_multiplier()
+                    < 1.
+            {
+                slow_frames += 1;
+                let player = app.world().get::<Transform>(drone).unwrap().translation;
+                let enemy = app.world().get::<Transform>(chaser).unwrap().translation;
+                let sample = (
+                    player.distance(enemy),
+                    app.world()
+                        .get::<DroneFlight>(drone)
+                        .unwrap()
+                        .velocity
+                        .with_y(0.)
+                        .length(),
+                    app.world()
+                        .get::<DroneFlight>(chaser)
+                        .unwrap()
+                        .velocity
+                        .with_y(0.)
+                        .length(),
+                );
+                first.get_or_insert(sample);
+                last = Some(sample);
+            }
+        }
+        eprintln!(
+            "M1 beam full-plugin overrides=target_range0, placedSlower180ahead+Chaser650behind controls=still1.333s thenW; slow_frames={slow_frames} first_gap_player_enemy_speed={first:?} last={last:?}"
+        );
+        assert!(slow_frames > 30);
+        assert!(last.unwrap().0 < first.unwrap().0 - 40.);
+        assert!(last.unwrap().1 <= 252.1);
+    }
+
+    #[test]
     #[ignore = "opt-in full-schedule 96-enemy performance probe"]
     fn mission01_population_cap_full_schedule_performance_probe() {
         use crate::mission::tests::{app as mission_app, launch, tick as frame};
@@ -790,7 +1340,7 @@ mod tests {
                     .iter()
                     .map(VecDeque::len)
                     .sum::<usize>()
-                    <= 8
+                    <= 12
             );
         }
         micros.sort_unstable();
