@@ -2,7 +2,7 @@ use bevy::prelude::*;
 mod contact;
 pub(crate) mod environment;
 mod geometry;
-pub(crate) use contact::proximity_contact;
+pub(crate) use contact::{horizontal_proximity_contact, proximity_contact};
 pub(crate) mod hazard;
 pub(crate) mod layout;
 pub(crate) mod mission01;

@@ -161,6 +161,130 @@ fn salvage_attracts_in_three_dimensions_and_only_credits_on_arrival() {
     );
     assert!(app.world().get_entity(far).is_ok());
 }
+fn payload_pickup_fixture() -> App {
+    let mut app = fixture();
+    app.insert_resource(crate::mission::blockout::BlockoutRun {
+        enabled: true,
+        ..default()
+    });
+    app.world_mut()
+        .resource_mut::<WorldGeometry>()
+        .solids
+        .clear();
+    app
+}
+fn move_player(app: &mut App, at: Vec3) {
+    app.world_mut()
+        .query_filtered::<&mut Transform, With<Drone>>()
+        .single_mut(app.world_mut())
+        .unwrap()
+        .translation = at;
+}
+#[test]
+fn payload_salvage_attracts_across_flight_height_but_respects_horizontal_boundary() {
+    let mut app = payload_pickup_fixture();
+    move_player(&mut app, Vec3::new(0., 280., 0.));
+    let inside = pickup(&mut app, Vec3::new(299., 6., 0.), false);
+    let outside = pickup(&mut app, Vec3::new(301., 6., 0.), false);
+    run(&mut app);
+    assert!(app.world().get::<Pickup>(inside).unwrap().attracted);
+    assert!(!app.world().get::<Pickup>(outside).unwrap().attracted);
+    // Flight to the player still controls credit; merely attracting is not collection.
+    assert_eq!(
+        app.world().resource::<AttemptResources>().collected.salvage,
+        0
+    );
+    advance(&mut app, 1.);
+    run(&mut app);
+    run(&mut app);
+    assert_eq!(
+        app.world().resource::<AttemptResources>().collected.salvage,
+        1
+    );
+    assert!(app.world().get_entity(outside).is_ok());
+}
+#[test]
+fn payload_salvage_sweeps_flybys_uses_actual_height_for_sight_and_stops_at_walls() {
+    use crate::world::{MotionSegment, PlayerPath, Solid};
+    let mut app = payload_pickup_fixture();
+    let id = pickup(&mut app, Vec3::new(0., 6., 0.), false);
+    let start = Vec3::new(-400., 280., 0.);
+    let end = Vec3::new(400., 280., 0.);
+    move_player(&mut app, end);
+    app.insert_resource(PlayerPath {
+        segments: vec![MotionSegment {
+            start,
+            end,
+            from: 0.,
+            to: 1.,
+            half: Vec3::ZERO,
+        }],
+    });
+    // Cover hides the entire in-range part of this high-altitude pass.
+    app.world_mut()
+        .resource_mut::<WorldGeometry>()
+        .solids
+        .push(Solid {
+            center: Vec3::new(0., 140., 0.),
+            half: Vec3::new(350., 1., 10.),
+        });
+    run(&mut app);
+    assert!(!app.world().get::<Pickup>(id).unwrap().attracted);
+    app.world_mut()
+        .resource_mut::<WorldGeometry>()
+        .solids
+        .clear();
+    run(&mut app);
+    assert!(app.world().get::<Pickup>(id).unwrap().attracted);
+    // Even after valid swept attraction, later cover prevents flight/credit.
+    let before = app.world().get::<Transform>(id).unwrap().translation;
+    app.world_mut()
+        .resource_mut::<WorldGeometry>()
+        .solids
+        .push(Solid {
+            center: Vec3::new(200., 140., 0.),
+            half: Vec3::new(10., 150., 100.),
+        });
+    advance(&mut app, 1.);
+    run(&mut app);
+    assert_eq!(
+        app.world().get::<Transform>(id).unwrap().translation,
+        before
+    );
+    assert_eq!(
+        app.world().resource::<AttemptResources>().collected.salvage,
+        0
+    );
+    app.world_mut()
+        .resource_mut::<WorldGeometry>()
+        .solids
+        .clear();
+    run(&mut app);
+    run(&mut app);
+    assert_eq!(
+        app.world().resource::<AttemptResources>().collected.salvage,
+        1
+    );
+}
+#[test]
+fn payload_pickup_tuning_does_not_change_shared_missions_or_component_caches() {
+    let mut app = payload_pickup_fixture();
+    move_player(&mut app, Vec3::new(0., 280., 0.));
+    let scrap = pickup(&mut app, Vec3::new(0., 6., 0.), false);
+    let cache = pickup(&mut app, Vec3::new(0., 6., 0.), true);
+    app.world_mut()
+        .resource_mut::<crate::mission::blockout::BlockoutRun>()
+        .enabled = false;
+    run(&mut app);
+    assert!(!app.world().get::<Pickup>(scrap).unwrap().attracted);
+    app.world_mut()
+        .resource_mut::<crate::mission::blockout::BlockoutRun>()
+        .enabled = true;
+    run(&mut app);
+    assert!(app.world().get::<Pickup>(scrap).unwrap().attracted);
+    assert!(!app.world().get::<Pickup>(cache).unwrap().attracted);
+}
+
 #[test]
 fn pickups_do_not_expire_and_freeze_during_choices_or_terminal_frames() {
     let mut app = fixture();

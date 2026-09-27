@@ -230,6 +230,7 @@ pub(crate) fn collect(
     mut campaign: Option<ResMut<crate::mission::Campaign>>,
     session: Option<Res<crate::mission::MissionSession>>,
     mut notice: Option<ResMut<DiscoveryNotice>>,
+    blockout: Option<Res<crate::mission::blockout::BlockoutRun>>,
 ) {
     if *phase != GamePhase::Playing || boundary.reset || boundary.cleanup {
         return;
@@ -259,13 +260,34 @@ pub(crate) fn collect(
                         .any(|segment| contact(segment.start, segment.end))
                 });
         } else {
+            let payload_mission = blockout.as_ref().is_some_and(|run| run.enabled);
+            if payload_mission && !pickup.attracted {
+                let contact = |start, end| {
+                    crate::world::horizontal_proximity_contact(
+                        start,
+                        end,
+                        transform.translation,
+                        300.,
+                        world.as_deref(),
+                    )
+                    .is_some()
+                };
+                pickup.attracted = contact(drone.translation, drone.translation)
+                    || path.as_ref().is_some_and(|path| {
+                        path.segments
+                            .iter()
+                            .any(|segment| contact(segment.start, segment.end))
+                    });
+            }
+            // A clear swept flyby may attract the drop, but it cannot fly or
+            // credit through cover at the player's current position.
             if !world
                 .as_ref()
                 .is_none_or(|w| w.line_clear(transform.translation, drone.translation))
             {
                 continue;
             }
-            if distance <= pickup.radius {
+            if !payload_mission && distance <= pickup.radius {
                 pickup.attracted = true;
             }
         }
