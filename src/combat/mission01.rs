@@ -17,7 +17,6 @@ use crate::{
 use bevy::prelude::*;
 use std::collections::VecDeque;
 
-const CAP: usize = 96;
 const ACTIVATION_RADIUS: f32 = 1200.;
 const LANES: usize = 9;
 const PATROL_LANE: usize = 8;
@@ -301,7 +300,7 @@ fn update(
     // admission has 220u drone clearance, shared terrain/body checks and the
     // map's visible dormant/source zones. No graph is built in this loop.
     let mut misses = 0;
-    while occupied.len() < CAP && misses < LANES {
+    while occupied.len() < ENEMY_CAP && misses < LANES {
         let lane = state.cursor;
         state.cursor = (lane + 1) % LANES;
         let Some(&kind) = state.pending[lane].front() else {
@@ -786,7 +785,7 @@ mod tests {
     #[test]
     fn all_fixed_requests_survive_saturation_and_share_slots_with_repeat_lanes() {
         let (mut app, drone) = app();
-        let blockers: Vec<_> = (0..CAP)
+        let blockers: Vec<_> = (0..ENEMY_CAP)
             .map(|_| {
                 app.world_mut()
                     .spawn((
@@ -1045,6 +1044,60 @@ mod tests {
             Holdout::Active { waves: 1, .. }
         ));
     }
+    #[test]
+    fn mission01_warning_activation_above_thirty_uses_its_cap_and_next_mission_restores_default() {
+        use crate::{
+            arena::DroneFlight,
+            combat::PlayerHealth,
+            mission::tests::{app as mission_app, launch, select_placeholder, tick as frame},
+        };
+        let mut app = mission_app();
+        launch(&mut app);
+        // Production pursuit bodies far from the patrol, player and gun range.
+        for i in 0..30 {
+            let p = map::point(80. + (i % 6) as f32 * 7., 85. + (i / 6) as f32 * 7.);
+            app.world_mut().spawn((
+                Enemy {
+                    kind: EnemyKind::Chaser,
+                    health: 20,
+                    previous: p,
+                    path: vec![],
+                },
+                Transform::from_translation(p),
+                DroneFlight::default(),
+            ));
+        }
+        frame(&mut app, 3., &[]);
+        assert_eq!(enemies(&mut app), 30);
+        assert_eq!(
+            app.world_mut()
+                .query::<&SpawnWarning>()
+                .iter(app.world())
+                .count(),
+            4
+        );
+        frame(&mut app, 0.75, &[]);
+        assert_eq!(
+            enemies(&mut app),
+            34,
+            "patrol warnings must activate with more than30 live enemies below the Mission01cap"
+        );
+        assert_eq!(app.world().resource::<WaveConfig>().cap, 96);
+        app.world_mut().resource_mut::<PlayerHealth>().current = 0;
+        frame(&mut app, 0., &[]);
+        // Outcome consumes its frame; release once to arm the menu action.
+        frame(&mut app, 0., &[]);
+        frame(&mut app, 0., &[KeyCode::Enter]);
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Hub);
+        select_placeholder(&mut app, 1);
+        launch(&mut app);
+        assert!(!app.world().resource::<BlockoutRun>().enabled);
+        assert_eq!(
+            app.world().resource::<WaveConfig>().cap,
+            WaveConfig::default().cap
+        );
+    }
+
     #[test]
     fn patrol_warning_activation_rechecks_player_and_restart_clears_pressure() {
         use crate::mission::tests::{app as mission_app, launch, tick as frame};
@@ -1325,13 +1378,13 @@ mod tests {
         for _ in 0..70 {
             frame(&mut app, 1., &[]);
         }
-        assert_eq!(enemies(&mut app), CAP);
+        assert_eq!(enemies(&mut app), ENEMY_CAP);
         let mut micros = Vec::new();
         for _ in 0..480 {
             let before = std::time::Instant::now();
             frame(&mut app, 1. / 60., &[]);
             micros.push(before.elapsed().as_micros());
-            assert_eq!(enemies(&mut app), CAP);
+            assert_eq!(enemies(&mut app), ENEMY_CAP);
             assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
             assert!(
                 app.world()
