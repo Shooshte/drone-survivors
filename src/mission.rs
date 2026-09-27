@@ -5,6 +5,7 @@ pub(crate) mod blockout_scene;
 pub(crate) mod blockout_validation;
 pub(crate) mod campaign;
 pub(crate) mod campaign_validation;
+mod holdout_scene;
 #[cfg(test)]
 mod module_tests;
 pub(crate) mod objective_scene;

@@ -186,7 +186,7 @@ impl ObjectiveKind {
     pub fn briefing(self) -> &'static str {
         match self {
             Self::Payload => {
-                "Collect the western payload (2), then enter northeast delivery (3). Slot 4 is reserved. No timer. Optional holdout (7): stay 30s; leaving ends your only attempt. Pickup activates both permanent enemy sources."
+                "Collect payload (2), then deliver at (3). Slot 4 is reserved; no deadline. Patrols hunt from launch. Carrying the payload increases enemy pressure. Optional holdout (7): stay 30s for +5 components; leaving forfeits the reward."
             }
             Self::Survival => {
                 "Survive for 5:00. Keep your hull above zero as enemy waves grow. Upgrade choices pause the clock."

@@ -1,6 +1,8 @@
 //! Persistent Mission 01 placeholder art and a compact route map.
 use super::{
-    blockout::{BlockoutRun, DELIVERY_RADIUS, HOLDOUT_RADIUS, Holdout, PICKUP_RADIUS},
+    blockout::{
+        BlockoutRun, DELIVERY_RADIUS, HOLDOUT_COMPONENTS, HOLDOUT_SECONDS, Holdout, PICKUP_RADIUS,
+    },
     objectives::ObjectiveRun,
 };
 use crate::{
@@ -28,7 +30,8 @@ pub(crate) struct BlockoutScenePlugin;
 impl Plugin for BlockoutScenePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
-            .add_systems(Update, present.after(GameplaySet::Presentation));
+            .add_systems(Update, present.after(GameplaySet::Presentation))
+            .add_plugins(super::holdout_scene::HoldoutScenePlugin);
     }
 }
 fn setup(
@@ -133,7 +136,6 @@ fn setup(
     for (position, radius, material) in [
         (map::pickup(), PICKUP_RADIUS, gold.clone()),
         (map::delivery(), DELIVERY_RADIUS, green.clone()),
-        (map::challenge(), HOLDOUT_RADIUS, green.clone()),
     ] {
         let ring = meshes.add(Torus::new(radius - 8., radius));
         commands.spawn((
@@ -376,16 +378,63 @@ fn present(
     panel.display = if active { Display::Flex } else { Display::None };
     let compact = windows.iter().next().is_some_and(|w| w.width() < 800.);
     panel.width = px(if compact { 120. } else { 180. });
-    panel.height = px(if compact { 155. } else { 220. });
+    panel.height = px(if compact { 170. } else { 235. });
     panel.top = px(if compact { 118. } else { 135. });
     player.left = percent((drone.translation.x / map::SCALE + 500.) / 10.);
     player.top = percent((drone.translation.z / map::SCALE + 500.) / 10.);
     status.0 = match run.holdout {
-        Holdout::Available => "7: optional 30s holdout".into(),
+        Holdout::Available => format!(
+            "7: optional holdout\nStay {HOLDOUT_SECONDS:.0}s / +{HOLDOUT_COMPONENTS} components"
+        ),
         Holdout::Active { elapsed, .. } => {
-            format!("7: HOLD {:.0}s", (30. - elapsed).max(0.).ceil())
+            format!("7: HOLD {:.0}s", (HOLDOUT_SECONDS - elapsed).max(0.).ceil())
         }
         Holdout::Forfeited => "7: reward forfeited".into(),
-        Holdout::Complete => "7: +5 components".into(),
+        Holdout::Complete => format!("7: +{HOLDOUT_COMPONENTS} components"),
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn scene() -> (App, Entity) {
+        let mut app = App::new();
+        app.init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .insert_resource(BlockoutRun {
+                enabled: true,
+                ..default()
+            })
+            .insert_resource(ObjectiveRun {
+                kind: super::super::objectives::ObjectiveKind::Payload,
+                ..default()
+            })
+            .insert_resource(GamePhase::Playing)
+            .add_plugins(BlockoutScenePlugin);
+        let drone = app
+            .world_mut()
+            .spawn((
+                Drone,
+                Transform::from_translation(map::challenge() + Vec3::X * 1000.),
+            ))
+            .id();
+        app.update();
+        (app, drone)
+    }
+    fn copy(app: &mut App) -> String {
+        app.world_mut()
+            .query::<&Text>()
+            .iter(app.world())
+            .map(|text| text.0.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+    #[test]
+    fn holdout_guidance_explains_goal_reward_and_exit_before_entry() {
+        let (mut app, _) = scene();
+        let text = copy(&mut app);
+        assert!(text.contains("Stay inside for 30s"), "{text}");
+        assert!(text.contains("+5 COMPONENTS"), "{text}");
+        assert!(text.contains("Leaving forfeits"), "{text}");
+    }
 }

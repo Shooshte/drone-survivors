@@ -7,12 +7,13 @@ use crate::{
 };
 use bevy::prelude::*;
 
+pub(crate) const ENEMY_CAP: usize = 96;
 pub(crate) const PICKUP_RADIUS: f32 = 600.;
 pub(crate) const DELIVERY_RADIUS: f32 = 1000.;
 pub(crate) const HIDDEN_RADIUS: f32 = 350.;
 pub(crate) const HIDDEN_COMPONENTS: u64 = 3;
 pub(crate) const HOLDOUT_COMPONENTS: u64 = 5;
-pub(crate) const HOLDOUT_RADIUS: f32 = 2800.;
+pub(crate) const HOLDOUT_RADIUS: f32 = 840.;
 pub(crate) const HOLDOUT_SECONDS: f64 = 30.;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -100,6 +101,7 @@ fn configure(
     };
     *waves = crate::combat::WaveConfig::default();
     if enabled {
+        waves.cap = ENEMY_CAP;
         waves.disable_authored_waves();
     }
     // Reuse the six original charger entities/labels. The two unused slots are
