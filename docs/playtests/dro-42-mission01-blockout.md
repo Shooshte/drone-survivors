@@ -3,6 +3,9 @@
 Date: 2026-09-26. [Linear issue](https://linear.app/drone-survivors/issue/DRO-42/mission-01-sketch-based-playable-blockout).
 This is agent implementation and validation evidence. Human acceptance remains pending.
 
+The initial sections below record the original September 26 implementation.
+The September 27 playtest follow-up at the end supersedes its scale and pacing.
+
 ## Authored rules and tuning
 
 - Seven full-height landforms follow the supplied square sketch, including the
@@ -197,3 +200,81 @@ are not compared with the earlier performance measurements.
 - [Corrected compact briefing](../images/dro-42-640x480-briefing.png)
 - [Compact charger supplying power](../images/dro-42-640x480-charger-charging.png)
 - [Compact depleted charger and empty reserve gauge](../images/dro-42-640x480-charger-empty.png)
+
+
+## September 27: compact map and playtest tuning
+
+User feedback identified unclear holdout instructions, safe camping before
+pickup, weak pursuit/beam pressure, difficult scrap collection and empty travel.
+The approved iteration retains scale **12** (12,000 × 12,000 world units), down
+from 40. A terrain-clear rotor route measures **53.37 seconds** without combat,
+with or without the authored fields, which this route avoids.
+
+- Four-chaser patrols request ordinary 0.75-second spawn warnings after three
+  active seconds and every eight seconds thereafter. Safe candidate positions
+  lie 550–850 horizontal units from the player, with enemy hull altitude clamped
+  inside the arena and safety checked again when the warning activates.
+- Mission 01 Chasers use a **340u/s cap**. The shared thrust taper produces about
+  **320.28u/s** in straight pursuit, compared with 244.92 previously. Scout cap
+  remains 420, beam multiplier 0.6, and other enemy kinds/maps retain their tuning.
+- Each permanent source requests four enemies immediately after pickup, then
+  every **5 seconds** initially, **4 seconds at 20s**, **3 seconds at 40s**, and
+  **2 seconds from 60s** carrying. Pause freezes clocks. Restart clears them.
+  All live enemies and warnings share cap 96. Fixed groups persist; repeat
+  demand coalesces to at most twelve pending enemies across sources and patrols.
+  A one-slot fairness test admitted 333 enemies from each repeat lane over 999
+  admissions while preserving exact authored group counts and mixed batches.
+- Ordinary Mission 01 salvage attracts within **300 horizontal units** at any
+  legal flight height. Swept flybys count; visibility uses the actual 3D flight
+  path. Walls still prevent homing/collection. Existing 900u/s homing, once-only
+  credit, settlement and other missions' 100u 3D/cache behavior are unchanged.
+- Holdout radius is **840**. The map and briefing state optional, stay 30s and
+  +5 components. Nearby guidance adds the early-exit cost; an active countdown
+  and progress bar show remaining time. Completed/forfeited states are explicit.
+
+### Damage-enabled pressure measurements
+
+The 60 Hz full-plugin stationary/moving probe uses ordinary firing, enemy
+attacks, energy, terrain, encounters and objective logic with no tuning overrides.
+Upgrade offers are skipped through normal controls. The moving pilot uses legal
+keyboard steering, without pose teleports or invulnerability.
+
+| Pilot | First warning | Enemy within 400u | First damage | Outcome |
+| --- | ---: | ---: | ---: | --- |
+| Stationary Scout | 3.00s | 5.47s | 7.20s | Died at 31.20s; 14 kills |
+| Moving Scout | 3.00s | 6.00s | 12.22s | Delivered at 56.80s; 60 hull; 8 kills |
+
+A controlled beam probe disables player shooting and places one Slower 180u ahead
+and one Chaser 650u behind the Scout. Natural movement and beam windup remain.
+After holding still 1.33s, forward movement produced 1.67s of slowed flight;
+the Chaser gap closed **65.22u** (557.06→491.84). This demonstrates meaningful
+closing pressure in that setup, not a universal difficulty or human acceptance claim.
+
+The capped 96-enemy CPU/ECS probe, with contact damage and weapon targeting
+disabled, measured 480 updates: median **0.650ms**, p95 **0.781ms**, max **0.897ms**.
+These are schedule timings, not rendering FPS.
+
+
+Final verification: **546 passed, nine opt-in diagnostics ignored** in the locked
+suite. The disk-backed campaign probe passed separately for empty, Overdrive and
+Shield loadouts; formatting, strict all-target Clippy and diff checks passed.
+Independent review found a shared warning-activation limit of 30 that could
+cancel patrols below Mission 01's cap. Both admission and activation now use the
+same 96-enemy constant; a full-plugin 30→34-live regression also confirms that switching
+to another mission restores its default cap. Follow-up review has no remaining
+findings.
+
+
+Both final native fixtures completed successfully at 1120×720 and 640×480. The
+briefing and holdout approach/countdown/completion text fit the tested layouts.
+They retain the disclosed scripted positions, zero contact damage, synthetic
+charger/battery states and absent campaign save. Concurrent runs are presentation
+checks; their timing is not used for performance comparison.
+
+- [Compact briefing](../images/dro-42-tuned-640x480-briefing.png)
+- [Holdout instructions before entry](../images/dro-42-tuned-640x480-holdout-approach.png)
+- [Compact countdown and progress](../images/dro-42-tuned-640x480-holdout.png)
+- [Completed reward](../images/dro-42-tuned-640x480-holdout-complete.png)
+- [Full-size countdown and map](../images/dro-42-tuned-1120x720-holdout.png)
+
+These checks support another human playtest; balance acceptance remains pending.

@@ -370,15 +370,20 @@ plan a route around the ridges.
 loadouts are valid. A saved four-module loadout stays intact, but briefing asks
 you to clear slot 4 in the module shop before launching Mission 01.
 
-Nearby groups activate once. Guards at **9/10** each include two slowing beams
-and five chasers. Picking up the payload permanently activates indestructible
-sources **8/11**; their spawning continues until the attempt ends, under a
-96-enemy/warning cap. Arrow fields give **+40% with / −40% against** their
+Four-chaser patrols begin after 3 active seconds and repeat every 8 seconds,
+with a visible spawn warning near your current position. Nearby authored groups
+activate once. Guards at **9/10** each include two slowing beams and five chasers.
+Mission 01 chasers have a **340-unit speed cap**; Scout speed and beam strength
+remain unchanged. Picking up the payload permanently activates indestructible
+sources **8/11**. Each requests four enemies immediately, then every **5 seconds**,
+ramping to **4 / 3 / 2 seconds** after **20 / 40 / 60 seconds** carrying the payload.
+All enemies and warnings share a cap of 96; missed repeat waves do not pile up. Arrow fields give **+40% with / −40% against** their
 horizontal direction; perpendicular and vertical motion are unchanged.
 
 The southern pocket hides **3 components**. Optional challenge **7** awards
 **5 components** for staying inside for 30 active seconds, with waves at 0/10/20.
-Leaving early consumes the attempt; killing every enemy is unnecessary. Choices
+The 840-unit boundary and nearby prompt show the reward, instructions and live
+countdown. Leaving early consumes the attempt; killing every enemy is unnecessary. Choices
 pause the timer, and restart restores the challenge and all mission-local state.
 These rewards use the ordinary unbanked success/failure rules.
 
@@ -742,8 +747,10 @@ provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
 
 New campaigns start with **0 salvage and 0 components**. Each chaser has a
 **50% chance to drop 1 salvage in Act 1**, or **25% in Acts 2 and 3**. Gold salvage rests on the ground (or low cover)
-until collected or the attempt ends. Fly within **100 world units in 3D** with
-clear line of sight to attract it; once attracted it follows at 900 units/second.
+until collected or the attempt ends. In Mission 01, fly within **300 horizontal
+world units at any legal flight height** to attract it. Other missions use
+**100 world units in 3D**. Both require clear line of sight; once attracted,
+salvage follows at 900 units/second.
 There is no interaction key or despawn timer. Solid cover blocks collection.
 
 In missions 02–12, three purple caches each contain **1 component** (or **2 in Act 2**) and
