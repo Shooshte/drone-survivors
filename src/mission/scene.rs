@@ -348,7 +348,7 @@ fn present(
                 preview_chargers.capacity = profile.charger_capacity;
                 format!(
                     "{}\nLOADOUT / SCOUT\n{}\n{}",
-                    if session.selected_mission.index() == 0 { "Scrapyard / payload route ~3 min flight, no timer\n4 chargers / hidden cache +3 components / holdout +5 components".into() } else { profile.summary() },
+                    if session.selected_mission.index() == 0 { "Scrapyard / payload route ~1 min flight, no timer\n4 chargers / hidden cache +3 components / holdout +5 components".into() } else { profile.summary() },
                     if session.selected_mission.index() == 0 { loadout_lines(campaign.inventory.loadout(), &modules).replace("SLOT 4  EMPTY", "SLOT 4  PAYLOAD RESERVED") } else { loadout_lines(campaign.inventory.loadout(), &modules) },
                     potential_power(&baseline, &campaign, &preview_chargers).display(),
                 )

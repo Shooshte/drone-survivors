@@ -130,7 +130,7 @@ fn mission01_boosted_rotor_flight_measures_authored_route() {
         "Mission 01 route: {length:.0} world units, authored-field rotor flight {elapsed:.2}s, no equipment, boosts enabled, altitude hold, 120Hz"
     );
     assert!(
-        (165. ..195.).contains(&elapsed),
+        (50. ..75.).contains(&elapsed),
         "ordinary route took {elapsed}s"
     );
 }

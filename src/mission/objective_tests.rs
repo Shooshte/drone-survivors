@@ -349,7 +349,7 @@ fn mission_one_uses_a_separate_square_map_and_restores_other_missions() {
     let mut app = app();
     launch(&mut app);
     let arena = app.world().resource::<crate::arena::Arena>();
-    assert!(arena.half_size.x > 10000.);
+    assert_eq!(arena.half_size.x, 6000.);
     assert_eq!(arena.half_size.x, arena.half_size.z);
     *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
     tick(&mut app, 0., &[]);

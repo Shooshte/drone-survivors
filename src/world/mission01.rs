@@ -3,8 +3,8 @@ use super::{Solid, WorldGeometry, environment::DirectionalField};
 use crate::arena::Arena;
 use bevy::prelude::*;
 
-/// 40 world units per schematic unit: calibrated against ordinary 420-unit/s flight.
-pub(crate) const SCALE: f32 = 40.;
+/// 12 world units per schematic unit: compact playtest target of about one minute.
+pub(crate) const SCALE: f32 = 12.;
 pub(crate) fn point(east: f32, south: f32) -> Vec3 {
     Vec3::new((east - 500.) * SCALE, 90., (south - 500.) * SCALE)
 }
@@ -301,7 +301,8 @@ mod tests {
     fn mission01_navigation_preserves_body_clear_final_approach_beside_ridge() {
         let world = geometry();
         let start = point(440., 430.);
-        let target = point(440., 439.1225);
+        // Keep the same body clearance from the ridge at any map scale.
+        let target = point(440., 440.) - Vec3::Z * 35.1;
         let half = Vec3::splat(24.);
         assert!(world.clear_body(start, target, half));
         assert!(!world.clear_body(start, target, half + Vec3::splat(12.)));
@@ -368,7 +369,7 @@ mod tests {
             "Mission 01 route: {length:.0} world units, ordinary rotor flight {elapsed:.2}s, no equipment/boosts, altitude hold, 120Hz"
         );
         assert!(
-            (165. ..195.).contains(&elapsed),
+            (50. ..75.).contains(&elapsed),
             "ordinary route took {elapsed}s"
         );
     }

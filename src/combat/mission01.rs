@@ -613,6 +613,11 @@ mod tests {
     #[test]
     fn holdout_entry_credits_only_inside_fraction_and_retry_overflow_once() {
         let (mut app, drone) = app();
+        // Isolate boundary timing from terrain crossed by this synthetic long sweep.
+        app.world_mut()
+            .resource_mut::<WorldGeometry>()
+            .solids
+            .clear();
         let c = map::challenge();
         at(&mut app, drone, c);
         app.world_mut().resource_mut::<PlayerPath>().segments =

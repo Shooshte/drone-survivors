@@ -362,7 +362,7 @@ presentation, not combat balance. [DRO-17 evidence](docs/playtests/dro-17-campai
 Fly from southeast **1** to western pickup **2**, then deliver to northeast **3**.
 Pickup and delivery trigger automatically by proximity. Delivery wins immediately
 with the payload; there is no survival deadline. The main route measures about
-**175 seconds** of ordinary flight without combat or optional detours. Hatched
+**53 seconds** of ordinary flight without combat or optional detours. Hatched
 terrain is solid at every altitude. Use the minimap and four finite chargers to
 plan a route around the ridges.
 
