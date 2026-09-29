@@ -12,6 +12,9 @@ pub(crate) mod objective_scene;
 pub(crate) mod objective_validation;
 pub(crate) mod objectives;
 pub(crate) mod secrets;
+#[cfg(test)]
+mod upgrade_tests;
+pub(crate) mod upgrade_validation;
 use campaign::MissionId;
 pub(crate) mod scene;
 pub(crate) mod selection_scene;

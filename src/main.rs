@@ -19,12 +19,17 @@ use bevy::{
 fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let mission_check = args == ["--mission01-check"];
+    let upgrades_check = args == ["--mission01-upgrades-check"];
     let validation =
-        combat::validation::ValidationConfig::parse(if mission_check { vec![] } else { args })
-            .unwrap_or_else(|error| {
-                eprintln!("{error}");
-                std::process::exit(2);
-            });
+        combat::validation::ValidationConfig::parse(if mission_check || upgrades_check {
+            vec![]
+        } else {
+            args
+        })
+        .unwrap_or_else(|error| {
+            eprintln!("{error}");
+            std::process::exit(2);
+        });
     let mut app = App::new();
     app.init_resource::<world::WorldGeometry>()
         .init_resource::<world::PlayerPath>()
@@ -62,7 +67,9 @@ fn main() {
             mission::scene::MissionScenePlugin,
             economy::scene::EconomyScenePlugin,
         ));
-        if mission_check {
+        if upgrades_check {
+            mission::upgrade_validation::install(&mut app);
+        } else if mission_check {
             mission::blockout_validation::install(&mut app);
         } else {
             app.add_plugins((save::SavePlugin::default(), save::scene::SaveScenePlugin));
