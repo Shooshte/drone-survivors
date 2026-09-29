@@ -392,3 +392,44 @@ fn failed_choice_discovery_retry_returns_to_paused_choice() {
 
 #[path = "discovery_tests.rs"]
 mod discoveries;
+
+#[test]
+fn support_menu_purchase_equip_and_continue_preserve_campaign_state() {
+    use crate::modules::ModuleKind;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("campaign.json");
+    let mut app = app(&path);
+    key(&mut app, KeyCode::KeyN);
+    app.world_mut().resource_mut::<Campaign>().wallet.salvage = 30;
+    key(&mut app, KeyCode::KeyM);
+    // Navigate backward from Overdrive to Repair, then Repulsor.
+    key(&mut app, KeyCode::ArrowUp);
+    key(&mut app, KeyCode::KeyB);
+    key(&mut app, KeyCode::Digit1);
+    key(&mut app, KeyCode::ArrowUp);
+    key(&mut app, KeyCode::KeyB);
+    key(&mut app, KeyCode::Digit3);
+    let expected = [
+        Some(ModuleKind::Repair),
+        None,
+        Some(ModuleKind::Repulsor),
+        None,
+    ];
+    assert_eq!(
+        app.world()
+            .resource::<Campaign>()
+            .inventory
+            .loadout()
+            .slots(),
+        &expected
+    );
+    assert_eq!(app.world().resource::<Campaign>().wallet.salvage, 0);
+    drop(app);
+    let mut restored = self::app(&path);
+    key(&mut restored, KeyCode::Enter);
+    let campaign = restored.world().resource::<Campaign>();
+    assert_eq!(campaign.wallet.salvage, 0);
+    assert!(campaign.inventory.owns(ModuleKind::Repair));
+    assert!(campaign.inventory.owns(ModuleKind::Repulsor));
+    assert_eq!(campaign.inventory.loadout().slots(), &expected);
+}

@@ -30,7 +30,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
         std::fs::create_dir_all(directory).expect("shop capture directory");
     }
     println!(
-        "MODULE SHOP FIXTURE: synthetic bank=65/1 and success timer; normal menu input and transaction rules. Not natural progression or balance evidence."
+        "MODULE SHOP FIXTURE: synthetic bank=95/1 and success timer; normal menu input and transaction rules. Not natural progression or balance evidence."
     );
     app.add_plugins((
         crate::mission::MissionPlugin,
@@ -106,7 +106,38 @@ fn drive(
     if elapsed < (fixture.step + 1) as f64 * 0.6 {
         return;
     }
-    let step = fixture.step + 1;
+    let raw_step = fixture.step + 1;
+    // Spend ten extra input frames visiting the two support rows, then resume
+    // the original rearrange/restart/results scenario with all six owned.
+    let step = if raw_step >= 28 {
+        raw_step - 10
+    } else if raw_step >= 18 {
+        0
+    } else {
+        raw_step
+    };
+    if (18..28).contains(&raw_step) {
+        match raw_step {
+            18 | 21 => keys.press(KeyCode::ArrowDown),
+            19 | 22 => keys.press(KeyCode::KeyB),
+            20 => keys.press(KeyCode::Digit1),
+            23 => keys.press(KeyCode::Digit3),
+            24 => {
+                assert_eq!(campaign.wallet, Amounts::default());
+                assert_eq!(
+                    campaign.inventory.loadout().slots()[0],
+                    Some(ModuleKind::Repulsor)
+                );
+                assert_eq!(
+                    campaign.inventory.loadout().slots()[2],
+                    Some(ModuleKind::Repair)
+                );
+                assert!(session.purchase_feedback.contains("REPAIR assigned"));
+            }
+            25 | 26 => keys.press(KeyCode::ArrowUp),
+            _ => {}
+        }
+    }
     match step {
         2 | 36 => keys.press(KeyCode::KeyM),
         4 | 10 | 13 | 16 | 19 => keys.press(KeyCode::KeyB),
@@ -114,7 +145,7 @@ fn drive(
             assert_eq!(campaign.wallet, Amounts::default());
             assert!(session.purchase_feedback.contains("Not enough"));
             campaign.wallet = Amounts {
-                salvage: 65,
+                salvage: 95,
                 components: 1,
             };
         }
@@ -128,7 +159,7 @@ fn drive(
         }
         7 => {
             assert!(campaign.inventory.owns(ModuleKind::Overdrive));
-            assert_eq!(campaign.wallet.salvage, 55);
+            assert_eq!(campaign.wallet.salvage, 85);
             assert_eq!(campaign.inventory.loadout().slots(), &[None; 4]);
         }
         8 | 22 => keys.press(KeyCode::Digit4),
@@ -138,7 +169,7 @@ fn drive(
         17 | 24 => keys.press(KeyCode::Digit1),
         18 | 20 => {
             assert_eq!(campaign.wallet, Amounts::default());
-            for kind in ModuleKind::ALL {
+            for kind in ModuleKind::CAMPAIGN {
                 assert!(campaign.inventory.owns(kind));
             }
         }
@@ -187,25 +218,29 @@ fn drive(
         }
         47 => {
             println!(
-                "MODULE SHOP FIXTURE PASS: empty bank rejection, mouse purchase, four purchases, repeat purchase, free remove/move/replace, briefing, launch, restart, results persistence, empty launch."
+                "MODULE SHOP FIXTURE PASS: empty bank rejection, mouse purchase, six purchases including support equip, repeat purchase, free remove/move/replace, briefing, launch, restart, results persistence, empty launch."
             );
             exit.write(AppExit::Success);
         }
         _ => {}
     }
-    let label = match step {
-        1 => Some("hub"),
-        3 => Some("empty"),
-        7 => Some("purchased"),
-        18 => Some("full"),
-        25 => Some("rearranged"),
-        28 => Some("briefing"),
-        30 => Some("launch"),
-        32 => Some("restart"),
-        37 => Some("persistent"),
-        43 => Some("empty-briefing"),
-        45 => Some("empty-launch"),
-        _ => None,
+    let label = if raw_step == 24 {
+        Some("support")
+    } else {
+        match step {
+            1 => Some("hub"),
+            3 => Some("empty"),
+            7 => Some("purchased"),
+            18 => Some("full"),
+            25 => Some("rearranged"),
+            28 => Some("briefing"),
+            30 => Some("launch"),
+            32 => Some("restart"),
+            37 => Some("persistent"),
+            43 => Some("empty-briefing"),
+            45 => Some("empty-launch"),
+            _ => None,
+        }
     };
     if let Some(label) = label {
         if *phase == GamePhase::ModuleShop {
@@ -256,7 +291,7 @@ fn drive(
                 .observe(save_to_disk(directory.join(format!("{size}-{label}.png"))));
         }
     }
-    fixture.step = step;
+    fixture.step = raw_step;
 }
 fn expected() -> [Option<ModuleKind>; 4] {
     [

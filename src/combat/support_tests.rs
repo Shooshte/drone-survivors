@@ -144,25 +144,21 @@ fn support_repair_happens_after_nonlethal_damage() {
     assert_eq!(app.world().resource::<PlayerHealth>().current, 31);
 }
 #[test]
-fn support_modules_stay_out_of_campaign_and_save_codec() {
-    use crate::modules::shop::{ModuleInventory, ShopError};
+fn support_modules_are_purchasable_serializable_and_require_owned_equipment() {
+    use crate::modules::shop::ModuleInventory;
     for kind in [ModuleKind::Repair, ModuleKind::Repulsor] {
         let mut inventory = ModuleInventory::default();
         let mut wallet = crate::economy::Amounts {
-            salvage: 1000,
-            components: 100,
+            salvage: 15,
+            components: 0,
         };
-        let before = wallet;
-        assert_eq!(
-            inventory.purchase(kind, &mut wallet),
-            Err(ShopError::CatalogOnly)
-        );
-        assert!(inventory.assign(0, Some(kind)).is_err());
-        assert_eq!(wallet, before);
-        assert!(!ModuleKind::ALL.contains(&kind));
-        assert!(serde_json::to_string(&kind).is_err());
-        assert!(serde_json::from_str::<ModuleKind>(&format!("\"{kind:?}\"")).is_err());
-        assert!(ModuleInventory::from_saved(vec![kind], [Some(kind), None, None, None]).is_err());
+        inventory.purchase(kind, &mut wallet).unwrap();
+        inventory.assign(0, Some(kind)).unwrap();
+        assert_eq!(wallet.salvage, 0);
+        assert!(ModuleKind::CAMPAIGN.contains(&kind));
+        let encoded = serde_json::to_string(&kind).unwrap();
+        assert_eq!(serde_json::from_str::<ModuleKind>(&encoded).unwrap(), kind);
+        assert!(ModuleInventory::from_saved(vec![kind], [Some(kind), None, None, None]).is_ok());
         assert!(ModuleInventory::from_saved(vec![], [Some(kind), None, None, None]).is_err());
     }
 }

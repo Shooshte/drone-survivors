@@ -76,13 +76,10 @@ pub(crate) fn catalog_detail(kind: ModuleKind, modules: &ModuleConfig) -> String
             number(f64::from(modules.mobility_multiplier))
         ),
         ModuleKind::Repulsor => format!(
-            "Catalog only: pushes enemies and dislodges bombs; {drain}/s, {}s cooldown",
+            "Pushes enemies and dislodges bombs; {drain}/s, {}s cooldown",
             number(modules.repulsor_interval)
         ),
-        ModuleKind::Repair => format!(
-            "Catalog only: restores {} hull/s; {drain}/s",
-            number(modules.repair_rate)
-        ),
+        ModuleKind::Repair => format!("Restores {} hull/s; {drain}/s", number(modules.repair_rate)),
         ModuleKind::Rocket => format!(
             "{} damage / {} radius / every {}s  |  drain {drain}/s  |  Tradeoff: draw while ON.",
             modules.rocket_damage,
