@@ -1727,3 +1727,15 @@ beams and directional fields remains pending; this does not pass the older
 DRO-21/DRO-22 human gates.
 
 [Detailed rules, measurements, screenshots and remaining human checks](playtests/dro-42-mission01-blockout.md).
+
+
+## DRO-42 — Mission 01 and twelve upgrades together — 2026-09-29
+
+The user authorized the full temporary-upgrade pool for Mission 01 and campaign
+access to Repair/Repulsor for a combined playtest. This supersedes the earlier
+catalog-only restriction for those items; other mission offers remain six-card.
+The four-choice budget and payload's reserved fourth slot remain. Both support
+modules cost 15 salvage and persist through normal saves. No free funds or XP
+are supplied in ordinary play. Human acceptance remains pending.
+
+[Combined playtest instructions and agent evidence](playtests/dro-42-combined-upgrades.md).

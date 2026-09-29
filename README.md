@@ -111,7 +111,8 @@ as earned choices: four previews leave no later choices, and Skip spends one.
 With fewer previews, earn the remaining opportunities through normal combat.
 Empty previews grant no XP. Launch/restart replays the configured preview;
 Tab clears active effects and preserves setup choices. Catalog-earned offers use
-all twelve eligible definitions; campaign offers keep the original six.
+all twelve eligible definitions. Mission 01 also earns offers from all twelve;
+other campaign missions keep the original six. Mission 01 grants no preview XP.
 
 The six additions below compose with the original cards from the run's baseline.
 Percentages multiply, and each card applies once. Values are provisional.
@@ -143,7 +144,9 @@ not establish human balance acceptance. See [DRO-40 evidence](docs/playtests/dro
 
 ### Repair and Repulsor modules
 
-Choose either module in any of the four arena slots; each type fits once. Both
+Buy either module for **15 salvage** in the campaign module shop, or choose it
+in the catalog arena. Mission 01 reserves slot 4 for its payload, so equip slots
+1–3. Each type fits once. Both
 start OFF and require at least **10 energy** to activate (a threshold, not an
 extra charge). Drain continues while ON, including at full hull or with no
 nearby enemies. Empty power turns modules OFF; jammer locks require manual
@@ -159,8 +162,9 @@ normal terrain collision and flight, so enemies can resume pursuit. Its cooldown
 continues while OFF during active play; toggling cannot reset it. The expanding
 cyan ring shows a pulse; the slot HUD shows the next pulse time. Repair's HUD
 reports its rate or FULL. Upgrade choices freeze both modules. Restart, launch
-and return reset repair credit and pulse state. No new modules are accepted by
-campaign shops, loadouts or saved campaigns. Balance values are provisional.
+and return reset repair credit and pulse state. Both modules persist in campaign
+shops, loadouts and saves. Existing version-1 saves still load. Balance values
+are provisional.
 
 ```sh
 DRONE_MODULE_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/modules cargo dev -- --validate catalog
@@ -387,6 +391,24 @@ countdown. Leaving early consumes the attempt; killing every enemy is unnecessar
 pause the timer, and restart restores the challenge and all mission-local state.
 These rewards use the ordinary unbanked success/failure rules.
 
+Mission 01 uses all **twelve temporary upgrades**, with module-specific cards
+eligible only when their module is equipped. Earn XP normally; each of the four
+opportunities offers up to three cards with benefits and drawbacks. Repair and
+Repulsor are available in the hub shop for **15 salvage each**. For a combined
+playtest, try Repair + Repulsor + Overdrive in slots 1–3, then compare another
+loadout. The optional holdout gives more combat time to earn choices than a direct
+payload run. Permanent passives remain available through the hub's **U** screen.
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/mission01-upgrades cargo dev -- --mission01-upgrades-check
+DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/mission01-upgrades-small cargo dev -- --mission01-upgrades-check
+```
+
+This separate automated presentation fixture uses synthetic funds and XP,
+ordinary purchase/equip/choice input, scripted delivery positions and disabled
+contact damage. It does not access the campaign save or establish human balance
+acceptance. Ordinary play has no granted resources or XP.
+
 ```sh
 DRONE_CAPTURE_DIR=/tmp/mission01 cargo dev -- --mission01-check
 DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/mission01-small cargo dev -- --mission01-check
@@ -556,7 +578,7 @@ are limited to 16 MiB; an oversized file must be moved aside manually.
 
 ## Module shop and loadout
 
-Choose **Module shop / loadout** in the hub or press **M**. All four existing
+Choose **Module shop / loadout** in the hub or press **M**. All six
 modules are available from the start; a purchase permanently unlocks one type for this
 campaign. Prices are provisional for later balance playtesting.
 
@@ -566,6 +588,8 @@ campaign. Prices are provisional for later balance playtesting.
 | Shield | 15 | 0 |
 | Mobility | 15 | 0 |
 | Rockets | 25 | 1 |
+| Repulsor | 15 | 0 |
+| Repair | 15 | 0 |
 
 Select a module by clicking its catalog entry or pressing **Up/Down**. Press **B**
 or click **Buy** to purchase it with banked resources. Buying does not equip it.
@@ -850,7 +874,7 @@ reserves can be used immediately; an empty field takes 28 seconds away to refill
 Overlapping fields share the same 25/s delivery ceiling and never double charge.
 The HUD shows all six named reserves and recovery status before arrival; each field
 also has a shrinking reserve indicator. Choices and outcomes pause recovery;
-R restores all six reserves. All four modules drain 36/s, so even charging produces a
+R restores all six reserves. The original four modules together drain 36/s, so even charging produces a
 net loss of 11/s. Rockets alone leave a net gain of 15/s at a charger.
 
 The HUD shows each slot's key, state and current/configured drain, shield
