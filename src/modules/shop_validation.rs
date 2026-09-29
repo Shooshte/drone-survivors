@@ -18,6 +18,8 @@ use std::{path::PathBuf, time::Instant};
 struct Fixture {
     start: Instant,
     step: usize,
+    next_step_at: f64,
+    release_frame: bool,
     seconds: f64,
     directory: Option<PathBuf>,
     minimum: bool,
@@ -40,6 +42,8 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
     .insert_resource(Fixture {
         start: Instant::now(),
         step: 0,
+        next_step_at: 0.6,
+        release_frame: false,
         seconds,
         directory,
         minimum: std::env::var_os("DRONE_CAPTURE_MINIMUM").is_some(),
@@ -103,7 +107,13 @@ fn drive(
         "shop fixture timed out at step {}",
         fixture.step
     );
-    if elapsed < (fixture.step + 1) as f64 * 0.6 {
+    // A renderer stall must never collapse queued actions into adjacent frames:
+    // the shared mission input gate needs a frame with every key released.
+    if fixture.release_frame {
+        fixture.release_frame = false;
+        return;
+    }
+    if elapsed < fixture.next_step_at {
         return;
     }
     let raw_step = fixture.step + 1;
@@ -292,6 +302,8 @@ fn drive(
         }
     }
     fixture.step = raw_step;
+    fixture.next_step_at = elapsed + 0.6;
+    fixture.release_frame = true;
 }
 fn expected() -> [Option<ModuleKind>; 4] {
     [
