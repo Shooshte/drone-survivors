@@ -78,15 +78,18 @@ impl FlightInput {
                 - f32::from(keys.any_pressed(negative.iter().copied()))
         };
         let tilt = Vec2::new(
-            axis(&[KeyCode::KeyE], &[KeyCode::KeyQ]),
+            axis(
+                &[KeyCode::KeyD, KeyCode::ArrowRight],
+                &[KeyCode::KeyA, KeyCode::ArrowLeft],
+            ),
             axis(
                 &[KeyCode::KeyW, KeyCode::ArrowUp],
                 &[KeyCode::KeyS, KeyCode::ArrowDown],
             ),
         )
         .normalize_or_zero();
-        let yaw_left = [KeyCode::KeyA, KeyCode::ArrowLeft];
-        let yaw_right = [KeyCode::KeyD, KeyCode::ArrowRight];
+        let yaw_left = [KeyCode::KeyQ];
+        let yaw_right = [KeyCode::KeyE];
         let yaw = axis(&yaw_left, &yaw_right);
         let yaw_override = keys.any_pressed(yaw_left.into_iter().chain(yaw_right));
         let vertical_axis = axis(

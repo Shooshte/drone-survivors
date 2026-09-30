@@ -64,8 +64,9 @@ naturally earned upgrades remain active. This mode installs no campaign or save
 systems and awards no campaign resources. All six modules are available here;
 all twelve temporary upgrades are available. Agent combination comparisons are
 recorded in [DRO-41 evidence](docs/playtests/dro-41-catalog-validation.md). New catalog
-content stays excluded from campaign shops, spawns and upgrade offers until the
-human playtest gate is lifted.
+content stays excluded from campaign shops and upgrade offers. DRO-42 explicitly
+introduces slowing beams and directional fields in Mission 01; broader catalog
+acceptance remains pending.
 
 For the explicit native UI fixture:
 
@@ -110,7 +111,8 @@ as earned choices: four previews leave no later choices, and Skip spends one.
 With fewer previews, earn the remaining opportunities through normal combat.
 Empty previews grant no XP. Launch/restart replays the configured preview;
 Tab clears active effects and preserves setup choices. Catalog-earned offers use
-all twelve eligible definitions; campaign offers keep the original six.
+all twelve eligible definitions. Mission 01 also earns offers from all twelve;
+other campaign missions keep the original six. Mission 01 grants no preview XP.
 
 The six additions below compose with the original cards from the run's baseline.
 Percentages multiply, and each card applies once. Values are provisional.
@@ -142,7 +144,9 @@ not establish human balance acceptance. See [DRO-40 evidence](docs/playtests/dro
 
 ### Repair and Repulsor modules
 
-Choose either module in any of the four arena slots; each type fits once. Both
+Buy either module for **15 salvage** in the campaign module shop, or choose it
+in the catalog arena. Mission 01 reserves slot 4 for its payload, so equip slots
+1–3. Each type fits once. Both
 start OFF and require at least **10 energy** to activate (a threshold, not an
 extra charge). Drain continues while ON, including at full hull or with no
 nearby enemies. Empty power turns modules OFF; jammer locks require manual
@@ -158,8 +162,9 @@ normal terrain collision and flight, so enemies can resume pursuit. Its cooldown
 continues while OFF during active play; toggling cannot reset it. The expanding
 cyan ring shows a pulse; the slot HUD shows the next pulse time. Repair's HUD
 reports its rate or FULL. Upgrade choices freeze both modules. Restart, launch
-and return reset repair credit and pulse state. No new modules are accepted by
-campaign shops, loadouts or saved campaigns. Balance values are provisional.
+and return reset repair credit and pulse state. Both modules persist in campaign
+shops, loadouts and saves. Existing version-1 saves still load. Balance values
+are provisional.
 
 ```sh
 DRONE_MODULE_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/modules cargo dev -- --validate catalog
@@ -190,7 +195,8 @@ Fields affect player ground travel without changing stored flight velocity.
 Leaving removes the modifier by the next physics substep (at most 1/120 second).
 Terrain still blocks movement, and ordinary Mobility/beam effects compose with
 fields. Choices pause the cycle and repair. R restores both fixtures; returning
-or choosing an ordinary scenario removes them. Campaign layouts remain unchanged.
+or choosing an ordinary scenario removes them. Mission 01 uses four permanent
+fields with authored arrow directions; other campaign layouts remain unchanged.
 Numeric tuning is provisional. The repair site is independent of the Repair module.
 
 ```sh
@@ -256,7 +262,8 @@ contact damage but does not block control attacks. All tuning is provisional.
 Yellow expanding rings and thin lines warn; solid lines mark active attacks;
 small blue rings mark 3-second enemy recovery. HUD text names each phase and
 jam target. Locks and enemy timers pause during upgrade selection; R and arena
-return clear them. Basic fire remains free. Campaign content is unchanged.
+return clear them. Basic fire remains free. Mission 01 also uses slowing beams;
+jammers remain catalog-only.
 
 ```sh
 DRONE_CONTROL_SMOKE=1 DRONE_CAPTURE_DIR=/tmp/control cargo dev --locked -- --validate catalog
@@ -309,11 +316,11 @@ It validates presentation and production rules, not difficulty or human acceptan
 
 ## Campaign mission selection
 
-All **12 missions** are playable placeholders using the **same arena layout,
-waves, charger locations and hazards**. Each act has a distinct resource profile
-(see Exploration below). Each has its own completion record.
-Mission **02 is reconnaissance**, mission **03 is cargo extraction**; the other
-ten retain the five-minute survival objective.
+Mission **01 is an authored payload blockout** described below. Missions **02–12**
+retain the shared placeholder arena, waves, chargers and hazards. Each act has
+a resource profile (see Exploration below), and each mission has its own
+completion record. Mission **02 is reconnaissance**, mission **03 is cargo
+extraction**; the other nine retain the five-minute survival objective.
 
 | Act | Introduction | Branches, either order | Finale |
 | --- | --- | --- | --- |
@@ -337,9 +344,9 @@ shortcut uses the selection you last made. Briefings and results identify the
 mission; R restarts the active mission. Menus pause gameplay.
 
 Progress saves between missions; secret discoveries also save immediately during play.
-Continue resumes in the hub. The ten survival missions
-total 50 minutes before pauses/retries; reconnaissance and extraction have no
-time limit. The roughly 90-minute campaign target awaits authored content.
+Continue resumes in the hub. The nine survival missions
+total 45 minutes before pauses/retries; payload, reconnaissance and extraction
+have no time limit. The roughly 90-minute campaign target awaits authored content.
 
 ```sh
 DRONE_CAPTURE_DIR=/tmp/dro17-normal cargo dev -- --validate campaign
@@ -353,6 +360,66 @@ It checks text bounds at each captured screen and exits after about 65 seconds
 (default timeout 90). It grants no loot or funds; 13 synthetic wins yield 130
 salvage/13 components across 14 results. This validates campaign behavior and
 presentation, not combat balance. [DRO-17 evidence](docs/playtests/dro-17-campaign.md).
+
+## Mission 01: sketch-based payload blockout
+
+Fly from southeast **1** to western pickup **2**, then deliver to northeast **3**.
+Pickup and delivery trigger automatically by proximity. Delivery wins immediately
+with the payload; there is no survival deadline. The main route measures about
+**53 seconds** of ordinary flight without combat or optional detours. Hatched
+terrain is solid at every altitude. Use the minimap and four finite chargers to
+plan a route around the ridges.
+
+**Slot 4 is reserved before launch**, leaving three equipment slots. Empty
+loadouts are valid. A saved four-module loadout stays intact, but briefing asks
+you to clear slot 4 in the module shop before launching Mission 01.
+
+Four-chaser patrols begin after 3 active seconds and repeat every 8 seconds,
+with a visible spawn warning near your current position. Nearby authored groups
+activate once. Guards at **9/10** each include two slowing beams and five chasers.
+Mission 01 chasers have a **340-unit speed cap**; Scout speed and beam strength
+remain unchanged. Picking up the payload permanently activates indestructible
+sources **8/11**. Each requests four enemies immediately, then every **5 seconds**,
+ramping to **4 / 3 / 2 seconds** after **20 / 40 / 60 seconds** carrying the payload.
+All enemies and warnings share a cap of 96; missed repeat waves do not pile up. Arrow fields give **+40% with / −40% against** their
+horizontal direction; perpendicular and vertical motion are unchanged.
+
+The southern pocket hides **3 components**. Optional challenge **7** awards
+**5 components** for staying inside for 30 active seconds, with waves at 0/10/20.
+The 840-unit boundary and nearby prompt show the reward, instructions and live
+countdown. Leaving early consumes the attempt; killing every enemy is unnecessary. Choices
+pause the timer, and restart restores the challenge and all mission-local state.
+These rewards use the ordinary unbanked success/failure rules.
+
+Mission 01 uses all **twelve temporary upgrades**, with module-specific cards
+eligible only when their module is equipped. Earn XP normally; each of the four
+opportunities offers up to three cards with benefits and drawbacks. Repair and
+Repulsor are available in the hub shop for **15 salvage each**. For a combined
+playtest, try Repair + Repulsor + Overdrive in slots 1–3, then compare another
+loadout. The optional holdout gives more combat time to earn choices than a direct
+payload run. Permanent passives remain available through the hub's **U** screen.
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/mission01-upgrades cargo dev -- --mission01-upgrades-check
+DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/mission01-upgrades-small cargo dev -- --mission01-upgrades-check
+```
+
+This separate automated presentation fixture uses synthetic funds and XP,
+ordinary purchase/equip/choice input, scripted delivery positions and disabled
+contact damage. It does not access the campaign save or establish human balance
+acceptance. Ordinary play has no granted resources or XP.
+
+```sh
+DRONE_CAPTURE_DIR=/tmp/mission01 cargo dev -- --mission01-check
+DRONE_CAPTURE_MINIMUM=1 DRONE_CAPTURE_DIR=/tmp/mission01-small cargo dev -- --mission01-check
+```
+
+This explicit native check uses scripted positions, disables contact damage,
+skips earned upgrade choices and never opens the campaign save. It also drains
+the battery and empties one charger to capture their visible states. It captures
+1120×720 or 640×480 presentation and exits after about 58 seconds. It does not
+measure a natural run or establish human acceptance. See [DRO-42 evidence and
+remaining human checks](docs/playtests/dro-42-mission01-blockout.md).
 
 ## Two-mission vertical slice
 
@@ -368,7 +435,9 @@ cargo test --locked vertical_slice_probe -- --ignored --nocapture
 
 This opt-in agent probe completes fresh mission 01 → reward → purchase/equip →
 save/reload → mission 02 loops with Overdrive and Shield, plus an empty-loadout
-control. It runs production gameplay at fixed 30 Hz without rendering, using
+control. Mission 01 now follows the payload route; it earns a real replay if
+the chosen module costs more than the first payout. It runs production gameplay
+at fixed 30 Hz without rendering, using
 scripted keyboard steering and isolated temporary saves. No wins, funds, health,
 XP or objective progress are granted. It is an accelerated agent check; **human
 validation is deferred**, and content expansion remains behind that later gate.
@@ -414,7 +483,7 @@ DRONE_CAPTURE_DIR=/tmp/dro19-compact DRONE_CAPTURE_MINIMUM=1 cargo dev -- --vali
 
 ## Exploration, regions, and secrets
 
-The placeholder arena layout is shared across all acts. Reusable content pieces
+Missions 02–12 share the placeholder arena across all acts. Reusable content pieces
 assemble the same six chargers and three cache locations. Briefing summaries
 and runtime resources use the same profile data:
 
@@ -509,7 +578,7 @@ are limited to 16 MiB; an oversized file must be moved aside manually.
 
 ## Module shop and loadout
 
-Choose **Module shop / loadout** in the hub or press **M**. All four existing
+Choose **Module shop / loadout** in the hub or press **M**. All six
 modules are available from the start; a purchase permanently unlocks one type for this
 campaign. Prices are provisional for later balance playtesting.
 
@@ -519,6 +588,8 @@ campaign. Prices are provisional for later balance playtesting.
 | Shield | 15 | 0 |
 | Mobility | 15 | 0 |
 | Rockets | 25 | 1 |
+| Repulsor | 15 | 0 |
+| Repair | 15 | 0 |
 
 Select a module by clicking its catalog entry or pressing **Up/Down**. Press **B**
 or click **Buy** to purchase it with banked resources. Buying does not equip it.
@@ -596,8 +667,8 @@ Fly relative to the drone's heading:
 | Keys | Control |
 | --- | --- |
 | **W/S** or **Up/Down** | Pitch forward/backward |
-| **A/D** or **Left/Right** | Turn left/right |
-| **Q/E** | Bank into a coordinated left/right turn |
+| **Q/E** | Turn left/right |
+| **A/D** or **Left/Right** | Bank into a coordinated left/right turn |
 | **Space** / **either Shift** | Ascend/descend; release to hold height |
 | **1–4** | Toggle the corresponding equipped module |
 | **R** | Restart the encounter at the center, level and stationary |
@@ -606,10 +677,10 @@ Fly relative to the drone's heading:
 Pitching and banking redirect rotor thrust to accelerate the drone horizontally.
 Automatic altitude assistance maintains your height while pitching or banking.
 Release pitch/bank controls to smoothly level out; momentum remains and drag
-gradually slows the drift. Tilt in the opposite direction to brake. Q/E also turns
-the nose gradually into the visible bank, up to 90 degrees/second. A/D takes direct control of yaw
+gradually slows the drift. Tilt in the opposite direction to brake. A/D also turns
+the nose gradually into the visible bank, up to 90 degrees/second. Q/E takes direct control of yaw
 while held, including counter-steering against a bank. Opposing yaw keys
-(A+D, Left+Right, or mixed aliases) hold heading even while banked. Releasing Q/E levels the
+(Q+E) hold heading even while banked. Releasing A/D or Left/Right levels the
 drone and fades its assisted turn. Turning
 changes where the nose points and where tilted thrust pushes, while existing
 momentum keeps its world direction.
@@ -657,7 +728,7 @@ weapon automatically fires yellow projectiles at the nearest enemy within
 can miss; each disappears after its first hit, after one second, or on leaving
 the arena. Keep moving to avoid contact.
 
-The five-minute encounter starts with three quiet seconds, then five enemies
+The shared placeholder encounter (missions 02–12) starts with three quiet seconds, then five enemies
 every eight seconds.
 Pressure increases through larger bursts and shorter intervals:
 
@@ -690,7 +761,7 @@ affected enemy; a small amber burst marks a kill. Contact deals 10 hull damage,
 followed by 0.75 seconds of shared invulnerability. The HUD flashes red on damage
 and shows cyan **HULL PROTECTED** during that protection window.
 
-At zero hull, the mission fails. Survive until 5:00 to succeed; remaining enemies
+At zero hull, the mission fails. In survival missions, survive until 5:00 to succeed; remaining enemies
 do not need to be cleared. Both outcomes freeze gameplay and open mission results.
 R restarts during combat or lulls, clearing enemies, shots,
 warnings, effects, kills, timers, and flight momentum. Balance values are
@@ -700,11 +771,13 @@ provisional and grouped in `CombatConfig`, `WaveConfig`, and `FeedbackConfig`.
 
 New campaigns start with **0 salvage and 0 components**. Each chaser has a
 **50% chance to drop 1 salvage in Act 1**, or **25% in Acts 2 and 3**. Gold salvage rests on the ground (or low cover)
-until collected or the attempt ends. Fly within **100 world units in 3D** with
-clear line of sight to attract it; once attracted it follows at 900 units/second.
+until collected or the attempt ends. In Mission 01, fly within **300 horizontal
+world units at any legal flight height** to attract it. Other missions use
+**100 world units in 3D**. Both require clear line of sight; once attracted,
+salvage follows at 900 units/second.
 There is no interaction key or despawn timer. Solid cover blocks collection.
 
-Three purple caches each contain **1 component** (or **2 in Act 2**) and
+In missions 02–12, three purple caches each contain **1 component** (or **2 in Act 2**) and
 **30 run XP**, collected once per attempt within **50 world units in 3D**
 with clear line of sight. Fast crossings count along the actual flight path. Look near the northwest and southeast spawn
 perimeter, and inside the central electrical passage. Descend to reach them;
@@ -801,7 +874,7 @@ reserves can be used immediately; an empty field takes 28 seconds away to refill
 Overlapping fields share the same 25/s delivery ceiling and never double charge.
 The HUD shows all six named reserves and recovery status before arrival; each field
 also has a shrinking reserve indicator. Choices and outcomes pause recovery;
-R restores all six reserves. All four modules drain 36/s, so even charging produces a
+R restores all six reserves. The original four modules together drain 36/s, so even charging produces a
 net loss of 11/s. Rockets alone leave a net gain of 15/s at a charger.
 
 The HUD shows each slot's key, state and current/configured drain, shield

@@ -9,10 +9,12 @@ pub(crate) struct Solid {
 pub(crate) struct WorldGeometry {
     pub solids: Vec<Solid>,
     pub hazard: Option<Solid>,
+    pub navigation: Option<super::navigation::NavigationGraph>,
 }
 impl Default for WorldGeometry {
     fn default() -> Self {
         Self {
+            navigation: None,
             solids: vec![
                 Solid {
                     center: Vec3::new(DIVIDER_X, 150., -845.),

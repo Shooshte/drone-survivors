@@ -21,6 +21,25 @@ struct MissionPreview {
     minimum: bool,
 }
 
+/// Legacy UI fixtures need the shared arena, four equipment slots and timer victory.
+/// Mission 01 now owns a different map and a payload objective.
+pub(crate) const SHARED_SURVIVAL: super::campaign::MissionId = super::campaign::MissionId::ALL[3];
+
+pub(crate) fn select_shared_survival(app: &mut App) {
+    for id in super::campaign::MissionId::ALL.into_iter().take(3) {
+        app.world_mut()
+            .resource_mut::<Campaign>()
+            .progress
+            .complete(id);
+    }
+    app.world_mut()
+        .resource_mut::<MissionSession>()
+        .selected_mission = SHARED_SURVIVAL;
+    println!(
+        "LEGACY FIXTURE SETUP: Mission 04 shared survival arena; synthetic prerequisite completion 01–03, no earned history or rewards."
+    );
+}
+
 pub(crate) fn install(app: &mut App, seconds: f64) {
     let captures = std::env::var_os("DRONE_CAPTURE_DIR")
         .map(PathBuf::from)
@@ -49,6 +68,7 @@ pub(crate) fn install(app: &mut App, seconds: f64) {
     })
     .add_systems(Startup, resize)
     .add_systems(PreUpdate, drive.after(InputSystems));
+    select_shared_survival(app);
 }
 
 fn resize(mut preview: ResMut<MissionPreview>, mut window: Single<&mut Window>) {
@@ -145,11 +165,7 @@ fn drive(
         }
         32 => {
             assert_eq!(campaign.history.len(), 2);
-            assert!(
-                campaign
-                    .progress
-                    .completed(super::campaign::MissionId::ALL[0])
-            );
+            assert!(campaign.progress.completed(SHARED_SURVIVAL));
             assert!(campaign.history[0].succeeded);
             assert!(!campaign.history[1].succeeded);
             assert!(session.result.is_none());

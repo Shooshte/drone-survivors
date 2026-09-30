@@ -8,6 +8,7 @@ fn hazard_app() -> (App, Entity) {
     let (mut app, drone) = empty_app();
     quiet(&mut app);
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![],
         hazard: Some(Solid {
             center: Vec3::new(0., 150., 0.),

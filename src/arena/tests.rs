@@ -261,7 +261,7 @@ fn scout_scene_loads_under_player_and_survives_encounter_restarts() {
         }
     }
     for _ in 0..3 {
-        step(&mut app, &[KeyCode::KeyD, KeyCode::Space], 0.1);
+        step(&mut app, &[KeyCode::KeyE, KeyCode::Space], 0.1);
         step(&mut app, &[KeyCode::KeyR], 0.01);
         near(position(&app, drone), START);
         assert_eq!(app.world().get::<WorldAssetRoot>(model).unwrap().0, scene);
@@ -282,7 +282,7 @@ fn scout_scene_loads_under_player_and_survives_encounter_restarts() {
 #[test]
 fn yaw_turns_in_place_and_preserves_heading() {
     let (mut app, drone) = test_app();
-    step(&mut app, &[KeyCode::KeyD], 0.375);
+    step(&mut app, &[KeyCode::KeyE], 0.375);
     near(position(&app, drone), START);
     let rotation = app.world().get::<Transform>(drone).unwrap().rotation;
     near(rotation * Vec3::NEG_Z, Vec3::X);
@@ -296,7 +296,7 @@ fn yaw_turns_in_place_and_preserves_heading() {
 #[test]
 fn bank_redirects_visible_thrust_sideways() {
     let (mut app, drone) = test_app();
-    step(&mut app, &[KeyCode::KeyE], 0.5);
+    step(&mut app, &[KeyCode::KeyD], 0.5);
     let transform = app.world().get::<Transform>(drone).unwrap();
     assert!(transform.translation.x > 1.);
     let local_up =
@@ -341,8 +341,10 @@ fn neutral_hover_and_all_bindings_follow_heading() {
             (KeyCode::ArrowUp, Vec3::NEG_Z),
             (KeyCode::KeyS, Vec3::Z),
             (KeyCode::ArrowDown, Vec3::Z),
-            (KeyCode::KeyQ, Vec3::NEG_X),
-            (KeyCode::KeyE, Vec3::X),
+            (KeyCode::KeyA, Vec3::NEG_X),
+            (KeyCode::ArrowLeft, Vec3::NEG_X),
+            (KeyCode::KeyD, Vec3::X),
+            (KeyCode::ArrowRight, Vec3::X),
             (KeyCode::Space, Vec3::Y),
             (KeyCode::ShiftLeft, Vec3::NEG_Y),
             (KeyCode::ShiftRight, Vec3::NEG_Y),
@@ -358,7 +360,10 @@ fn neutral_hover_and_all_bindings_follow_heading() {
             assert!(velocity.dot(expected) > 5., "{key:?}: {velocity:?}");
             if direction.y == 0. {
                 let up = app.world().get::<Transform>(drone).unwrap().rotation * Vec3::Y;
-                if matches!(key, KeyCode::KeyQ | KeyCode::KeyE) {
+                if matches!(
+                    key,
+                    KeyCode::KeyA | KeyCode::KeyD | KeyCode::ArrowLeft | KeyCode::ArrowRight
+                ) {
                     // Coordinated bank rotates thrust while world momentum trails it.
                     assert!(up.dot(expected) > 0.3);
                 } else {
@@ -368,12 +373,7 @@ fn neutral_hover_and_all_bindings_follow_heading() {
             }
         }
     }
-    for (key, sign) in [
-        (KeyCode::KeyA, 1.),
-        (KeyCode::ArrowLeft, 1.),
-        (KeyCode::KeyD, -1.),
-        (KeyCode::ArrowRight, -1.),
-    ] {
+    for (key, sign) in [(KeyCode::KeyQ, 1.), (KeyCode::KeyE, -1.)] {
         let (mut app, drone) = test_app();
         step(&mut app, &[key], 0.25);
         assert!(
@@ -412,10 +412,12 @@ fn aliases_do_not_stack_and_all_opposites_cancel() {
             vec![
                 KeyCode::KeyW,
                 KeyCode::ArrowDown,
-                KeyCode::KeyA,
-                KeyCode::ArrowRight,
                 KeyCode::KeyQ,
                 KeyCode::KeyE,
+                KeyCode::ArrowLeft,
+                KeyCode::ArrowRight,
+                KeyCode::KeyA,
+                KeyCode::KeyD,
                 KeyCode::Space,
                 KeyCode::ShiftRight,
             ],
@@ -432,12 +434,12 @@ fn aliases_do_not_stack_and_all_opposites_cancel() {
 
 #[test]
 fn tilt_progresses_to_shared_limit_and_axes_level_independently() {
-    for held in [KeyCode::KeyW, KeyCode::KeyE] {
+    for held in [KeyCode::KeyW, KeyCode::KeyD] {
         let (mut app, drone) = test_app();
-        step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.05);
+        step(&mut app, &[KeyCode::KeyW, KeyCode::KeyD], 0.05);
         let first = state(&app, drone).tilt.length();
         assert!(first > 0. && first < 30_f32.to_radians());
-        step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 1.);
+        step(&mut app, &[KeyCode::KeyW, KeyCode::KeyD], 1.);
         let both = state(&app, drone).tilt;
         assert!((both.length() - 30_f32.to_radians()).abs() < 0.001);
         let up = app.world().get::<Transform>(drone).unwrap().rotation * Vec3::Y;
@@ -473,7 +475,7 @@ fn yaw_preserves_world_drift_and_counter_tilt_brakes_faster() {
             .unwrap()
             .velocity = Vec3::NEG_Z * 100.;
     }
-    step(&mut coast, &[KeyCode::KeyD], 0.75);
+    step(&mut coast, &[KeyCode::KeyE], 0.75);
     let drift = state(&coast, dc).velocity;
     assert!(drift.z < -70. && drift.x.abs() < 0.001);
     step(&mut brake, &[KeyCode::KeyS], 0.75);
@@ -497,7 +499,7 @@ fn altitude_release_arrests_climb_and_descent_at_the_release_height() {
         assert_eq!(position(&app, drone).y, released);
     }
     step(&mut app, &[KeyCode::KeyR, KeyCode::Space], 0.1);
-    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.5);
+    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyD], 0.5);
     assert_eq!(position(&app, drone).y, START.y);
 }
 
@@ -508,7 +510,7 @@ fn comparable_trajectories_at_common_frame_rates_and_long_frame() {
         let (mut app, drone) = test_app();
         fly(
             &mut app,
-            &[KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyD, KeyCode::Space],
+            &[KeyCode::KeyW, KeyCode::KeyD, KeyCode::KeyE, KeyCode::Space],
             1.,
             rate,
         );
@@ -522,7 +524,7 @@ fn comparable_trajectories_at_common_frame_rates_and_long_frame() {
     let (mut app, drone) = test_app();
     step(
         &mut app,
-        &[KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyD, KeyCode::Space],
+        &[KeyCode::KeyW, KeyCode::KeyD, KeyCode::KeyE, KeyCode::Space],
         1.,
     );
     step(&mut app, &[], 0.5);
@@ -542,9 +544,9 @@ fn horizontal_speed_limit_preserves_braking_and_steering() {
     for keys in [
         vec![KeyCode::KeyW, KeyCode::Space],
         vec![KeyCode::KeyS, KeyCode::Space],
-        vec![KeyCode::KeyQ, KeyCode::Space],
-        vec![KeyCode::KeyE, KeyCode::Space],
-        vec![KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyD, KeyCode::Space],
+        vec![KeyCode::KeyA, KeyCode::Space],
+        vec![KeyCode::KeyD, KeyCode::Space],
+        vec![KeyCode::KeyW, KeyCode::KeyD, KeyCode::KeyE, KeyCode::Space],
     ] {
         let (mut app, drone) = test_app();
         app.world_mut().resource_mut::<Arena>().half_size = Vec3::splat(1_000_000.);
@@ -553,7 +555,7 @@ fn horizontal_speed_limit_preserves_braking_and_steering() {
             assert!(state(&app, drone).velocity.with_y(0.).length() <= 420.001);
         }
     }
-    for (key, steering) in [(KeyCode::KeyS, false), (KeyCode::KeyE, true)] {
+    for (key, steering) in [(KeyCode::KeyS, false), (KeyCode::KeyD, true)] {
         let (mut app, drone) = test_app();
         app.world_mut()
             .get_mut::<DroneFlight>(drone)
@@ -651,10 +653,10 @@ fn floor_takeoff_ceiling_departure_and_rotation_at_wall_work() {
         .unwrap()
         .translation
         .x = Arena::default().half_size.x - DRONE_HALF_EXTENTS.x;
-    step(&mut app, &[KeyCode::KeyD], 0.375);
+    step(&mut app, &[KeyCode::KeyE], 0.375);
     assert!(position(&app, drone).x < Arena::default().half_size.x - 50.);
     near(state(&app, drone).velocity, Vec3::ZERO);
-    step(&mut app, &[KeyCode::KeyQ], 0.25);
+    step(&mut app, &[KeyCode::KeyA], 0.25);
     assert!(state(&app, drone).velocity.x < 0.);
 }
 
@@ -664,7 +666,7 @@ fn reset_clears_all_flight_state_wins_over_input_and_held_reset_does_not_repeat(
     for _ in 0..3 {
         step(
             &mut app,
-            &[KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyD, KeyCode::Space],
+            &[KeyCode::KeyW, KeyCode::KeyD, KeyCode::KeyE, KeyCode::Space],
             0.5,
         );
         app.world_mut().get_mut::<Transform>(drone).unwrap().scale = Vec3::splat(2.);
@@ -686,9 +688,9 @@ fn reset_clears_all_flight_state_wins_over_input_and_held_reset_does_not_repeat(
 #[test]
 fn diagonal_tilt_and_leveling_use_configured_total_angular_rates() {
     let (mut app, drone) = test_app();
-    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.05);
+    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyD], 0.05);
     assert!((state(&app, drone).tilt.length() - 24_f32.to_radians()).abs() < 0.001);
-    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.5);
+    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyD], 0.5);
     step(&mut app, &[], 0.05);
     assert!((state(&app, drone).tilt.length() - 15_f32.to_radians()).abs() < 0.001);
 }
@@ -705,17 +707,17 @@ fn speed_clamp_is_horizontal_only_and_opposing_tilt_levels_each_axis() {
     let velocity = state(&app, drone).velocity;
     assert!(velocity.with_y(0.).length() <= 420.001);
     assert!(velocity.y > 499.);
-    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyE], 0.5);
+    step(&mut app, &[KeyCode::KeyW, KeyCode::KeyD], 0.5);
     step(
         &mut app,
-        &[KeyCode::KeyW, KeyCode::KeyS, KeyCode::KeyE],
+        &[KeyCode::KeyW, KeyCode::KeyS, KeyCode::KeyD],
         0.5,
     );
     assert_eq!(state(&app, drone).tilt.y, 0.);
     assert!(state(&app, drone).tilt.x > 0.5);
     step(
         &mut app,
-        &[KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyQ],
+        &[KeyCode::KeyW, KeyCode::KeyD, KeyCode::KeyA],
         0.5,
     );
     assert_eq!(state(&app, drone).tilt.x, 0.);
@@ -733,7 +735,7 @@ fn sustained_flight_contacts_all_faces_edges_and_corners_without_velocity_buildu
                 let inputs = |reverse: bool| {
                     let sign = if reverse { -1 } else { 1 };
                     [
-                        (x * sign, KeyCode::KeyE, KeyCode::KeyQ),
+                        (x * sign, KeyCode::KeyD, KeyCode::KeyA),
                         (y * sign, KeyCode::Space, KeyCode::ShiftLeft),
                         (z * sign, KeyCode::KeyS, KeyCode::KeyW),
                     ]

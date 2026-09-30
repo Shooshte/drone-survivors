@@ -178,6 +178,7 @@ fn earn(
     mut pickup: ResMut<ExplorationPickup>,
     mut phase: ResMut<GamePhase>,
     mut clock: ResMut<Time<Virtual>>,
+    blockout: Option<Res<crate::mission::blockout::BlockoutRun>>,
 ) {
     if boundary.is_some_and(|b| b.reset)
         || keys.just_pressed(KeyCode::KeyR)
@@ -205,7 +206,7 @@ fn earn(
         pickup.collected = true;
         run.award(30);
     }
-    if pool.catalog {
+    if pool.catalog || blockout.as_ref().is_some_and(|run| run.enabled) {
         run.prepare_catalog_offer(&modules.loadout);
     } else {
         run.prepare_offer(&modules.loadout);
@@ -237,6 +238,7 @@ fn choose(
         ResMut<crate::combat::RocketLauncher>,
         ResMut<crate::combat::bombs::BombState>,
     ),
+    blockout: Option<Res<crate::mission::blockout::BlockoutRun>>,
 ) {
     let (pool, mut run, mut session) = upgrade_state;
     let (mut launcher, mut bomb) = cooldowns;
@@ -335,7 +337,7 @@ fn choose(
         bomb.pulse_cooldown *= module_config.repulsor_interval / old_repulsor_interval;
     }
     session.armed = false;
-    if pool.catalog {
+    if pool.catalog || blockout.as_ref().is_some_and(|run| run.enabled) {
         run.prepare_catalog_offer(&modules.loadout);
     } else {
         run.prepare_offer(&modules.loadout);

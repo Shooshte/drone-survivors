@@ -163,6 +163,7 @@ fn visits_require_three_dimensional_proximity_and_clear_line_of_sight() {
     );
     assert_eq!(app.world().resource::<ObjectiveRun>().count(), 0);
     let mut geometry = crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![],
         ..default()
     };
@@ -187,6 +188,7 @@ fn objective_elapsed_time_continues_after_wave_schedule_and_survival_stays_cappe
         assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
     }
     let mut app = app();
+    super::tests::select_placeholder(&mut app, 3);
     launch(&mut app);
     assert_eq!(
         app.world().resource::<ObjectiveRun>().kind,
@@ -330,4 +332,39 @@ fn hitch_frame_records_crossed_sites_and_extraction_for_both_objectives() {
         assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Survived);
         assert_eq!(app.world().resource::<Campaign>().history.len(), 1);
     }
+}
+
+#[test]
+fn mission_one_requires_payload_instead_of_survival_timer() {
+    let mut app = app();
+    launch(&mut app);
+    app.world_mut().resource_mut::<Encounter>().elapsed = 600.;
+    tick(&mut app, 0., &[]);
+    assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
+    assert!(app.world().resource::<Campaign>().history.is_empty());
+}
+
+#[test]
+fn mission_one_uses_a_separate_square_map_and_restores_other_missions() {
+    let mut app = app();
+    launch(&mut app);
+    let arena = app.world().resource::<crate::arena::Arena>();
+    assert_eq!(arena.half_size.x, 6000.);
+    assert_eq!(arena.half_size.x, arena.half_size.z);
+    *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[]);
+    tick(&mut app, 0., &[KeyCode::Enter]);
+    app.world_mut()
+        .resource_mut::<Campaign>()
+        .progress
+        .complete(MissionId::ALL[0]);
+    app.world_mut()
+        .resource_mut::<MissionSession>()
+        .selected_mission = MissionId::ALL[1];
+    launch(&mut app);
+    assert_eq!(
+        app.world().resource::<crate::arena::Arena>().half_size,
+        crate::arena::Arena::default().half_size
+    );
 }

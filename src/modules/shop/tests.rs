@@ -113,3 +113,27 @@ fn removing_an_equipped_module_preserves_ownership() {
     assert_eq!(inventory.loadout().slots(), &[None, None, None, None]);
     assert!(inventory.owns(ModuleKind::Shield));
 }
+
+#[test]
+fn support_modules_cost_fifteen_salvage_and_purchase_atomically() {
+    for kind in [ModuleKind::Repair, ModuleKind::Repulsor] {
+        assert_eq!(price(kind), amounts(15, 0));
+        let mut inventory = ModuleInventory::default();
+        let mut bank = amounts(14, 1);
+        assert_eq!(
+            inventory.purchase(kind, &mut bank),
+            Err(ShopError::InsufficientFunds)
+        );
+        assert_eq!(bank, amounts(14, 1));
+        assert!(!inventory.owns(kind));
+        bank.salvage = 15;
+        assert_eq!(inventory.purchase(kind, &mut bank), Ok(()));
+        assert_eq!(bank, amounts(0, 1));
+        assert_eq!(
+            inventory.purchase(kind, &mut bank),
+            Err(ShopError::AlreadyOwned(kind))
+        );
+        inventory.assign(2, Some(kind)).unwrap();
+        assert_eq!(inventory.loadout().slots(), &[None, None, Some(kind), None]);
+    }
+}

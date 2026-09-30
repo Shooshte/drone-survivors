@@ -71,6 +71,7 @@ pub(super) fn contact_damage(
     mut power: ResMut<crate::energy::PowerFrame>,
     modules: Res<crate::modules::ModuleConfig>,
     mut bomb: ResMut<super::bombs::BombState>,
+    mut payload: crate::mission::objectives::PayloadState,
 ) {
     use super::variants::RamPhase;
     use crate::economy::runtime::EnemyKind;
@@ -78,6 +79,11 @@ pub(super) fn contact_damage(
     if *phase != GamePhase::Playing {
         return;
     }
+    if payload.enabled() && health.current == 0 {
+        *phase = GamePhase::Dead;
+        return;
+    }
+    let objective_events = payload.events(drone.translation, path.as_deref(), world.as_deref());
     let mut contacts: Vec<_> = enemies
         .iter()
         .filter_map(|(id, enemy, target, rammer)| {
@@ -87,7 +93,7 @@ pub(super) fn contact_damage(
             {
                 return None;
             }
-            let at = if enemy.kind == EnemyKind::Chaser {
+            let at = if enemy.kind == EnemyKind::Chaser && !payload.enabled() {
                 let half = drone_world_half_extents(drone.rotation)
                     + world_half_extents(target.rotation, Vec3::splat(config.enemy_half_size))
                     + Vec3::splat(0.001);
@@ -110,7 +116,8 @@ pub(super) fn contact_damage(
         })
         .collect();
     contacts.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.to_bits().cmp(&b.0.to_bits())));
-    for (id, _) in contacts {
+    for (id, at) in contacts {
+        payload.resolve(at, objective_events, &mut phase);
         if *phase != GamePhase::Playing {
             break;
         }
@@ -140,6 +147,7 @@ pub(super) fn contact_damage(
             commands.entity(id).despawn();
         }
     }
+    payload.resolve(1., objective_events, &mut phase);
 }
 
 /// Returns true only when damage or a shield block was actually consumed.

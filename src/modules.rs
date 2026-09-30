@@ -16,15 +16,22 @@ pub(crate) enum ModuleKind {
     Shield,
     Mobility,
     Rocket,
-    /// Catalog-only foundation; excluded from the campaign save codec.
-    #[serde(skip)]
     Repulsor,
-    /// Catalog-only support; excluded from the campaign save codec.
-    #[serde(skip)]
     Repair,
 }
 impl ModuleKind {
+    /// Original four-module loadout used by legacy catalog fixtures.
+    #[cfg(test)]
     pub(crate) const ALL: [Self; 4] = [Self::Overdrive, Self::Shield, Self::Mobility, Self::Rocket];
+
+    pub(crate) const CAMPAIGN: [Self; 6] = [
+        Self::Overdrive,
+        Self::Shield,
+        Self::Mobility,
+        Self::Rocket,
+        Self::Repulsor,
+        Self::Repair,
+    ];
 
     pub fn name(self) -> &'static str {
         match self {

@@ -49,6 +49,7 @@ fn run(app: &mut App, seconds: f32, hz: u32) {
 }
 fn wall(app: &mut App) {
     app.insert_resource(crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![crate::world::Solid {
             center: Vec3::new(-120., 90., 0.),
             half: Vec3::new(10., 150., 500.),
@@ -314,7 +315,7 @@ fn control_keyboard_escape_breaks_attacks_in_both_isolated_scenarios() {
                 if flee {
                     app.world_mut()
                         .resource_mut::<ButtonInput<KeyCode>>()
-                        .press(KeyCode::KeyE);
+                        .press(KeyCode::KeyD);
                 }
                 let mut slow_seconds = 0.;
                 let mut locked = false;
@@ -377,6 +378,7 @@ fn lethal_hit(app: &mut App, id: Entity, hit: LethalHit) {
     let position = app.world().get::<Transform>(id).unwrap().translation;
     if matches!(hit, LethalHit::Hazard) {
         app.insert_resource(crate::world::WorldGeometry {
+            navigation: None,
             solids: vec![],
             hazard: Some(crate::world::Solid {
                 center: position,

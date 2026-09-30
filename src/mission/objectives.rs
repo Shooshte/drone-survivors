@@ -14,10 +14,12 @@ pub(crate) enum ObjectiveKind {
     Survival,
     Reconnaissance,
     Extraction,
+    Payload,
 }
 impl MissionId {
     pub(crate) fn objective(self) -> ObjectiveKind {
         match self.index() {
+            0 => ObjectiveKind::Payload,
             1 => ObjectiveKind::Reconnaissance,
             2 => ObjectiveKind::Extraction,
             _ => ObjectiveKind::Survival,
@@ -52,10 +54,18 @@ pub(crate) struct ObjectiveRun {
 }
 impl ObjectiveRun {
     pub fn count(&self) -> usize {
-        self.visited.iter().filter(|v| **v).count()
+        if self.kind == ObjectiveKind::Payload {
+            usize::from(self.visited[0])
+        } else {
+            self.visited.iter().filter(|v| **v).count()
+        }
     }
     pub fn ready(&self) -> bool {
-        self.visited.iter().all(|v| *v)
+        if self.kind == ObjectiveKind::Payload {
+            self.visited[0]
+        } else {
+            self.visited.iter().all(|v| *v)
+        }
     }
     pub fn survival(&self) -> bool {
         self.kind == ObjectiveKind::Survival
@@ -92,7 +102,7 @@ fn update(
     path: Option<Res<PlayerPath>>,
     mut phase: ResMut<GamePhase>,
 ) {
-    if run.survival() {
+    if run.survival() || run.kind == ObjectiveKind::Payload {
         return;
     }
     // Movement records collision-adjusted substeps in travel order. Never join
@@ -159,6 +169,7 @@ mod sweep_tests;
 impl ObjectiveKind {
     pub fn label(self) -> &'static str {
         match self {
+            Self::Payload => "Collect payload, then deliver",
             Self::Survival => "Survive 5:00",
             Self::Reconnaissance => "Scan 3 sites, then extract",
             Self::Extraction => "Collect 3 cargo, then extract",
@@ -166,6 +177,7 @@ impl ObjectiveKind {
     }
     pub fn heading(self) -> &'static str {
         match self {
+            Self::Payload => "Deliver the payload",
             Self::Survival => "Hold out for five minutes",
             Self::Reconnaissance => "Scan the sector",
             Self::Extraction => "Recover the cargo",
@@ -173,6 +185,9 @@ impl ObjectiveKind {
     }
     pub fn briefing(self) -> &'static str {
         match self {
+            Self::Payload => {
+                "Collect payload (2), then deliver at (3). Slot 4 is reserved; no deadline. Patrols hunt from launch. Carrying the payload increases enemy pressure. Optional holdout (7): stay 30s for +5 components; leaving forfeits the reward."
+            }
             Self::Survival => {
                 "Survive for 5:00. Keep your hull above zero as enemy waves grow. Upgrade choices pause the clock."
             }
@@ -191,7 +206,7 @@ impl ObjectiveRun {
             .sites
             .iter()
             .enumerate()
-            .filter(|(i, _)| !self.visited[*i])
+            .filter(|(i, _)| !self.visited[*i] && (self.kind != ObjectiveKind::Payload || *i == 0))
             .min_by(|(_, a), (_, b)| {
                 a.distance_squared(position)
                     .total_cmp(&b.distance_squared(position))
@@ -228,6 +243,18 @@ impl ObjectiveRun {
             let sector = (angle / std::f32::consts::FRAC_PI_4).round() as i32;
             ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][sector.rem_euclid(8) as usize]
         };
+        if self.kind == ObjectiveKind::Payload {
+            return format!(
+                "PAYLOAD {} | {}: {direction} {:.0}u",
+                if self.ready() { "LOADED" } else { "RESERVED" },
+                if self.ready() {
+                    "3 DELIVERY"
+                } else {
+                    "2 PICKUP"
+                },
+                delta.with_y(0.).length()
+            );
+        }
         format!(
             "{task} {}/3 | {label}: {direction} {:.0}u / height {:.0}",
             self.count(),
@@ -235,4 +262,92 @@ impl ObjectiveRun {
             target.y
         )
     }
+}
+
+/// Payload contacts are committed by combat in the same travel order as damage.
+#[derive(bevy::ecs::system::SystemParam)]
+pub(crate) struct PayloadState<'w> {
+    config: Option<Res<'w, ObjectiveConfig>>,
+    run: Option<ResMut<'w, ObjectiveRun>>,
+}
+impl PayloadState<'_> {
+    pub fn enabled(&self) -> bool {
+        self.run
+            .as_ref()
+            .is_some_and(|r| r.kind == ObjectiveKind::Payload)
+    }
+    pub fn events(
+        &self,
+        position: Vec3,
+        path: Option<&PlayerPath>,
+        geometry: Option<&WorldGeometry>,
+    ) -> (Option<f32>, Option<f32>) {
+        if let (Some(config), Some(run)) = (&self.config, &self.run)
+            && self.enabled()
+        {
+            payload_events(config, run.ready(), position, path, geometry)
+        } else {
+            (None, None)
+        }
+    }
+    pub fn resolve(&mut self, at: f32, events: (Option<f32>, Option<f32>), phase: &mut GamePhase) {
+        if *phase != GamePhase::Playing {
+            return;
+        }
+        if events.0.is_some_and(|t| t <= at + 1e-6)
+            && let Some(run) = self.run.as_mut()
+        {
+            run.visited[0] = true;
+        }
+        if events.1.is_some_and(|t| t <= at + 1e-6) {
+            *phase = GamePhase::Survived;
+        }
+    }
+}
+
+pub(crate) fn payload_events(
+    config: &ObjectiveConfig,
+    carrying: bool,
+    position: Vec3,
+    path: Option<&PlayerPath>,
+    geometry: Option<&WorldGeometry>,
+) -> (Option<f32>, Option<f32>) {
+    let fallback = [crate::world::MotionSegment {
+        start: position,
+        end: position,
+        from: 0.,
+        to: 1.,
+        half: Vec3::ZERO,
+    }];
+    let segments = path
+        .filter(|p| !p.segments.is_empty())
+        .map_or(&fallback[..], |p| p.segments.as_slice());
+    let mut pickup = None;
+    let mut ready = carrying;
+    for segment in segments {
+        // Zones span the flight column; full-height terrain still blocks LOS.
+        let start = segment.start.with_y(config.sites[0].y);
+        let end = segment.end.with_y(config.sites[0].y);
+        let mut ready_at = 0.;
+        if !ready
+            && let Some(t) = contact(start, end, config.sites[0], config.visit_radius, geometry)
+        {
+            pickup = Some(segment.from + (segment.to - segment.from) * t);
+            ready_at = t;
+            ready = true;
+        }
+        if ready
+            && let Some(t) = contact(
+                start.lerp(end, ready_at),
+                end,
+                config.extraction,
+                config.extraction_radius,
+                geometry,
+            )
+        {
+            let t = ready_at + (1. - ready_at) * t;
+            return (pickup, Some(segment.from + (segment.to - segment.from) * t));
+        }
+    }
+    (pickup, None)
 }

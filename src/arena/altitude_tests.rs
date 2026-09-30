@@ -87,16 +87,16 @@ fn altitude_hold_survives_sustained_combined_maneuvers_all_builds_and_rates() {
                 vec![],
                 vec![KeyCode::KeyW],
                 vec![KeyCode::KeyS],
-                vec![KeyCode::KeyQ],
-                vec![KeyCode::KeyE],
-                vec![KeyCode::KeyW, KeyCode::KeyQ, KeyCode::KeyD],
-                vec![KeyCode::KeyS, KeyCode::KeyE, KeyCode::KeyA],
-                vec![KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyA, KeyCode::KeyD],
+                vec![KeyCode::KeyA],
+                vec![KeyCode::KeyD],
+                vec![KeyCode::KeyW, KeyCode::KeyA, KeyCode::KeyE],
+                vec![KeyCode::KeyS, KeyCode::KeyD, KeyCode::KeyQ],
+                vec![KeyCode::KeyW, KeyCode::KeyD, KeyCode::KeyQ, KeyCode::KeyE],
                 vec![],
             ] {
                 pilot.holds(&keys, 3., hz);
             }
-            pilot.tick(&[KeyCode::KeyW, KeyCode::KeyE], 0.25);
+            pilot.tick(&[KeyCode::KeyW, KeyCode::KeyD], 0.25);
             assert_eq!(pilot.transform.translation.y, 137.);
         }
     }
@@ -117,9 +117,9 @@ fn altitude_release_captures_each_new_height_and_opposing_inputs_cancel() {
                 let sign = if key == KeyCode::Space { 1. } else { -1. };
                 pilot.tick(&[key], 1. / hz as f32);
                 assert!(pilot.flight.velocity.y * sign > 0., "immediate override");
-                pilot.fly(&[key, KeyCode::KeyW, KeyCode::KeyE], 0.5, hz);
+                pilot.fly(&[key, KeyCode::KeyW, KeyCode::KeyD], 0.5, hz);
                 assert!((pilot.transform.translation.y - before) * sign > 2.);
-                pilot.holds(&[KeyCode::KeyW, KeyCode::KeyQ], 2., hz);
+                pilot.holds(&[KeyCode::KeyW, KeyCode::KeyA], 2., hz);
                 pilot.fly(&[key], 0.25, hz);
                 pilot.holds(
                     &[
@@ -127,7 +127,7 @@ fn altitude_release_captures_each_new_height_and_opposing_inputs_cancel() {
                         KeyCode::ShiftLeft,
                         KeyCode::ShiftRight,
                         KeyCode::KeyW,
-                        KeyCode::KeyE,
+                        KeyCode::KeyD,
                     ],
                     1.,
                     hz,
@@ -148,7 +148,7 @@ fn altitude_manual_commands_keep_level_flight_response_while_tilted() {
                 for _ in 0..hz {
                     level.tick(&[key], 1. / hz as f32);
                     tilted.tick(
-                        &[key, KeyCode::KeyW, KeyCode::KeyQ, KeyCode::KeyD],
+                        &[key, KeyCode::KeyW, KeyCode::KeyA, KeyCode::KeyE],
                         1. / hz as f32,
                     );
                     assert!(
@@ -208,6 +208,7 @@ fn altitude_hold_accepts_obstacle_top_and_underside_contact_without_stale_target
             let mut pilot = Pilot::new(start, 1., 1.);
             pilot.arena = Arena::default();
             pilot.world = Some(WorldGeometry {
+                navigation: None,
                 solids: vec![Solid {
                     center: Vec3::new(0., 150., 0.),
                     half: Vec3::new(600., 20., 1000.),
@@ -236,9 +237,9 @@ fn altitude_assistance_preserves_raw_horizontal_steering_and_braking() {
             let mut raw = Pilot::new(10_000., mobility, acceleration);
             for keys in [
                 vec![KeyCode::KeyW, KeyCode::Space],
-                vec![KeyCode::KeyE, KeyCode::KeyA],
+                vec![KeyCode::KeyD, KeyCode::KeyQ],
                 vec![KeyCode::KeyS, KeyCode::ShiftRight],
-                vec![KeyCode::KeyQ, KeyCode::KeyW],
+                vec![KeyCode::KeyA, KeyCode::KeyW],
                 vec![],
             ] {
                 let mut buttons = ButtonInput::default();
@@ -275,6 +276,7 @@ fn altitude_hold_slides_along_obstacle_side_and_can_bank_away() {
     for hz in [30, 60, 120, 144] {
         let mut pilot = Pilot::new(137., 1.25, 0.675);
         pilot.world = Some(WorldGeometry {
+            navigation: None,
             solids: vec![Solid {
                 center: Vec3::new(100., 150., 0.),
                 half: Vec3::new(1., 150., 1000.),
@@ -287,7 +289,7 @@ fn altitude_hold_slides_along_obstacle_side_and_can_bank_away() {
         assert!(pilot.transform.translation.z < -80.);
         let contact = pilot.transform.translation.x;
         // Opposing yaw keys fix heading so bank force points directly away.
-        pilot.holds(&[KeyCode::KeyQ, KeyCode::KeyA, KeyCode::KeyD], 0.5, hz);
+        pilot.holds(&[KeyCode::KeyA, KeyCode::KeyQ, KeyCode::KeyE], 0.5, hz);
         assert!(pilot.transform.translation.x < contact - 10.);
     }
 }

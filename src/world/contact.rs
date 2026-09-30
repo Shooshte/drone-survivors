@@ -11,9 +11,38 @@ pub(crate) fn proximity_contact(
     radius: f32,
     geometry: Option<&WorldGeometry>,
 ) -> Option<f32> {
+    contact_with_visibility(start, end, center, radius, |at| {
+        geometry.is_none_or(|g| g.line_clear(start.lerp(end, at), center))
+    })
+}
+
+/// Horizontal attraction spans flight height; visibility still uses the actual
+/// three-dimensional player position, including at swept contact candidates.
+pub(crate) fn horizontal_proximity_contact(
+    start: Vec3,
+    end: Vec3,
+    center: Vec3,
+    radius: f32,
+    geometry: Option<&WorldGeometry>,
+) -> Option<f32> {
+    contact_with_visibility(
+        start.with_y(0.),
+        end.with_y(0.),
+        center.with_y(0.),
+        radius,
+        |at| geometry.is_none_or(|g| g.line_clear(start.lerp(end, at), center)),
+    )
+}
+
+fn contact_with_visibility(
+    start: Vec3,
+    end: Vec3,
+    center: Vec3,
+    radius: f32,
+    visible: impl Fn(f32) -> bool,
+) -> Option<f32> {
     let delta = end - start;
     let length_squared = delta.length_squared();
-    let visible = |at| geometry.is_none_or(|g| g.line_clear(start.lerp(end, at), center));
     if length_squared == 0. {
         return (start.distance_squared(center) <= radius * radius && visible(0.)).then_some(0.);
     }

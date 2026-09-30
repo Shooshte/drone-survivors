@@ -35,7 +35,7 @@ impl Snapshot {
             version: 1,
             wallet: campaign.wallet,
             ranks: NodeId::ALL.map(|node| campaign.passives.rank(node)),
-            owned: ModuleKind::ALL
+            owned: ModuleKind::CAMPAIGN
                 .into_iter()
                 .filter(|&kind| campaign.inventory.owns(kind))
                 .collect(),

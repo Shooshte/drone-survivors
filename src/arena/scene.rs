@@ -91,6 +91,7 @@ pub(super) fn setup_scene(
         ..default()
     });
     commands.spawn((
+        crate::mission::blockout_scene::SharedMapVisual,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(size.x, size.z))),
         MeshMaterial3d(floor),
     ));
@@ -102,6 +103,7 @@ pub(super) fn setup_scene(
     let grid_z = (arena.half_size.z / 60.).floor() as i32;
     for x in -grid_x..=grid_x {
         commands.spawn((
+            crate::mission::blockout_scene::SharedMapVisual,
             Mesh3d(cube.clone()),
             MeshMaterial3d(grid.clone()),
             Transform::from_xyz(x as f32 * 60., 0.05, 0.).with_scale(Vec3::new(1., 0.1, size.z)),
@@ -109,6 +111,7 @@ pub(super) fn setup_scene(
     }
     for z in -grid_z..=grid_z {
         commands.spawn((
+            crate::mission::blockout_scene::SharedMapVisual,
             Mesh3d(cube.clone()),
             MeshMaterial3d(grid.clone()),
             Transform::from_xyz(0., 0.05, z as f32 * 60.).with_scale(Vec3::new(size.x, 0.1, 1.)),
@@ -118,12 +121,14 @@ pub(super) fn setup_scene(
     for y in [-wall / 2., size.y + wall / 2.] {
         for sign in [-1., 1.] {
             commands.spawn((
+                crate::mission::blockout_scene::SharedMapVisual,
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(boundary.clone()),
                 Transform::from_xyz(0., y, sign * (arena.half_size.z + wall / 2.))
                     .with_scale(Vec3::new(size.x + wall * 2., wall, wall)),
             ));
             commands.spawn((
+                crate::mission::blockout_scene::SharedMapVisual,
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(boundary.clone()),
                 Transform::from_xyz(sign * (arena.half_size.x + wall / 2.), y, 0.)
@@ -134,6 +139,7 @@ pub(super) fn setup_scene(
     for x in [-1., 1.] {
         for z in [-1., 1.] {
             commands.spawn((
+                crate::mission::blockout_scene::SharedMapVisual,
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(boundary.clone()),
                 Transform::from_xyz(
@@ -152,6 +158,7 @@ pub(super) fn setup_scene(
     });
     for scale in [Vec3::new(48., 0.1, 2.), Vec3::new(2., 0.1, 48.)] {
         commands.spawn((
+            crate::mission::blockout_scene::SharedMapVisual,
             Mesh3d(cube.clone()),
             MeshMaterial3d(home.clone()),
             Transform::from_xyz(0., 0.15, 0.).with_scale(scale),
@@ -220,7 +227,7 @@ pub(super) fn setup_scene(
             footer.spawn((
                 ControlsHud,
                 FooterFont::new(14., 12.),
-                Text::new("W/S, Up/Down Pitch | A/D, Left/Right Yaw | Q/E Bank+turn | R/Esc reset/quit\nSpace/Shift ascend/descend | Release holds height | 1-4 toggle"),
+                Text::new("W/S, Up/Down Pitch | Q/E Yaw | A/D, Left/Right Bank+turn | R/Esc reset/quit\nSpace/Shift ascend/descend | Release holds height | 1-4 toggle"),
                 TextFont::from_font_size(14.),
                 TextColor(Color::srgb(0.63, 0.74, 0.77)),
                 TextLayout::new(Justify::Left, LineBreak::WordBoundary),

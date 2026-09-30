@@ -17,7 +17,15 @@ use bevy::{
 };
 
 fn main() {
-    let validation = combat::validation::ValidationConfig::parse(std::env::args().skip(1))
+    let args: Vec<_> = std::env::args().skip(1).collect();
+    let mission_check = args == ["--mission01-check"];
+    let upgrades_check = args == ["--mission01-upgrades-check"];
+    let validation =
+        combat::validation::ValidationConfig::parse(if mission_check || upgrades_check {
+            vec![]
+        } else {
+            args
+        })
         .unwrap_or_else(|error| {
             eprintln!("{error}");
             std::process::exit(2);
@@ -58,9 +66,23 @@ fn main() {
             mission::objective_scene::ObjectiveScenePlugin,
             mission::scene::MissionScenePlugin,
             economy::scene::EconomyScenePlugin,
-            save::SavePlugin::default(),
-            save::scene::SaveScenePlugin,
         ));
+        if upgrades_check {
+            mission::upgrade_validation::install(&mut app);
+        } else if mission_check {
+            mission::blockout_validation::install(&mut app);
+        } else {
+            app.add_plugins((save::SavePlugin::default(), save::scene::SaveScenePlugin));
+        }
+    }
+    // Native fixtures install MissionPlugin themselves; their map renderer must
+    // follow mission selection just as it does in normal play.
+    if app
+        .world()
+        .contains_resource::<mission::blockout::BlockoutRun>()
+        && !app.is_plugin_added::<mission::blockout_scene::BlockoutScenePlugin>()
+    {
+        app.add_plugins(mission::blockout_scene::BlockoutScenePlugin);
     }
     app.run();
 }

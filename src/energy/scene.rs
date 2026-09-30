@@ -10,6 +10,8 @@ struct EnergyFill;
 #[derive(Component)]
 struct ChargerHud(Entity);
 #[derive(Component)]
+struct ChargerVisual(Entity);
+#[derive(Component)]
 struct FieldVisual(Entity);
 #[derive(Component)]
 struct WorldReserveFill(Entity);
@@ -37,7 +39,8 @@ impl Plugin for EnergyScenePlugin {
         )
         .add_systems(
             Update,
-            (present, crate::modules::scene::present).in_set(GameplaySet::Presentation),
+            (position_chargers, present, crate::modules::scene::present)
+                .in_set(GameplaySet::Presentation),
         );
     }
 }
@@ -87,40 +90,53 @@ fn setup_scene(
     let cylinder = meshes.add(Cylinder::new(1., 1.));
     let cube = meshes.add(Cuboid::default());
     for (id, node) in &chargers {
+        let root = commands
+            .spawn((
+                ChargerVisual(*id),
+                Transform::from_translation(node.center),
+                Visibility::Inherited,
+            ))
+            .id();
         commands.spawn((
             FieldVisual(*id),
+            ChildOf(root),
             Mesh3d(cylinder.clone()),
             MeshMaterial3d(idle.clone()),
-            Transform::from_translation(node.center + Vec3::Y * (node.height / 2.))
-                .with_scale(Vec3::new(node.radius, node.height, node.radius)),
+            Transform::from_translation(Vec3::Y * (node.height / 2.)).with_scale(Vec3::new(
+                node.radius,
+                node.height,
+                node.radius,
+            )),
         ));
         let ring = meshes.add(Annulus::new(node.radius - 1.5, node.radius));
         for height in [0.3, node.height] {
             commands.spawn((
+                ChildOf(root),
                 Mesh3d(ring.clone()),
                 MeshMaterial3d(edge.clone()),
-                Transform::from_translation(node.center + Vec3::Y * height)
+                Transform::from_translation(Vec3::Y * height)
                     .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
             ));
         }
         for axis in [Vec3::X, Vec3::NEG_X, Vec3::Z, Vec3::NEG_Z] {
             commands.spawn((
+                ChildOf(root),
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(edge.clone()),
-                Transform::from_translation(
-                    node.center + axis * node.radius + Vec3::Y * (node.height / 2.),
-                )
-                .with_scale(Vec3::new(0.8, node.height, 0.8)),
+                Transform::from_translation(axis * node.radius + Vec3::Y * (node.height / 2.))
+                    .with_scale(Vec3::new(0.8, node.height, 0.8)),
             ));
         }
         commands.spawn((
+            ChildOf(root),
             Mesh3d(cylinder.clone()),
             MeshMaterial3d(core.clone()),
-            Transform::from_translation(node.center + Vec3::Y).with_scale(Vec3::new(16., 2., 16.)),
+            Transform::from_translation(Vec3::Y).with_scale(Vec3::new(16., 2., 16.)),
         ));
-        let gauge_center = node.center + Vec3::new(0., 2., WORLD_RESERVE_Z);
+        let gauge_center = Vec3::new(0., 2., WORLD_RESERVE_Z);
         commands.spawn((
             WorldReserveFill(*id),
+            ChildOf(root),
             Mesh3d(cube.clone()),
             MeshMaterial3d(core.clone()),
             Transform::from_translation(gauge_center).with_scale(Vec3::new(
@@ -132,6 +148,7 @@ fn setup_scene(
         for z in [-1., 1.] {
             commands.spawn((
                 WorldReserveOutline,
+                ChildOf(root),
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(edge.clone()),
                 Transform::from_translation(
@@ -148,6 +165,7 @@ fn setup_scene(
         for x in [-1., 1.] {
             commands.spawn((
                 WorldReserveOutline,
+                ChildOf(root),
                 Mesh3d(cube.clone()),
                 MeshMaterial3d(edge.clone()),
                 Transform::from_translation(
@@ -257,6 +275,24 @@ fn setup_scene(
     });
 }
 
+// Reuse the live field/gauge assembly when a mission moves or disables a node.
+fn position_chargers(
+    nodes: Query<&ChargingNode>,
+    mut visuals: Query<(&ChargerVisual, &mut Transform, &mut Visibility)>,
+) {
+    for (marker, mut transform, mut visibility) in &mut visuals {
+        let enabled = nodes.get(marker.0).is_ok_and(|node| {
+            transform.translation = node.center;
+            node.radius > 0.
+        });
+        *visibility = if enabled {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+    }
+}
+
 fn charger_status(reserve: &ChargerReserve, config: &ChargerConfig, active: bool) -> String {
     let status = if reserve.occupied {
         if reserve.remaining <= 0. {
@@ -281,6 +317,12 @@ fn charger_status(reserve: &ChargerReserve, config: &ChargerConfig, active: bool
     }
 }
 
+type EnergyBar<'w, 's> = Single<
+    'w,
+    's,
+    (&'static mut Node, &'static mut BackgroundColor),
+    (With<EnergyFill>, Without<ChargerHud>),
+>;
 #[allow(clippy::too_many_arguments)]
 fn present(
     energy: Res<Energy>,
@@ -291,10 +333,10 @@ fn present(
     module_config: Res<ModuleConfig>,
     materials: Res<FieldMaterials>,
     mut hud: Single<&mut Text, (With<EnergyHud>, Without<ChargerHud>)>,
-    mut fill: Single<(&mut Node, &mut BackgroundColor), With<EnergyFill>>,
+    mut fill: EnergyBar,
     mut fields: Query<(&FieldVisual, &mut MeshMaterial3d<StandardMaterial>)>,
     chargers: Query<(&ChargingNode, &ChargerReserve, Option<&ChargingNodeLabel>)>,
-    mut charger_hud: Query<(&ChargerHud, &mut Text, &mut TextColor), Without<EnergyHud>>,
+    mut charger_hud: Query<(&ChargerHud, &mut Text, &mut TextColor, &mut Node), Without<EnergyHud>>,
     mut world_fill: Query<(&WorldReserveFill, &mut Transform)>,
 ) {
     let active = *phase == GamePhase::Playing;
@@ -344,9 +386,14 @@ fn present(
             material.0 = desired.clone();
         }
     }
-    for (marker, mut text, mut color) in &mut charger_hud {
+    for (marker, mut text, mut color, mut node_ui) in &mut charger_hud {
         let Ok((node, reserve, label)) = chargers.get(marker.0) else {
             continue;
+        };
+        node_ui.display = if node.radius > 0. {
+            Display::Flex
+        } else {
+            Display::None
         };
         let label = charging_node_name(node, label);
         let value = format!(
@@ -369,7 +416,7 @@ fn present(
         };
     }
     for (marker, mut transform) in &mut world_fill {
-        let Ok((node, reserve, _)) = chargers.get(marker.0) else {
+        let Ok((_, reserve, _)) = chargers.get(marker.0) else {
             continue;
         };
         let ratio = if charger_config.capacity > 0. {
@@ -379,7 +426,7 @@ fn present(
         };
         let width = WORLD_RESERVE_WIDTH * ratio;
         transform.scale.x = width;
-        transform.translation.x = node.center.x - WORLD_RESERVE_WIDTH / 2. + width / 2.;
+        transform.translation.x = -WORLD_RESERVE_WIDTH / 2. + width / 2.;
     }
 }
 #[cfg(test)]
@@ -417,6 +464,171 @@ mod tests {
             .single(app.world())
             .unwrap();
         (app, drone)
+    }
+
+    #[test]
+    fn mission_chargers_keep_live_site_feedback_across_reset_and_map_switch() {
+        use crate::mission::{
+            MissionPlugin,
+            tests::{launch, tick},
+        };
+        let mut app = App::new();
+        app.init_resource::<ButtonInput<KeyCode>>()
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
+                std::time::Duration::ZERO,
+            ))
+            .add_plugins((
+                bevy::time::TimePlugin,
+                crate::arena::ArenaPlugin,
+                crate::combat::CombatPlugin,
+                crate::combat::CombatScenePlugin,
+                MissionPlugin,
+                EnergyScenePlugin,
+                crate::mission::blockout_scene::BlockoutScenePlugin,
+            ));
+        app.world_mut().spawn((ModuleFooterSlot, Node::default()));
+        app.update();
+        launch(&mut app);
+        let drone = app
+            .world_mut()
+            .query_filtered::<Entity, With<Drone>>()
+            .single(app.world())
+            .unwrap();
+        let mesh_count = app.world().resource::<Assets<Mesh>>().len();
+        let outline_count = app
+            .world_mut()
+            .query::<&WorldReserveOutline>()
+            .iter(app.world())
+            .count();
+        for mission_index in [0, 3, 0] {
+            if mission_index != 0
+                || app
+                    .world()
+                    .resource::<crate::mission::MissionSession>()
+                    .selected_mission
+                    .index()
+                    != 0
+            {
+                *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Hub;
+                if mission_index == 0 {
+                    app.world_mut()
+                        .resource_mut::<crate::mission::MissionSession>()
+                        .selected_mission = crate::mission::campaign::MissionId::ALL[0];
+                } else {
+                    crate::mission::tests::select_placeholder(&mut app, mission_index);
+                }
+                launch(&mut app);
+            }
+            let fields: Vec<_> = app
+                .world_mut()
+                .query::<(Entity, &FieldVisual)>()
+                .iter(app.world())
+                .map(|(id, marker)| (id, marker.0))
+                .collect();
+            let mut visible_count = 0;
+            for (visual, charger) in &fields {
+                let node = *app.world().get::<ChargingNode>(*charger).unwrap();
+                let mut position = app.world().get::<Transform>(*visual).unwrap().translation;
+                let mut visible = app
+                    .world()
+                    .get::<Visibility>(*visual)
+                    .is_none_or(|v| *v != Visibility::Hidden);
+                if let Some(parent) = app.world().get::<ChildOf>(*visual) {
+                    position += app
+                        .world()
+                        .get::<Transform>(parent.parent())
+                        .unwrap()
+                        .translation;
+                    visible &= *app.world().get::<Visibility>(parent.parent()).unwrap()
+                        != Visibility::Hidden;
+                }
+                assert_eq!(
+                    visible,
+                    node.radius > 0.,
+                    "charger must stay visible at its current site"
+                );
+                if visible {
+                    visible_count += 1;
+                    assert_eq!(position, node.center + Vec3::Y * (node.height / 2.));
+                }
+            }
+            assert_eq!(visible_count, if mission_index == 0 { 4 } else { 6 });
+            let (visual, charger) = fields
+                .into_iter()
+                .find(|(_, id)| app.world().get::<ChargingNode>(*id).unwrap().radius > 0.)
+                .unwrap();
+            let center = app.world().get::<ChargingNode>(charger).unwrap().center;
+            at(&mut app, drone, center + Vec3::Y * 90.);
+            app.world_mut().resource_mut::<Energy>().current = 0.;
+            tick(&mut app, 1., &[]);
+            assert_eq!(app.world().resource::<Energy>().charging, Some(charger));
+            assert_eq!(
+                app.world()
+                    .get::<MeshMaterial3d<StandardMaterial>>(visual)
+                    .unwrap()
+                    .0,
+                app.world().resource::<FieldMaterials>().charging
+            );
+            let reserve = app
+                .world()
+                .get::<ChargerReserve>(charger)
+                .unwrap()
+                .remaining;
+            let capacity = app.world().resource::<ChargerConfig>().capacity;
+            let width = app
+                .world_mut()
+                .query::<(&WorldReserveFill, &Transform)>()
+                .iter(app.world())
+                .find(|(m, _)| m.0 == charger)
+                .unwrap()
+                .1
+                .scale
+                .x;
+            assert!((width - WORLD_RESERVE_WIDTH * (reserve / capacity) as f32).abs() < 0.001);
+            app.world_mut()
+                .get_mut::<ChargerReserve>(charger)
+                .unwrap()
+                .remaining = 0.;
+            tick(&mut app, 0., &[]);
+            assert_eq!(
+                app.world()
+                    .get::<MeshMaterial3d<StandardMaterial>>(visual)
+                    .unwrap()
+                    .0,
+                app.world().resource::<FieldMaterials>().idle
+            );
+            let empty = app
+                .world_mut()
+                .query::<(&WorldReserveFill, &Transform)>()
+                .iter(app.world())
+                .find(|(m, _)| m.0 == charger)
+                .unwrap()
+                .1
+                .scale
+                .x;
+            assert_eq!(empty, 0.);
+            tick(&mut app, 0., &[KeyCode::KeyR]);
+            let restored = app
+                .world_mut()
+                .query::<(&WorldReserveFill, &Transform)>()
+                .iter(app.world())
+                .find(|(m, _)| m.0 == charger)
+                .unwrap()
+                .1
+                .scale
+                .x;
+            assert_eq!(restored, WORLD_RESERVE_WIDTH);
+            assert_eq!(app.world().resource::<Assets<Mesh>>().len(), mesh_count);
+            assert_eq!(
+                app.world_mut()
+                    .query::<&WorldReserveOutline>()
+                    .iter(app.world())
+                    .count(),
+                outline_count
+            );
+        }
     }
 
     #[test]
@@ -654,7 +866,7 @@ mod tests {
             .map(|(entity, node)| (entity, node.center))
             .collect::<Vec<_>>();
         chargers.sort_by(|a, b| a.1.x.total_cmp(&b.1.x));
-        let (left, center) = chargers[0];
+        let (left, _) = chargers[0];
 
         let fills = app
             .world_mut()
@@ -679,7 +891,7 @@ mod tests {
             .map(|(marker, transform)| (marker.0, *transform))
             .unwrap();
         assert_eq!(quarter.scale.x, 13.);
-        assert_eq!(quarter.translation.x, center.x - 19.5);
+        assert_eq!(quarter.translation.x, -19.5);
 
         app.world_mut().entity_mut(left).insert(ChargerReserve {
             remaining: 0.,

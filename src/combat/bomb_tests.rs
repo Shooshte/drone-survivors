@@ -174,32 +174,6 @@ fn bomb_choice_pauses_and_restart_and_terminal_clear_all_transients() {
     assert!(app.world().resource::<BombState>().remaining.is_none());
 }
 #[test]
-fn bomb_catalog_repulsor_is_rejected_by_campaign_and_save_codec() {
-    use crate::modules::shop::ModuleInventory;
-    let mut inventory = ModuleInventory::default();
-    let mut wallet = crate::economy::Amounts {
-        salvage: 1000,
-        components: 100,
-    };
-    let before = wallet;
-    assert!(
-        inventory
-            .purchase(ModuleKind::Repulsor, &mut wallet)
-            .is_err()
-    );
-    assert_eq!(wallet, before);
-    assert!(!ModuleKind::ALL.contains(&ModuleKind::Repulsor));
-    assert!(serde_json::from_str::<ModuleKind>("\"Repulsor\"").is_err());
-    assert!(
-        ModuleInventory::from_saved(
-            vec![ModuleKind::Repulsor],
-            [Some(ModuleKind::Repulsor), None, None, None]
-        )
-        .is_err()
-    );
-}
-
-#[test]
 fn bomb_carrier_destroyed_before_contact_awards_one_typed_kill_and_never_attaches() {
     use crate::combat::{CombatOutcome, Projectile, ShotPayload};
     let mut app = app();
@@ -236,6 +210,7 @@ fn bomb_carrier_cannot_attach_through_cover() {
         .translation = position;
     app.world_mut().get_mut::<Enemy>(id).unwrap().previous = position;
     app.insert_resource(crate::world::WorldGeometry {
+        navigation: None,
         solids: vec![crate::world::Solid {
             center: Vec3::new(15., 90., 0.),
             half: Vec3::new(1., 200., 300.),

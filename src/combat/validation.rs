@@ -184,12 +184,12 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
         return;
     }
     if config.mode == ValidationMode::Exploration {
-        app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
+        suppress_mission_fixture_waves(app);
         crate::exploration_validation::install(app, config.seconds);
         return;
     }
     if config.mode == ValidationMode::Objectives {
-        app.world_mut().resource_mut::<WaveConfig>().bursts.clear();
+        suppress_mission_fixture_waves(app);
         crate::mission::objective_validation::install(app, config.seconds);
         return;
     }
@@ -297,6 +297,21 @@ pub(crate) fn install(app: &mut App, config: ValidationConfig) {
                 .after(GameplaySet::Presentation)
                 .after(observations::record),
         );
+}
+
+/// Mission baseline configuration restores WaveConfig on every launch/restart.
+/// Reapply the fixture override before reset/combat consumes that configuration.
+fn suppress_mission_fixture_waves(app: &mut App) {
+    app.world_mut()
+        .resource_mut::<WaveConfig>()
+        .disable_authored_waves();
+    app.add_systems(
+        Update,
+        (|mut waves: ResMut<WaveConfig>| waves.disable_authored_waves())
+            .after(GameplaySet::Baseline)
+            .before(GameplaySet::Reset)
+            .run_if(crate::game::reset_requested),
+    );
 }
 
 fn reset_observation_state(
@@ -483,10 +498,10 @@ fn pilot_input(
     for key in [
         KeyCode::KeyW,
         KeyCode::KeyS,
-        KeyCode::KeyA,
-        KeyCode::KeyD,
         KeyCode::KeyQ,
         KeyCode::KeyE,
+        KeyCode::KeyA,
+        KeyCode::KeyD,
         KeyCode::ArrowUp,
         KeyCode::ArrowDown,
         KeyCode::ArrowLeft,
@@ -548,9 +563,9 @@ fn steering_keys(
     let mut keys = Vec::with_capacity(3);
     if local.x.abs() > 15. {
         keys.push(if local.x > 0. {
-            KeyCode::KeyE
+            KeyCode::KeyD
         } else {
-            KeyCode::KeyQ
+            KeyCode::KeyA
         });
     }
     if local.z.abs() > 15. {
@@ -664,5 +679,192 @@ mod tests {
             (one.median, one.p95, one.p99, one.hitches),
             (20., 20., 20., 0)
         );
+    }
+}
+
+#[cfg(test)]
+mod mission_fixture_regression_tests {
+    use super::*;
+    use crate::mission::{
+        Campaign, MissionSession,
+        campaign::MissionId,
+        tests::{launch, tick},
+    };
+    use std::time::Duration;
+
+    fn fixture(mode: ValidationMode) -> App {
+        let mut app = App::new();
+        app.init_resource::<ButtonInput<KeyCode>>()
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
+                Duration::ZERO,
+            ))
+            .add_message::<AppExit>()
+            .add_plugins((
+                bevy::time::TimePlugin,
+                crate::arena::ArenaPlugin,
+                CombatPlugin,
+                super::super::CombatScenePlugin,
+                crate::upgrades::runtime::UpgradePlugin,
+            ));
+        app.world_mut().spawn(Window::default());
+        install(
+            &mut app,
+            ValidationConfig {
+                mode,
+                seconds: 600.,
+                enemies: 150,
+            },
+        );
+        // Exercise the installed fixture setup and production transitions with a
+        // deterministic test clock instead of the wall-clock native UI driver.
+        app.world_mut()
+            .resource_mut::<Schedules>()
+            .remove(PreUpdate);
+        app.update();
+        app
+    }
+
+    #[test]
+    fn legacy_survival_fixtures_launch_restart_and_settle_the_selected_shared_mission() {
+        for mode in [
+            ValidationMode::Missions,
+            ValidationMode::Passives,
+            ValidationMode::Shop,
+            ValidationMode::Exploration,
+        ] {
+            let mut app = fixture(mode);
+            let selected = app.world().resource::<MissionSession>().selected_mission;
+            assert_eq!(
+                selected,
+                MissionId::ALL[3],
+                "{mode:?} must explicitly select shared survival"
+            );
+            assert!(
+                app.world()
+                    .resource::<Campaign>()
+                    .progress
+                    .unlocked(selected)
+            );
+            assert!(app.world().resource::<Campaign>().history.is_empty());
+            launch(&mut app);
+            assert!(
+                !app.world()
+                    .resource::<crate::mission::blockout::BlockoutRun>()
+                    .enabled
+            );
+            let cache_count = app
+                .world_mut()
+                .query::<&crate::economy::runtime::DiscoverySite>()
+                .iter(app.world())
+                .count();
+            assert_eq!(cache_count, 3, "{mode:?} needs the shared arena caches");
+            tick(&mut app, 0., &[KeyCode::KeyR]);
+            app.world_mut().resource_mut::<Encounter>().elapsed = 300.;
+            tick(&mut app, 0., &[]);
+            assert_eq!(
+                *app.world().resource::<GamePhase>(),
+                GamePhase::Survived,
+                "{mode:?}"
+            );
+            let campaign = app.world().resource::<Campaign>();
+            assert_eq!(campaign.history.len(), 1);
+            assert_eq!(campaign.history[0].mission, selected);
+            assert!(campaign.history[0].succeeded);
+        }
+    }
+
+    #[test]
+    fn objective_and_exploration_fixtures_keep_waves_disabled_after_launch_and_restart() {
+        for mode in [ValidationMode::Objectives, ValidationMode::Exploration] {
+            let mut app = fixture(mode);
+            if mode == ValidationMode::Objectives {
+                app.world_mut()
+                    .resource_mut::<MissionSession>()
+                    .selected_mission = MissionId::ALL[1];
+            }
+            launch(&mut app);
+            for restart in [false, true] {
+                if restart {
+                    tick(&mut app, 0., &[KeyCode::KeyR]);
+                }
+                let waves = app.world().resource::<WaveConfig>();
+                assert!(
+                    waves.bursts.is_empty(),
+                    "{mode:?} restored authored bursts after reset={restart}"
+                );
+                assert!(
+                    waves.phase_at(10.).is_none(),
+                    "{mode:?} restored authored phase"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn shop_fixture_can_assign_slot_four_and_launch_its_saved_equipment() {
+        let mut app = fixture(ValidationMode::Shop);
+        app.world_mut().resource_mut::<Campaign>().wallet = crate::economy::Amounts {
+            salvage: 10,
+            components: 0,
+        };
+        tick(&mut app, 0., &[KeyCode::KeyM]);
+        tick(&mut app, 0., &[]);
+        tick(&mut app, 0., &[KeyCode::KeyB]);
+        tick(&mut app, 0., &[]);
+        tick(&mut app, 0., &[KeyCode::Digit4]);
+        assert_eq!(
+            app.world()
+                .resource::<Campaign>()
+                .inventory
+                .loadout()
+                .slots()[3],
+            Some(crate::modules::ModuleKind::Overdrive)
+        );
+        tick(&mut app, 0., &[]);
+        tick(&mut app, 0., &[KeyCode::Backspace]);
+        launch(&mut app);
+        assert_eq!(
+            app.world()
+                .resource::<crate::modules::Modules>()
+                .loadout
+                .slots()[3],
+            Some(crate::modules::ModuleKind::Overdrive)
+        );
+    }
+
+    #[test]
+    fn exploration_fixture_collects_shared_blueprint_before_survival_settlement() {
+        let mut app = fixture(ValidationMode::Exploration);
+        launch(&mut app);
+        let target = app
+            .world()
+            .resource::<crate::economy::runtime::EconomyConfig>()
+            .caches[0];
+        let mut query = app
+            .world_mut()
+            .query_filtered::<&mut Transform, With<Drone>>();
+        query.single_mut(app.world_mut()).unwrap().translation = target + Vec3::Y * 20.;
+        tick(&mut app, 0., &[]);
+        assert!(app.world().resource::<Campaign>().secrets.blueprint);
+        assert_eq!(
+            app.world()
+                .resource::<crate::economy::AttemptResources>()
+                .collected
+                .components,
+            1
+        );
+        while *app.world().resource::<GamePhase>() == GamePhase::Choosing {
+            tick(&mut app, 0., &[KeyCode::Backspace]);
+            tick(&mut app, 0., &[]);
+        }
+        app.world_mut().resource_mut::<Encounter>().elapsed = 301.;
+        tick(&mut app, 0., &[]);
+        assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Survived);
+        let campaign = app.world().resource::<Campaign>();
+        assert!(campaign.secrets.blueprint);
+        assert_eq!(campaign.history[0].mission, MissionId::ALL[3]);
+        assert_eq!(campaign.wallet.components, 2);
     }
 }

@@ -1,13 +1,20 @@
 //! Mission transitions and completion boundary.
 use bevy::prelude::*;
+pub(crate) mod blockout;
+pub(crate) mod blockout_scene;
+pub(crate) mod blockout_validation;
 pub(crate) mod campaign;
 pub(crate) mod campaign_validation;
+mod holdout_scene;
 #[cfg(test)]
 mod module_tests;
 pub(crate) mod objective_scene;
 pub(crate) mod objective_validation;
 pub(crate) mod objectives;
 pub(crate) mod secrets;
+#[cfg(test)]
+mod upgrade_tests;
+pub(crate) mod upgrade_validation;
 use campaign::MissionId;
 pub(crate) mod scene;
 pub(crate) mod selection_scene;
@@ -66,6 +73,7 @@ pub(crate) struct MissionPlugin;
 impl Plugin for MissionPlugin {
     fn build(&self, app: &mut App) {
         objectives::install(app);
+        blockout::install(app);
         app.add_plugins(crate::economy::runtime::EconomyPlugin)
             .init_resource::<Campaign>()
             .init_resource::<MissionSession>()
@@ -283,6 +291,13 @@ pub(crate) fn input(
         (GamePhase::Briefing, Some(MissionAction::Launch)) => {
             if !campaign.progress.unlocked(session.selected_mission) {
                 session.purchase_feedback = session.selected_mission.requirement();
+                session.armed = false;
+                return;
+            }
+            if session.selected_mission.index() == 0
+                && campaign.inventory.loadout().slots()[3].is_some()
+            {
+                session.purchase_feedback = "Mission 01 reserves slot 4 for the payload. Return to the module shop and clear or move its equipment.".into();
                 session.armed = false;
                 return;
             }

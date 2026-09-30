@@ -230,3 +230,47 @@ fn snapshot_secret_defaults_routes_and_purchase_validation() {
     assert!(restored.progress.unlocked(resumed.selected_mission));
     assert_eq!(restored.progress.count(), 1);
 }
+
+#[test]
+fn support_modules_owned_and_equipped_round_trip_without_grants() {
+    let mut value = serde_json::to_value(Snapshot::capture(
+        &Campaign::default(),
+        &MissionSession::default(),
+    ))
+    .unwrap();
+    value["owned"] = serde_json::json!(["Repulsor", "Repair"]);
+    value["slots"] = serde_json::json!(["Repair", null, "Repulsor", null]);
+    let (campaign, session) = Snapshot::decode(&serde_json::to_vec(&value).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert_eq!(campaign.wallet.salvage, 0);
+    assert_eq!(
+        campaign.inventory.loadout().slots(),
+        &[
+            Some(ModuleKind::Repair),
+            None,
+            Some(ModuleKind::Repulsor),
+            None
+        ]
+    );
+    let captured = serde_json::to_value(Snapshot::capture(&campaign, &session)).unwrap();
+    assert_eq!(captured, value);
+    value["owned"] = serde_json::json!(["Repair"]);
+    assert!(Snapshot::decode(&serde_json::to_vec(&value).unwrap()).is_err());
+}
+
+#[test]
+fn old_version_one_save_preserves_legacy_ownership_without_support_grants() {
+    let (campaign, session) = populated();
+    let value = serde_json::to_value(Snapshot::capture(&campaign, &session)).unwrap();
+    assert_eq!(value["version"], 1);
+    let (loaded, _) = Snapshot::decode(&serde_json::to_vec(&value).unwrap())
+        .unwrap()
+        .restore()
+        .unwrap();
+    assert!(loaded.inventory.owns(ModuleKind::Shield));
+    assert!(!loaded.inventory.owns(ModuleKind::Repulsor));
+    assert!(!loaded.inventory.owns(ModuleKind::Repair));
+    assert_eq!(loaded.wallet, campaign.wallet);
+}

@@ -8,6 +8,7 @@ fn region_launch_configures_real_loot_and_chargers_without_moving_sites() {
         mission::{Campaign, MissionSession, campaign::MissionId},
     };
     let mut app = crate::mission::tests::app();
+    crate::mission::tests::select_placeholder(&mut app, 1);
     let original_sites = app.world().resource::<EconomyConfig>().caches;
     let mut original_chargers = app
         .world_mut()
@@ -17,10 +18,10 @@ fn region_launch_configures_real_loot_and_chargers_without_moving_sites() {
         .collect::<Vec<_>>();
     original_chargers.sort_by(|a, b| a.partial_cmp(b).unwrap());
     for (index, chance, components, capacity) in [
-        (0, 50, 1, 200.),
+        (1, 50, 1, 200.),
         (4, 25, 2, 200.),
         (8, 25, 1, 300.),
-        (0, 50, 1, 200.),
+        (1, 50, 1, 200.),
     ] {
         *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Hub;
         for id in &MissionId::ALL[..index] {
@@ -112,6 +113,7 @@ fn discovery_awards_xp_once_per_attempt_and_fast_crossings_collect() {
 fn discovery_unlocks_are_durable_while_xp_and_sites_reset() {
     use crate::{mission::Campaign, upgrades::UpgradeRun};
     let mut app = crate::mission::tests::app();
+    crate::mission::tests::select_placeholder(&mut app, 1);
     crate::mission::tests::launch(&mut app);
     let sites = app.world().resource::<EconomyConfig>().caches;
     let drone = app
@@ -141,7 +143,7 @@ fn discovery_unlocks_are_durable_while_xp_and_sites_reset() {
         app.world().resource::<Campaign>().progress.routes(),
         [true, false, false]
     );
-    assert_eq!(app.world().resource::<Campaign>().progress.count(), 0);
+    assert_eq!(app.world().resource::<Campaign>().progress.count(), 1);
     *app.world_mut().resource_mut::<GamePhase>() = GamePhase::Dead;
     crate::mission::tests::tick(&mut app, 0., &[]);
     assert!(app.world().resource::<Campaign>().secrets.blueprint);

@@ -129,10 +129,10 @@ fn setup(mut commands: Commands) {
                         width: percent(100),
                         max_width: px(980),
                         max_height: percent(100),
-                        padding: UiRect::all(px(10)),
+                        padding: UiRect::all(px(8)),
                         border: UiRect::left(px(3)),
                         flex_direction: FlexDirection::Column,
-                        row_gap: px(3),
+                        row_gap: px(2),
                         overflow: Overflow::clip(),
                         ..default()
                     },
@@ -141,7 +141,7 @@ fn setup(mut commands: Commands) {
                 ))
                 .with_children(|panel| {
                     label(panel, "DRONE SURVIVORS / MODULE BAY", 11., CYAN);
-                    label(panel, "Loadout manifest", 24., SILVER);
+                    label(panel, "Loadout manifest", 20., SILVER);
                     label(
                         panel,
                         "Up/Down select   B buy   1-4 equip selected",
@@ -154,7 +154,7 @@ fn setup(mut commands: Commands) {
                         TextFont::from_font_size(12.),
                         TextColor(MUTED),
                     ));
-                    for kind in ModuleKind::ALL {
+                    for kind in ModuleKind::CAMPAIGN {
                         panel
                             .spawn((
                                 Button,
@@ -316,7 +316,8 @@ fn present(
     preview_chargers.capacity =
         crate::world::regions::RegionProfile::for_mission(session.selected_mission)
             .charger_capacity;
-    let selected = ModuleKind::ALL[session.selected_module.min(ModuleKind::ALL.len() - 1)];
+    let selected =
+        ModuleKind::CAMPAIGN[session.selected_module.min(ModuleKind::CAMPAIGN.len() - 1)];
     for (part, mut text, mut color) in &mut copy {
         let value = match part {
             Copy::Bank => bank_line(campaign.wallet),
@@ -382,10 +383,17 @@ fn present(
             continue;
         };
         let current = campaign.inventory.loadout().slots()[slot];
-        let value = current.map_or_else(
-            || format!("{}  SLOT {}  EMPTY", slot + 1, slot + 1),
-            |kind| format!("{}  SLOT {}  {}", slot + 1, slot + 1, kind.name()),
-        );
+        let value = if slot == 3 && session.selected_mission.index() == 0 {
+            current.map_or_else(
+                || "4  PAYLOAD / RESERVED".into(),
+                |kind| format!("4  RESERVED / CLEAR {}", kind.name()),
+            )
+        } else {
+            current.map_or_else(
+                || format!("{}  SLOT {}  EMPTY", slot + 1, slot + 1),
+                |kind| format!("{}  SLOT {}  {}", slot + 1, slot + 1, kind.name()),
+            )
+        };
         for child in children {
             if let Ok(mut text) = slot_text.get_mut(*child) {
                 text.0 = value.clone();
@@ -478,7 +486,14 @@ mod tests {
         let mut app = app();
         let copy = text(&mut app);
 
-        for kind in ModuleKind::ALL {
+        for kind in [
+            ModuleKind::Overdrive,
+            ModuleKind::Shield,
+            ModuleKind::Mobility,
+            ModuleKind::Rocket,
+            ModuleKind::Repulsor,
+            ModuleKind::Repair,
+        ] {
             assert!(copy.contains(kind.name()));
             let cost = price(kind);
             assert!(copy.contains(&format!("S {}  C {}", cost.salvage, cost.components)));
@@ -497,7 +512,7 @@ mod tests {
             .iter(app.world())
             .collect::<Vec<_>>();
 
-        assert_eq!(labels.len(), 16);
+        assert_eq!(labels.len(), 18);
         assert!(labels.iter().all(|label| !label.0.is_empty()));
     }
 

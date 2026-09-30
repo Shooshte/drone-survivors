@@ -514,6 +514,7 @@ fn hazard_kills_award_xp_once_and_can_open_upgrade_choices() {
     let (mut app, _) = upgrade_app();
     let center = START + Vec3::X * 200.;
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![],
         hazard: Some(Solid {
             center,
@@ -545,6 +546,7 @@ fn upgrade_choice_freezes_hazard_then_resumes_remaining_warning() {
     };
     let (mut app, _) = upgrade_app();
     app.insert_resource(WorldGeometry {
+        navigation: None,
         solids: vec![],
         hazard: Some(Solid {
             center: START,
@@ -608,12 +610,12 @@ fn agile_frame_improves_coordinated_turns_and_restart_restores_them() {
         if upgraded {
             pick(&mut app, UpgradeKind::AgileFrame);
         }
-        tick(&mut app, 0.3, &[KeyCode::KeyE]);
+        tick(&mut app, 0.3, &[KeyCode::KeyD]);
         let flight = app.world().get::<DroneFlight>(drone).unwrap();
         let nose = Quat::from_rotation_y(flight.heading) * Vec3::NEG_Z;
         turns.push(nose.x.asin());
         tick(&mut app, 0., &[KeyCode::KeyR]);
-        tick(&mut app, 0.3, &[KeyCode::KeyE]);
+        tick(&mut app, 0.3, &[KeyCode::KeyD]);
         let flight = app.world().get::<DroneFlight>(drone).unwrap();
         let nose = Quat::from_rotation_y(flight.heading) * Vec3::NEG_Z;
         assert!(
