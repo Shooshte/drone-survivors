@@ -143,12 +143,12 @@ fn outcome_frame_freezes_energy_and_restart_wins_over_everything() {
 
 #[test]
 fn empty_drone_reaches_both_nodes_with_real_flight_under_enemy_pressure() {
-    for yaw in [KeyCode::KeyA, KeyCode::KeyD] {
+    for yaw in [KeyCode::KeyQ, KeyCode::KeyE] {
         let (mut app, _) = empty_app();
         enemy(&mut app, START + Vec3::Z * 220., 10000);
         app.world_mut().resource_mut::<Energy>().current = 0.;
         let mut reached = false;
-        // Point at the charger, then pitch forward: Q/E now intentionally curves.
+        // Point at the charger, then pitch forward: A/D now intentionally curves.
         for frame in 0..285 {
             step(
                 &mut app,

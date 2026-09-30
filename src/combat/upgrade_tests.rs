@@ -610,12 +610,12 @@ fn agile_frame_improves_coordinated_turns_and_restart_restores_them() {
         if upgraded {
             pick(&mut app, UpgradeKind::AgileFrame);
         }
-        tick(&mut app, 0.3, &[KeyCode::KeyE]);
+        tick(&mut app, 0.3, &[KeyCode::KeyD]);
         let flight = app.world().get::<DroneFlight>(drone).unwrap();
         let nose = Quat::from_rotation_y(flight.heading) * Vec3::NEG_Z;
         turns.push(nose.x.asin());
         tick(&mut app, 0., &[KeyCode::KeyR]);
-        tick(&mut app, 0.3, &[KeyCode::KeyE]);
+        tick(&mut app, 0.3, &[KeyCode::KeyD]);
         let flight = app.world().get::<DroneFlight>(drone).unwrap();
         let nose = Quat::from_rotation_y(flight.heading) * Vec3::NEG_Z;
         assert!(

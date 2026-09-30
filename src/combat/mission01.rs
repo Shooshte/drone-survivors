@@ -1197,9 +1197,9 @@ mod tests {
                     let mut keys = Vec::new();
                     if local.x.abs() > 15. {
                         keys.push(if local.x > 0. {
-                            KeyCode::KeyE
+                            KeyCode::KeyD
                         } else {
-                            KeyCode::KeyQ
+                            KeyCode::KeyA
                         });
                     }
                     if local.z.abs() > 15. {

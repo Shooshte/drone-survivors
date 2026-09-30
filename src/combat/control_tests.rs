@@ -315,7 +315,7 @@ fn control_keyboard_escape_breaks_attacks_in_both_isolated_scenarios() {
                 if flee {
                     app.world_mut()
                         .resource_mut::<ButtonInput<KeyCode>>()
-                        .press(KeyCode::KeyE);
+                        .press(KeyCode::KeyD);
                 }
                 let mut slow_seconds = 0.;
                 let mut locked = false;

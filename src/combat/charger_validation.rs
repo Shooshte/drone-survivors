@@ -59,8 +59,8 @@ pub(super) fn input(
     for key in [
         KeyCode::KeyW,
         KeyCode::KeyS,
-        KeyCode::KeyQ,
-        KeyCode::KeyE,
+        KeyCode::KeyA,
+        KeyCode::KeyD,
         KeyCode::Space,
         KeyCode::ShiftLeft,
     ] {

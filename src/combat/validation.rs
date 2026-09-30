@@ -498,10 +498,10 @@ fn pilot_input(
     for key in [
         KeyCode::KeyW,
         KeyCode::KeyS,
-        KeyCode::KeyA,
-        KeyCode::KeyD,
         KeyCode::KeyQ,
         KeyCode::KeyE,
+        KeyCode::KeyA,
+        KeyCode::KeyD,
         KeyCode::ArrowUp,
         KeyCode::ArrowDown,
         KeyCode::ArrowLeft,
@@ -563,9 +563,9 @@ fn steering_keys(
     let mut keys = Vec::with_capacity(3);
     if local.x.abs() > 15. {
         keys.push(if local.x > 0. {
-            KeyCode::KeyE
+            KeyCode::KeyD
         } else {
-            KeyCode::KeyQ
+            KeyCode::KeyA
         });
     }
     if local.z.abs() > 15. {

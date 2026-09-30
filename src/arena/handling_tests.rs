@@ -44,7 +44,7 @@ impl Pilot {
 fn handling_bank_turns_nose_and_forward_trajectory_in_both_directions() {
     for hz in [30, 60, 120] {
         let mut sides = vec![];
-        for (key, sign) in [(KeyCode::KeyQ, -1.), (KeyCode::KeyE, 1.)] {
+        for (key, sign) in [(KeyCode::KeyA, -1.), (KeyCode::KeyD, 1.)] {
             let mut p = Pilot::new();
             p.flight.velocity = Vec3::NEG_Z * 200.;
             p.fly(&[KeyCode::KeyW, key], 0.75, hz);
@@ -67,11 +67,11 @@ fn handling_bank_turns_nose_and_forward_trajectory_in_both_directions() {
 fn handling_counter_yaw_takes_priority_and_release_levels_the_bank() {
     let mut p = Pilot::new();
     p.flight.velocity = Vec3::NEG_Z * 200.;
-    p.fly(&[KeyCode::KeyE], 0.4, 120);
+    p.fly(&[KeyCode::KeyD], 0.4, 120);
     assert!(p.nose().x > 0.4, "bank turns right before counter-steering");
     let nose = p.nose();
     let velocity = p.flight.velocity;
-    p.tick(&[KeyCode::KeyE, KeyCode::KeyA], 1. / 120.);
+    p.tick(&[KeyCode::KeyD, KeyCode::KeyQ], 1. / 120.);
     assert!(p.nose().x < nose.x, "direct yaw must turn left immediately");
     assert!(
         p.flight.velocity.distance(velocity) < 6.,
@@ -163,11 +163,11 @@ fn handling_reversed_bank_changes_heading_promptly_without_snapping_momentum() {
     for hz in [30, 60, 120] {
         let mut p = Pilot::new();
         p.flight.velocity = Vec3::NEG_Z * 200.;
-        p.fly(&[KeyCode::KeyE], 0.3, hz);
-        p.fly(&[KeyCode::KeyQ], 0.15, hz);
+        p.fly(&[KeyCode::KeyD], 0.3, hz);
+        p.fly(&[KeyCode::KeyA], 0.15, hz);
         let nose = p.nose();
         assert!(p.flight.tilt.x < -0.5);
-        p.tick(&[KeyCode::KeyQ], 1. / hz as f32);
+        p.tick(&[KeyCode::KeyA], 1. / hz as f32);
         assert!(p.nose().x < nose.x, "new bank turns left");
         assert!(p.flight.velocity.z < -100., "momentum retained");
     }
@@ -237,8 +237,8 @@ fn handling_curves_and_counter_inputs_remain_consistent_across_frame_rates() {
     for hz in [30, 60, 120, 144] {
         let mut p = Pilot::new();
         p.fly(&[KeyCode::KeyW], 0.5, hz);
-        p.fly(&[KeyCode::KeyW, KeyCode::KeyE], 0.5, hz);
-        p.fly(&[KeyCode::KeyS, KeyCode::KeyQ], 0.5, hz);
+        p.fly(&[KeyCode::KeyW, KeyCode::KeyD], 0.5, hz);
+        p.fly(&[KeyCode::KeyS, KeyCode::KeyA], 0.5, hz);
         p.fly(&[], 0.5, hz);
         results.push((p.transform.translation, p.flight));
     }
@@ -262,46 +262,42 @@ fn handling_curves_and_counter_inputs_remain_consistent_across_frame_rates() {
 #[test]
 fn handling_opposing_yaw_suppresses_bank_assistance_until_released() {
     for hz in [30, 60, 120] {
-        for bank in [KeyCode::KeyQ, KeyCode::KeyE] {
-            for opposing in [
-                vec![KeyCode::KeyA, KeyCode::KeyD],
-                vec![KeyCode::ArrowLeft, KeyCode::ArrowRight],
-                vec![KeyCode::KeyA, KeyCode::ArrowRight],
-                vec![KeyCode::ArrowLeft, KeyCode::KeyD],
-                vec![
-                    KeyCode::KeyA,
-                    KeyCode::ArrowLeft,
-                    KeyCode::KeyD,
-                    KeyCode::ArrowRight,
-                ],
-            ] {
-                let mut p = Pilot::new();
-                p.flight.velocity = Vec3::NEG_Z * 200.;
-                p.fly(&[bank], 0.3, hz);
-                let heading = p.flight.heading;
-                let position = p.transform.translation;
-                let mut keys = opposing.clone();
-                keys.push(bank);
-                p.fly(&keys, 0.1, hz);
-                assert_eq!(p.flight.heading, heading, "{hz} Hz {bank:?} {opposing:?}");
-                assert!(p.flight.tilt.x.abs() > 0.5, "bank remains held");
-                assert!(
-                    p.transform.translation.distance(position) > 10.,
-                    "momentum remains"
-                );
-                // Releasing one opposing key restores direct yaw immediately.
-                p.tick(&[bank, KeyCode::KeyA], 1. / hz as f32);
-                let left_turn =
-                    Quat::from_rotation_y(p.flight.heading) * Quat::from_rotation_y(-heading);
-                assert!((left_turn * Vec3::NEG_Z).x < 0.);
-                let heading = p.flight.heading;
-                // Releasing all yaw controls restores bank assistance without a latch.
-                p.tick(&[bank], 1. / hz as f32);
-                let turn =
-                    Quat::from_rotation_y(p.flight.heading) * Quat::from_rotation_y(-heading);
-                let sign = if bank == KeyCode::KeyE { 1. } else { -1. };
-                assert!((turn * Vec3::NEG_Z).x * sign > 0.);
-            }
+        for bank in [
+            KeyCode::KeyA,
+            KeyCode::KeyD,
+            KeyCode::ArrowLeft,
+            KeyCode::ArrowRight,
+        ] {
+            let opposing = vec![KeyCode::KeyQ, KeyCode::KeyE];
+            let mut p = Pilot::new();
+            p.flight.velocity = Vec3::NEG_Z * 200.;
+            p.fly(&[bank], 0.3, hz);
+            let heading = p.flight.heading;
+            let position = p.transform.translation;
+            let mut keys = opposing.clone();
+            keys.push(bank);
+            p.fly(&keys, 0.1, hz);
+            assert_eq!(p.flight.heading, heading, "{hz} Hz {bank:?} {opposing:?}");
+            assert!(p.flight.tilt.x.abs() > 0.5, "bank remains held");
+            assert!(
+                p.transform.translation.distance(position) > 10.,
+                "momentum remains"
+            );
+            // Releasing one opposing key restores direct yaw immediately.
+            p.tick(&[bank, KeyCode::KeyQ], 1. / hz as f32);
+            let left_turn =
+                Quat::from_rotation_y(p.flight.heading) * Quat::from_rotation_y(-heading);
+            assert!((left_turn * Vec3::NEG_Z).x < 0.);
+            let heading = p.flight.heading;
+            // Releasing all yaw controls restores bank assistance without a latch.
+            p.tick(&[bank], 1. / hz as f32);
+            let turn = Quat::from_rotation_y(p.flight.heading) * Quat::from_rotation_y(-heading);
+            let sign = if matches!(bank, KeyCode::KeyD | KeyCode::ArrowRight) {
+                1.
+            } else {
+                -1.
+            };
+            assert!((turn * Vec3::NEG_Z).x * sign > 0.);
         }
     }
 }
@@ -335,13 +331,13 @@ fn arena_room_supports_fast_lanes_and_banked_curves_without_horizontal_contact()
                 (
                     "left curve",
                     Vec3::new(-420., 150., 180.),
-                    vec![KeyCode::KeyW, KeyCode::KeyQ, KeyCode::Space],
+                    vec![KeyCode::KeyW, KeyCode::KeyA, KeyCode::Space],
                     1.4,
                 ),
                 (
                     "right curve",
                     Vec3::new(-420., 150., 180.),
-                    vec![KeyCode::KeyW, KeyCode::KeyE, KeyCode::Space],
+                    vec![KeyCode::KeyW, KeyCode::KeyD, KeyCode::Space],
                     1.4,
                 ),
             ] {

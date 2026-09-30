@@ -667,8 +667,8 @@ Fly relative to the drone's heading:
 | Keys | Control |
 | --- | --- |
 | **W/S** or **Up/Down** | Pitch forward/backward |
-| **A/D** or **Left/Right** | Turn left/right |
-| **Q/E** | Bank into a coordinated left/right turn |
+| **Q/E** | Turn left/right |
+| **A/D** or **Left/Right** | Bank into a coordinated left/right turn |
 | **Space** / **either Shift** | Ascend/descend; release to hold height |
 | **1–4** | Toggle the corresponding equipped module |
 | **R** | Restart the encounter at the center, level and stationary |
@@ -677,10 +677,10 @@ Fly relative to the drone's heading:
 Pitching and banking redirect rotor thrust to accelerate the drone horizontally.
 Automatic altitude assistance maintains your height while pitching or banking.
 Release pitch/bank controls to smoothly level out; momentum remains and drag
-gradually slows the drift. Tilt in the opposite direction to brake. Q/E also turns
-the nose gradually into the visible bank, up to 90 degrees/second. A/D takes direct control of yaw
+gradually slows the drift. Tilt in the opposite direction to brake. A/D also turns
+the nose gradually into the visible bank, up to 90 degrees/second. Q/E takes direct control of yaw
 while held, including counter-steering against a bank. Opposing yaw keys
-(A+D, Left+Right, or mixed aliases) hold heading even while banked. Releasing Q/E levels the
+(Q+E) hold heading even while banked. Releasing A/D or Left/Right levels the
 drone and fades its assisted turn. Turning
 changes where the nose points and where tilted thrust pushes, while existing
 momentum keeps its world direction.

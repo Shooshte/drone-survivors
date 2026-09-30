@@ -323,7 +323,7 @@ fn death_clamps_health_and_freezes_all_gameplay_until_restart() {
         .enemy_flight
         .max_horizontal_speed = 150.;
     app.world_mut().resource_mut::<CombatConfig>().target_range = 400.;
-    step(&mut app, 2., &[KeyCode::KeyD, KeyCode::Space]);
+    step(&mut app, 2., &[KeyCode::KeyE, KeyCode::Space]);
     assert_eq!(position(&app, drone), START);
     assert_eq!(position(&app, target), before);
     assert_eq!(position(&app, projectile), START + Vec3::Y * 80.);
@@ -353,7 +353,7 @@ fn repeated_reset_restores_encounter_and_wins_over_movement_and_combat() {
         step(
             &mut app,
             1.,
-            &[KeyCode::KeyR, KeyCode::KeyD, KeyCode::Space],
+            &[KeyCode::KeyR, KeyCode::KeyE, KeyCode::Space],
         );
         assert_eq!(position(&app, drone), START);
         assert_eq!(*app.world().resource::<GamePhase>(), GamePhase::Playing);
@@ -554,7 +554,7 @@ fn death_freezes_existing_velocity_and_tilt_then_restart_clears_them() {
     step(
         &mut app,
         0.3,
-        &[KeyCode::KeyW, KeyCode::KeyE, KeyCode::KeyD, KeyCode::Space],
+        &[KeyCode::KeyW, KeyCode::KeyD, KeyCode::KeyE, KeyCode::Space],
     );
     let before = *app.world().get::<DroneFlight>(drone).unwrap();
     let transform = *app.world().get::<Transform>(drone).unwrap();
@@ -570,8 +570,8 @@ fn death_freezes_existing_velocity_and_tilt_then_restart_clears_them() {
         10.,
         &[
             KeyCode::KeyS,
-            KeyCode::KeyQ,
             KeyCode::KeyA,
+            KeyCode::KeyQ,
             KeyCode::ShiftLeft,
         ],
     );
